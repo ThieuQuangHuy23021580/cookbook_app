@@ -549,13 +549,27 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
           return;
         }
 
-        // Then register
+        // Show OTP sent message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('OTP đã được gửi đến email của bạn'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
+
+        // Then register (using mock OTP)
         final response = await authProvider.register(
           email: _emailController.text.trim(),
           username: _emailController.text.trim(),
           password: _passwordController.text,
           fullName: _nameController.text.trim(),
-          otp: '123456', // In real app, user would enter OTP
+          otp: '123456', // Mock OTP for testing
         );
 
         if (response.success) {
@@ -582,16 +596,30 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
           }
         }
       } catch (e) {
-        // Show error message
+        // Show error message with better error handling
         if (mounted) {
+          String errorMessage = 'Đã xảy ra lỗi không xác định';
+          
+          // Handle specific error types
+          if (e.toString().contains('PlatformException')) {
+            errorMessage = 'Lỗi kết nối mạng. Vui lòng kiểm tra internet và thử lại.';
+          } else if (e.toString().contains('SocketException')) {
+            errorMessage = 'Không thể kết nối đến server. Vui lòng thử lại sau.';
+          } else if (e.toString().contains('TimeoutException')) {
+            errorMessage = 'Kết nối quá chậm. Vui lòng thử lại.';
+          } else {
+            errorMessage = 'Lỗi: $e';
+          }
+          
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Lỗi: $e'),
+              content: Text(errorMessage),
               backgroundColor: Colors.red,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
+              duration: const Duration(seconds: 5),
             ),
           );
         }

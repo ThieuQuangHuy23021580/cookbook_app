@@ -94,12 +94,20 @@ class ApiService {
 
   static Future<ApiResponse<String>> sendOtp(String email) async {
     try {
+      // Mock send OTP for testing (uncomment when server has 500 error)
+      // await Future.delayed(const Duration(seconds: 1));
+      // return ApiResponse.success('OTP sent successfully');
+      
+      // Real API call (comment when server has issues)
+
       final response = await _client.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.sendOtp}?email=$email'),
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.sendOtp}'),
         headers: _getHeaders(),
+        body: json.encode({'email': email}),
       ).timeout(ApiConfig.timeout);
 
       return _handleStringResponse(response);
+
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
     }
@@ -113,6 +121,12 @@ class ApiService {
     required String otp,
   }) async {
     try {
+      // Mock register for testing (uncomment when server has 500 error)
+      // await Future.delayed(const Duration(seconds: 1));
+      // return ApiResponse.success('mock_jwt_token_12345');
+      
+      // Real API call (comment when server has issues)
+
       final response = await _client.post(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.register}'),
         headers: _getHeaders(),
@@ -126,6 +140,7 @@ class ApiService {
       ).timeout(ApiConfig.timeout);
 
       return _handleStringResponse(response);
+
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
     }
@@ -136,12 +151,23 @@ class ApiService {
     required String password,
   }) async {
     try {
+      // Mock login for testing (uncomment when server has 500 error)
+      // await Future.delayed(const Duration(seconds: 1));
+      // return ApiResponse.success('mock_jwt_token_12345');
+      
+      // Real API call (comment when server has issues)
+
       final response = await _client.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.login}?username=$username&password=$password'),
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.login}'),
         headers: _getHeaders(),
+        body: json.encode({
+          'username': username,
+          'password': password,
+        }),
       ).timeout(ApiConfig.timeout);
 
       return _handleStringResponse(response);
+
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
     }

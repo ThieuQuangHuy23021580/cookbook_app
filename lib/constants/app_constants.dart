@@ -1,5 +1,9 @@
 class ApiConfig {
+  // Test API - sử dụng JSONPlaceholder để test
   static const String baseUrl = 'https://gearldine-subventral-overcuriously.ngrok-free.dev/api';
+  
+  // Production API (uncomment when backend is ready)
+  // static const String baseUrl = 'https://gearldine-subventral-overcuriously.ngrok-free.dev/api';
 
   static const String auth = '/auth';
   static const String users = '/users';
