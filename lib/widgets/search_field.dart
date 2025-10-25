@@ -3,7 +3,13 @@ import 'package:flutter/material.dart';
 class SearchField extends StatelessWidget {
   final String hint;
   final ValueChanged<String>? onSubmitted;
-  const SearchField({super.key, this.hint = 'Tìm món, nguyên liệu...', this.onSubmitted});
+  final VoidCallback? onFilterPressed;
+  const SearchField({
+    super.key, 
+    this.hint = 'Tìm món, nguyên liệu...', 
+    this.onSubmitted,
+    this.onFilterPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +34,24 @@ class SearchField extends StatelessWidget {
               onSubmitted: onSubmitted,
             ),
           ),
+          if (onFilterPressed != null) ...[
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: onFilterPressed,
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(
+                  Icons.tune,
+                  color: Color(0xFF64748B),
+                  size: 18,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

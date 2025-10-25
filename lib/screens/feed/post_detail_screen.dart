@@ -1,84 +1,659 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../../models/post.dart';
+import '../../providers/recipe_provider.dart';
+import '../../providers/comment_provider.dart';
+import '../../providers/rating_provider.dart';
 
-class PostDetailScreen extends StatelessWidget {
+class PostDetailScreen extends StatefulWidget {
   final Post post;
   const PostDetailScreen({super.key, required this.post});
 
   @override
+  State<PostDetailScreen> createState() => _PostDetailScreenState();
+}
+
+class _PostDetailScreenState extends State<PostDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Load comments and ratings when screen initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final recipeId = int.tryParse(widget.post.id);
+      if (recipeId != null) {
+        context.read<CommentProvider>().loadComments(recipeId);
+        context.read<RatingProvider>().loadAllRatingData(recipeId);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Set system UI overlay style to prevent status bar issues
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+    );
+    
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
-        title: Text(post.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-        actions: [
-          IconButton(icon: const Icon(Icons.bookmark_border), onPressed: () {}),
-        ],
-        backgroundColor: const Color(0xFFEF3A16),
-      ),
-      floatingActionButton: FloatingActionButton.small(
-        backgroundColor: const Color(0xFFEF3A16),
-        onPressed: () {},
-        child: const Icon(Icons.add_comment, color: Colors.white),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Row(
-            children: [
-              const CircleAvatar(child: Icon(Icons.person)),
-              const SizedBox(width: 10),
-              Expanded(child: Text('Người đăng: ${post.author} • ${post.minutesAgo} phút trước')),
-              const Icon(Icons.bookmark, size: 16),
-              const SizedBox(width: 4),
-              Text('${post.savedCount}'),
+      backgroundColor: const Color(0xFFFAFAFA),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(80),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFFEF3A16).withOpacity(0.9),
+                const Color(0xFFFF5A00).withOpacity(0.8),
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          Container(
-            height: 220,
-            decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(12)),
-            clipBehavior: Clip.antiAlias,
-            child: post.imageUrl.isEmpty
-                ? const Icon(Icons.image, size: 48, color: Colors.white70)
-                : Image.asset(post.imageUrl, fit: BoxFit.cover),
-          ),
-          const SizedBox(height: 12),
-          Text(post.title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          const Text('Nguyên liệu', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 6),
-          ...post.ingredients.map((ing) => ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.check_circle_outline, size: 18),
-                title: Text(ing),
-              )),
-          const SizedBox(height: 12),
-          const Text('Cách nấu', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 6),
-          ...List.generate(post.steps.length, (i) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CircleAvatar(radius: 12, backgroundColor: const Color(0xFFEF3A16), child: Text('${i + 1}', style: const TextStyle(color: Colors.white, fontSize: 12))),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(post.steps[i])),
-                  ],
+          child: SafeArea(
+            child: AppBar(
+              leading: Container(
+                margin: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withOpacity(0.3)),
                 ),
-              )),
-          const SizedBox(height: 12),
-          const Text('Bình luận', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 6),
-          ...List.generate(3, (i) => ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.person)),
-                title: Text('Người dùng ${i + 1}'),
-                subtitle: const Text('Bình luận ví dụ...'),
-              )),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+              title: Text(
+                widget.post.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                ),
+              ),
+              actions: [
+                Container(
+                  margin: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withOpacity(0.3)),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.bookmark_border, color: Colors.white),
+                    onPressed: () {},
+                  ),
+                ),
+              ],
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+            ),
+          ),
+        ),
+      ),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFEF3A16).withOpacity(0.4),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+            BoxShadow(
+              color: const Color(0xFFEF3A16).withOpacity(0.6),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+            BoxShadow(
+              color: Colors.white.withOpacity(0.3),
+              blurRadius: 4,
+              offset: const Offset(-2, -2),
+            ),
+          ],
+        ),
+        child: FloatingActionButton.small(
+          backgroundColor: const Color(0xFFEF3A16),
+          elevation: 0,
+          onPressed: () {},
+          child: const Icon(Icons.add_comment, color: Colors.white, size: 20),
+        ),
+      ),
+      body: Stack(
+        children: [
+          // Dynamic background with particles
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFFFAFAFA),
+                  const Color(0xFFF8FAFC),
+                  const Color(0xFFF1F5F9),
+                ],
+              ),
+            ),
+          ),
+          // Floating particles background
+          ...List.generate(10, (index) => 
+            Positioned(
+              top: (index * 70.0) % MediaQuery.of(context).size.height,
+              left: (index * 90.0) % MediaQuery.of(context).size.width,
+              child: AnimatedContainer(
+                duration: Duration(milliseconds: 5000 + (index * 400)),
+                curve: Curves.easeInOut,
+                width: 4 + (index % 2) * 2,
+                height: 4 + (index % 2) * 2,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF6B35).withOpacity(0.06),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ),
+          // Main content
+          ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // Author info card - Glassmorphism
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.3)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  spreadRadius: 0,
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.8),
+                  spreadRadius: 0,
+                  blurRadius: 4,
+                  offset: const Offset(-2, -2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const CircleAvatar(
+                    radius: 24,
+                    backgroundColor: Color(0xFFF1F5F9),
+                    child: Icon(Icons.person, color: Color(0xFF64748B)),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Người đăng: ${widget.post.author}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1F2937),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${widget.post.minutesAgo} phút trước',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.bookmark, size: 16, color: Color(0xFF64748B)),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${widget.post.savedCount}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Main image - 3D effect
+          Container(
+            height: 250,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: widget.post.imageUrl.isEmpty
+                  ? Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            const Color(0xFFF1F5F9),
+                            const Color(0xFFE2E8F0),
+                          ],
+                        ),
+                      ),
+                      child: const Icon(Icons.image, size: 64, color: Color(0xFF64748B)),
+                    )
+                  : Image.network(widget.post.imageUrl, fit: BoxFit.cover),
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Title - Enhanced typography
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.3)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  spreadRadius: 0,
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.8),
+                  spreadRadius: 0,
+                  blurRadius: 4,
+                  offset: const Offset(-2, -2),
+                ),
+              ],
+            ),
+            child: Text(
+              widget.post.title,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF1F2937),
+                letterSpacing: 0.3,
+                height: 1.3,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Ingredients section
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.3)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  spreadRadius: 0,
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.8),
+                  spreadRadius: 0,
+                  blurRadius: 4,
+                  offset: const Offset(-2, -2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Nguyên liệu',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1F2937),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...widget.post.ingredients.map((ing) => Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEF3A16),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.check_circle_outline,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          ing,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            color: Color(0xFF1F2937),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Cooking steps section
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.3)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  spreadRadius: 0,
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.8),
+                  spreadRadius: 0,
+                  blurRadius: 4,
+                  offset: const Offset(-2, -2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Cách nấu',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1F2937),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...List.generate(widget.post.steps.length, (i) => Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              const Color(0xFFEF3A16),
+                              const Color(0xFFFF5A00),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFEF3A16).withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${i + 1}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          widget.post.steps[i],
+                          style: const TextStyle(
+                            fontSize: 15,
+                            color: Color(0xFF1F2937),
+                            fontWeight: FontWeight.w500,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Comments section
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.3)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  spreadRadius: 0,
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.8),
+                  spreadRadius: 0,
+                  blurRadius: 4,
+                  offset: const Offset(-2, -2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Bình luận',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1F2937),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Consumer<CommentProvider>(
+                  builder: (context, commentProvider, child) {
+                    if (commentProvider.isLoading) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20),
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    }
+                    
+                    final comments = commentProvider.getCommentsForRecipe(int.tryParse(widget.post.id) ?? 0);
+                    
+                    if (comments.isEmpty) {
+                      return Container(
+                        padding: const EdgeInsets.all(20),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.chat_bubble_outline,
+                                size: 48,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Chưa có bình luận nào',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    
+                    return Column(
+                      children: comments.map((comment) => Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 20,
+                              backgroundColor: const Color(0xFFF1F5F9),
+                              backgroundImage: comment.userAvatar != null 
+                                  ? NetworkImage(comment.userAvatar!)
+                                  : null,
+                              child: comment.userAvatar == null
+                                  ? const Icon(Icons.person, color: Color(0xFF64748B))
+                                  : null,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    comment.userName,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF1F2937),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    comment.comment,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Color(0xFF6B7280),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )).toList(),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
+          ),
         ],
       ),
     );
+  }
+
+  String _formatTimeAgo(DateTime? dateTime) {
+    if (dateTime == null) return 'Không xác định';
+    
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+    
+    if (difference.inDays > 0) {
+      return '${difference.inDays} ngày trước';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours} giờ trước';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes} phút trước';
+    } else {
+      return 'Vừa xong';
+    }
   }
 }
 
