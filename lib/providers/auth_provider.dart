@@ -252,7 +252,7 @@ class AuthProvider with ChangeNotifier {
     _clearError();
     
     try {
-      final response = await ApiService.getUserProfile(_token!);
+      final response = await ApiService.getCurrentUser(_token!);
       if (response.success && response.data != null) {
         _currentUser = response.data;
         notifyListeners();

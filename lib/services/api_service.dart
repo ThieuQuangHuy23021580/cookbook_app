@@ -327,20 +327,6 @@ class ApiService {
     }
   }
 
-  static Future<ApiResponse<User>> getUserProfile(String token) async {
-    try {
-      final response = await _client.get(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.userProfile}'),
-        headers: _getHeaders(token: token),
-      ).timeout(ApiConfig.timeout);
-
-      return _handleResponse(response, (json) => User.fromJson(json));
-    } catch (e) {
-      return ApiResponse.error(ErrorMessages.networkError);
-    }
-  }
-
-
   static Future<ApiResponse<List<Recipe>>> searchRecipes(String title, {String? token}) async {
     try {
       final response = await _client.get(
