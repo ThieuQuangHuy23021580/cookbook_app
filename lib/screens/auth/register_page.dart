@@ -19,9 +19,12 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _otpController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _isLoading = false;
+  bool _isSendingOtp = false;
+  int _countdown = 0;
 
   // Helper method to create glass text field
   Widget _buildNeumorphicTextField({
@@ -171,8 +174,79 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _otpController.dispose();
     _animationController.dispose();
     super.dispose();
+  }
+
+  // Method to send OTP
+  Future<void> _sendOtp() async {
+    // Validate email first
+    if (_emailController.text.isEmpty || !_emailController.text.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập đúng email')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSendingOtp = true;
+    });
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final response = await authProvider.sendOtp(_emailController.text);
+
+      if (response.success) {
+        // Start countdown
+        setState(() {
+          _countdown = 60;
+        });
+
+        // Update countdown every second
+        _startCountdown();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Mã OTP đã được gửi đến email của bạn'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.message ?? 'Gửi OTP thất bại'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isSendingOtp = false;
+      });
+    }
+  }
+
+  void _startCountdown() {
+    if (_countdown > 0) {
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted) {
+          setState(() {
+            _countdown--;
+          });
+          if (_countdown > 0) {
+            _startCountdown();
+          }
+        }
+      });
+    }
   }
 
   @override
@@ -524,6 +598,74 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
                               }
                               if (value != _passwordController.text) {
                                 return 'Mật khẩu xác nhận không khớp';
+                              }
+                              return null;
+                            },
+                          ),
+                          
+                          const SizedBox(height: 10),
+                          
+                          // OTP Field with Send Button
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildNeumorphicTextField(
+                                  controller: _otpController,
+                                  labelText: 'Mã OTP',
+                                  prefixIcon: Icons.lock_clock,
+                                  keyboardType: TextInputType.number,
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Vui lòng nhập mã OTP';
+                                    }
+                                    if (value.length != 6) {
+                                      return 'Mã OTP phải có 6 chữ số';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              ElevatedButton(
+                                onPressed: _countdown > 0 || _isSendingOtp
+                                    ? null
+                                    : _sendOtp,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFEF3A16),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                child: _isSendingOtp
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : _countdown > 0
+                                        ? Text('$_countdown')
+                                        : const Text('Gửi mã'),
+                              ),
+                            ],
+                          ),
+                          
+                          // Error message for OTP
+                          _buildErrorMessage(
+                            _otpController,
+                            (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Vui lòng nhập mã OTP';
+                              }
+                              if (value.length != 6) {
+                                return 'Mã OTP phải có 6 chữ số';
                               }
                               return null;
                             },

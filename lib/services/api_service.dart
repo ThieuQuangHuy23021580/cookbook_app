@@ -98,16 +98,18 @@ class ApiService {
       // await Future.delayed(const Duration(seconds: 1));
       // return ApiResponse.success('OTP sent successfully');
       
-      // Real API call (comment when server has issues)
-      final requestBody = {'email': email};
+      // Real API call - Using query parameters as per backend spec
+      final uri = Uri.parse('${ApiConfig.baseUrl}${ApiConfig.sendOtp}')
+          .replace(queryParameters: {
+        'email': email,
+      });
       
-      print('🔍 Send OTP Request: ${json.encode(requestBody)}');
-      print('🔍 Send OTP URL: ${ApiConfig.baseUrl}${ApiConfig.sendOtp}');
+      print('🔍 Send OTP Request: email=$email');
+      print('🔍 Send OTP URL: $uri');
       
       final response = await _client.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.sendOtp}'),
+        uri,
         headers: _getHeaders(),
-        body: json.encode(requestBody),
       ).timeout(ApiConfig.timeout);
 
       print('🔍 Send OTP Response: ${response.statusCode} - ${response.body}');
