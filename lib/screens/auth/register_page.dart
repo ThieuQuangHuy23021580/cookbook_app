@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:cookbook_app/screens/main_screen.dart';
 import '../../widgets/gmail_signin_button.dart';
 import '../../providers/auth_provider.dart';
-import 'otp_verification_page.dart';
 import 'dart:ui';
 
 class RegisterPage extends StatefulWidget {
@@ -852,13 +851,39 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
       try {
         final authProvider = context.read<AuthProvider>();
         
-        // First send OTP
-        final otpResponse = await authProvider.sendOtp(_emailController.text.trim());
-        if (!otpResponse.success) {
+        // Register with OTP from field
+        final registerResponse = await authProvider.register(
+          email: _emailController.text.trim(),
+          username: _emailController.text.trim(),
+          password: _passwordController.text,
+          fullName: _nameController.text.trim(),
+          otp: _otpController.text.trim(),
+        );
+        
+        if (registerResponse.success) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Đăng ký thành công!'),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                ),
+              ),
+            );
+            
+            // Navigate to main screen
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const MainScreen()),
+            );
+          }
+        } else {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(otpResponse.message ?? 'Không thể gửi OTP'),
+                content: Text(registerResponse.message ?? 'Đăng ký thất bại'),
                 backgroundColor: Colors.red,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(
@@ -867,34 +892,7 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
               ),
             );
           }
-          return;
         }
-
-         // Show OTP sent message
-         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(
-               content: const Text('OTP đã được gửi đến email của bạn'),
-               backgroundColor: Colors.green,
-               behavior: SnackBarBehavior.floating,
-               shape: RoundedRectangleBorder(
-                 borderRadius: BorderRadius.circular(12),
-               ),
-             ),
-           );
-           
-           // Navigate to OTP verification page
-           Navigator.pushReplacement(
-             context,
-             MaterialPageRoute(
-               builder: (context) => OtpVerificationPage(
-                 email: _emailController.text.trim(),
-                 fullName: _nameController.text.trim(),
-                 password: _passwordController.text,
-               ),
-             ),
-           );
-         }
       } catch (e) {
         // Show error message with better error handling
         if (mounted) {
