@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../../models/post.dart';
+import '../../models/post_model.dart';
+import '../../models/recipe_model.dart';
 import '../../providers/recipe_provider.dart';
 import '../../providers/comment_provider.dart';
 import '../../providers/rating_provider.dart';
@@ -15,6 +16,10 @@ class PostDetailScreen extends StatefulWidget {
 }
 
 class _PostDetailScreenState extends State<PostDetailScreen> {
+  bool _isBookmarked = false;
+  bool _isBookmarking = false;
+  final TextEditingController _commentController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -24,8 +29,252 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       if (recipeId != null) {
         context.read<CommentProvider>().loadComments(recipeId);
         context.read<RatingProvider>().loadAllRatingData(recipeId);
+        // Load bookmark status
+        _loadBookmarkStatus();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadBookmarkStatus() async {
+    final recipeId = int.tryParse(widget.post.id);
+    if (recipeId == null) return;
+
+    final recipeProvider = context.read<RecipeProvider>();
+    _isBookmarked = recipeProvider.bookmarkedRecipeIds.contains(recipeId);
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _toggleBookmark() async {
+    final recipeId = int.tryParse(widget.post.id);
+    if (recipeId == null) return;
+
+    setState(() {
+      _isBookmarking = true;
+    });
+
+    try {
+      final recipeProvider = context.read<RecipeProvider>();
+      await recipeProvider.toggleBookmarkRecipe(recipeId);
+      
+      // Update local state
+      _isBookmarked = recipeProvider.bookmarkedRecipeIds.contains(recipeId);
+      
+      if (mounted) {
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_isBookmarked ? 'Đã lưu công thức' : 'Đã bỏ lưu công thức'),
+            backgroundColor: _isBookmarked ? Colors.green : Colors.orange,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isBookmarking = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _addComment() async {
+    final recipeId = int.tryParse(widget.post.id);
+    if (recipeId == null) return;
+
+    final commentText = _commentController.text.trim();
+    if (commentText.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập nội dung bình luận'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+          ),
+        ),
+      );
+      return;
+    }
+
+    try {
+      final commentProvider = context.read<CommentProvider>();
+      final response = await commentProvider.addComment(recipeId, commentText);
+      
+      if (response.success) {
+        _commentController.clear();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đã thêm bình luận thành công'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.message ?? 'Lỗi thêm bình luận'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(12)),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showCommentDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: EdgeInsets.only(
+          top: 20,
+          left: 20,
+          right: 20,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Thêm bình luận',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1F2937),
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _commentController,
+              maxLines: 4,
+              decoration: InputDecoration(
+                hintText: 'Viết bình luận của bạn...',
+                hintStyle: TextStyle(color: Colors.grey[400]),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFEF3A16), width: 2),
+                ),
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                    ),
+                    child: const Text(
+                      'Hủy',
+                      style: TextStyle(
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      await _addComment();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFEF3A16),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Đăng bình luận',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -95,8 +344,20 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     border: Border.all(color: Colors.white.withOpacity(0.3)),
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.bookmark_border, color: Colors.white),
-                    onPressed: () {},
+                    icon: _isBookmarking 
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Icon(
+                            _isBookmarked ? Icons.bookmark : Icons.bookmark_border, 
+                            color: Colors.white,
+                          ),
+                    onPressed: _isBookmarking ? null : _toggleBookmark,
                   ),
                 ),
               ],
@@ -130,7 +391,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         child: FloatingActionButton.small(
           backgroundColor: const Color(0xFFEF3A16),
           elevation: 0,
-          onPressed: () {},
+          onPressed: _showCommentDialog,
           child: const Icon(Icons.add_comment, color: Colors.white, size: 20),
         ),
       ),
@@ -248,13 +509,49 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     children: [
                       const Icon(Icons.bookmark, size: 16, color: Color(0xFF64748B)),
                       const SizedBox(width: 4),
-                      Text(
-                        '${widget.post.savedCount}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF64748B),
-                        ),
+                      Consumer<RecipeProvider>(
+                        builder: (context, recipeProvider, child) {
+                          final recipeId = int.tryParse(widget.post.id);
+                          if (recipeId == null) {
+                            return Text(
+                              '${widget.post.savedCount}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF64748B),
+                              ),
+                            );
+                          }
+                          
+                          // Find the recipe in the current list to get updated count
+                          final recipe = recipeProvider.recipes.firstWhere(
+                            (r) => r.id == recipeId,
+                            orElse: () => recipeProvider.searchResults.firstWhere(
+                              (r) => r.id == recipeId,
+                              orElse: () => Recipe(
+                                id: recipeId,
+                                title: widget.post.title,
+                                imageUrl: widget.post.imageUrl,
+                                servings: 4,
+                                cookingTime: 30,
+                                userId: 0,
+                                userName: widget.post.author,
+                                ingredients: [],
+                                steps: [],
+                                bookmarksCount: widget.post.savedCount,
+                              ),
+                            ),
+                          );
+                          
+                          return Text(
+                            '${recipe.bookmarksCount}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF64748B),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -639,22 +936,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     );
   }
 
-  String _formatTimeAgo(DateTime? dateTime) {
-    if (dateTime == null) return 'Không xác định';
-    
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-    
-    if (difference.inDays > 0) {
-      return '${difference.inDays} ngày trước';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} giờ trước';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} phút trước';
-    } else {
-      return 'Vừa xong';
-    }
-  }
 }
 
 

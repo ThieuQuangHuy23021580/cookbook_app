@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../constants/app_constants.dart';
-import '../models/api_response.dart';
+import '../models/api_response_model.dart';
 import '../models/user_model.dart';
 import '../models/recipe_model.dart';
 import '../models/comment_rating_model.dart';
@@ -99,16 +99,23 @@ class ApiService {
       // return ApiResponse.success('OTP sent successfully');
       
       // Real API call (comment when server has issues)
-
+      final requestBody = {'email': email};
+      
+      print('🔍 Send OTP Request: ${json.encode(requestBody)}');
+      print('🔍 Send OTP URL: ${ApiConfig.baseUrl}${ApiConfig.sendOtp}');
+      
       final response = await _client.post(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.sendOtp}'),
         headers: _getHeaders(),
-        body: json.encode({'email': email}),
+        body: json.encode(requestBody),
       ).timeout(ApiConfig.timeout);
 
+      print('🔍 Send OTP Response: ${response.statusCode} - ${response.body}');
+      
       return _handleStringResponse(response);
 
     } catch (e) {
+      print('❌ Send OTP Error: $e');
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }
@@ -126,22 +133,29 @@ class ApiService {
       // return ApiResponse.success('mock_jwt_token_12345');
       
       // Real API call (comment when server has issues)
-
+      final requestBody = {
+        'email': email,
+        'username': username,
+        'password': password,
+        'fullName': fullName,
+        'otp': otp,
+      };
+      
+      print('🔍 Register Request: ${json.encode(requestBody)}');
+      print('🔍 Register URL: ${ApiConfig.baseUrl}${ApiConfig.register}');
+      
       final response = await _client.post(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.register}'),
         headers: _getHeaders(),
-        body: json.encode({
-          'email': email,
-          'username': username,
-          'password': password,
-          'fullName': fullName,
-          'otp': otp,
-        }),
+        body: json.encode(requestBody),
       ).timeout(ApiConfig.timeout);
 
+      print('🔍 Register Response: ${response.statusCode} - ${response.body}');
+      
       return _handleStringResponse(response);
 
     } catch (e) {
+      print('❌ Register Error: $e');
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }
@@ -155,20 +169,27 @@ class ApiService {
       // await Future.delayed(const Duration(seconds: 1));
       // return ApiResponse.success('mock_jwt_token_12345');
       
-      // Real API call (comment when server has issues)
-
+      // Real API call - Using query parameters as per backend spec
+      final uri = Uri.parse('${ApiConfig.baseUrl}${ApiConfig.login}')
+          .replace(queryParameters: {
+        'username': username,
+        'password': password,
+      });
+      
+      print('🔍 Login Request: username=$username, password=***');
+      print('🔍 Login URL: $uri');
+      
       final response = await _client.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.login}'),
+        uri,
         headers: _getHeaders(),
-        body: json.encode({
-          'username': username,
-          'password': password,
-        }),
       ).timeout(ApiConfig.timeout);
 
+      print('🔍 Login Response: ${response.statusCode} - ${response.body}');
+      
       return _handleStringResponse(response);
 
     } catch (e) {
+      print('❌ Login Error: $e');
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }
@@ -303,6 +324,20 @@ class ApiService {
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }
+
+  static Future<ApiResponse<User>> getUserProfile(String token) async {
+    try {
+      final response = await _client.get(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.userProfile}'),
+        headers: _getHeaders(token: token),
+      ).timeout(ApiConfig.timeout);
+
+      return _handleResponse(response, (json) => User.fromJson(json));
+    } catch (e) {
+      return ApiResponse.error(ErrorMessages.networkError);
+    }
+  }
+
 
   static Future<ApiResponse<List<Recipe>>> searchRecipes(String title, {String? token}) async {
     try {

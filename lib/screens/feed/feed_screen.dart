@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/index.dart';
-import '../../models/post.dart';
+import '../../models/post_model.dart';
 import '../../providers/recipe_provider.dart';
-import '../../providers/auth_provider.dart';
 import '../../widgets/filter_bottom_sheet.dart';
 
 class FeedScreen extends StatefulWidget {
@@ -23,8 +22,6 @@ class _FeedScreenState extends State<FeedScreen> {
   
   // Search state
   String _currentSearchQuery = '';
-  String _includeFilter = '';
-  String _excludeFilter = '';
 
   @override
   void initState() {
@@ -156,94 +153,27 @@ class _FeedScreenState extends State<FeedScreen> {
           ListView(
             padding: const EdgeInsets.all(16),
             children: [
-          const SizedBox(height: 15),
-          Row(children: [
-            _sectionHeader('Từ khóa thịnh hành'),
-            const SizedBox(width: 50),
-            Text(
-                "Cập nhật 04:25",
-                style: const TextStyle(fontSize: 13),
+          const SizedBox(height: 10),
+          _sectionHeader('Từ khóa thịnh hành'),
+          const SizedBox(height: 4),
+          Text(
+            "Cập nhật 04:25",
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0xFF6B7280),
+              fontWeight: FontWeight.w500,
             ),
-          ],),
+          ),
           const SizedBox(height: 10),
           _popularGrid(),
           const SizedBox(height: 65),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _sectionHeader('Món bạn mới xem gần đây'),
-              Row(
-                children: [
-                  // Nút lướt sang trái - Neumorphism Design
-                  GestureDetector(
-                    onTap: _autoScrollRecentLeft,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(28),
-                        boxShadow: [
-                          // Outer shadow (dark)
-                          BoxShadow(
-                            color: const Color(0xFF64748B).withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(4, 4),
-                          ),
-                          // Inner shadow (light)
-                          BoxShadow(
-                            color: Colors.white.withOpacity(0.8),
-                            blurRadius: 8,
-                            offset: const Offset(-4, -4),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.arrow_back_ios,
-                        size: 16,
-                        color: Color(0xFF475569),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Nút lướt sang phải - Neumorphism Design
-                  GestureDetector(
-                    onTap: _autoScrollRecentRight,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(28),
-                        boxShadow: [
-                          // Outer shadow (dark)
-                          BoxShadow(
-                            color: const Color(0xFF64748B).withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(4, 4),
-                          ),
-                          // Inner shadow (light)
-                          BoxShadow(
-                            color: Colors.white.withOpacity(0.8),
-                            blurRadius: 8,
-                            offset: const Offset(-4, -4),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.arrow_forward_ios,
-                        size: 16,
-                        color: Color(0xFF475569),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+          _sectionHeader('Món bạn mới xem gần đây'),
           const SizedBox(height: 10),
           _recentHorizontal(),
-          const SizedBox(height: 65),
+          const SizedBox(height: 16),
+          // Nút lướt bên dưới danh sách
+          _buildScrollButtons(),
+          const SizedBox(height: 50),
           _sectionHeader('Tìm kiếm gần đây'),
           const SizedBox(height: 10),
           ...recentKeywords.asMap().entries.map((entry) {
@@ -370,7 +300,7 @@ class _FeedScreenState extends State<FeedScreen> {
     return Text(
       title, 
       style: const TextStyle(
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: FontWeight.w700,
         letterSpacing: -0.5,
         color: Color(0xFF1A1A1A),
@@ -473,7 +403,7 @@ class _FeedScreenState extends State<FeedScreen> {
                     alignment: Alignment.bottomCenter,
                     child: FractionallySizedBox(
                       widthFactor: 1,
-                      heightFactor: 0.35,
+                      heightFactor: 0.40,
                       child: Container(
                         padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
                         alignment: Alignment.center,
@@ -658,6 +588,77 @@ class _FeedScreenState extends State<FeedScreen> {
     );
   }
 
+  Widget _buildScrollButtons() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Nút lướt sang trái - Neumorphism Design
+        GestureDetector(
+          onTap: _autoScrollRecentLeft,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                // Outer shadow (dark)
+                BoxShadow(
+                  color: const Color(0xFF64748B).withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(4, 4),
+                ),
+                // Inner shadow (light)
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.8),
+                  blurRadius: 8,
+                  offset: const Offset(-4, -4),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.arrow_back_ios,
+              size: 16,
+              color: Color(0xFF475569),
+            ),
+          ),
+        ),
+        const SizedBox(width: 20),
+        // Nút lướt sang phải - Neumorphism Design
+        GestureDetector(
+          onTap: _autoScrollRecentRight,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                // Outer shadow (dark)
+                BoxShadow(
+                  color: const Color(0xFF64748B).withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(4, 4),
+                ),
+                // Inner shadow (light)
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.8),
+                  blurRadius: 8,
+                  offset: const Offset(-4, -4),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Color(0xFF475569),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   void _openSearch(String query) {
     _currentSearchQuery = query;
     Navigator.push(context, MaterialPageRoute(builder: (_) => SearchResultsScreen(initialQuery: query)));
@@ -671,10 +672,7 @@ class _FeedScreenState extends State<FeedScreen> {
       builder: (context) => FilterBottomSheet(
         initialQuery: _currentSearchQuery,
         onApplyFilter: (includeQuery, excludeQuery) {
-          setState(() {
-            _includeFilter = includeQuery;
-            _excludeFilter = excludeQuery;
-          });
+          // Filter functionality can be implemented here
           
           // Combine search query with filters
           String finalQuery = _currentSearchQuery;

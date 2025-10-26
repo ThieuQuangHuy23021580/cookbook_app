@@ -130,7 +130,31 @@ class RecipeRepository {
     if (token == null) {
       return ApiResponse.error(ErrorMessages.unauthorized);
     }
-    // Temporarily return empty list until backend API is ready
-    return ApiResponse.success([]);
+    
+    try {
+      // First get the list of bookmarked recipe IDs
+      final idsResponse = await ApiService.getBookmarkedRecipeIds(token);
+      if (!idsResponse.success) {
+        return ApiResponse.error(idsResponse.message ?? 'Không thể lấy danh sách ID đã lưu');
+      }
+      
+      final bookmarkedIds = idsResponse.data ?? [];
+      if (bookmarkedIds.isEmpty) {
+        return ApiResponse.success([]);
+      }
+      
+      // Then get the full recipe details for each ID
+      List<Recipe> bookmarkedRecipes = [];
+      for (int id in bookmarkedIds) {
+        final recipeResponse = await ApiService.getRecipeById(id, token: token);
+        if (recipeResponse.success && recipeResponse.data != null) {
+          bookmarkedRecipes.add(recipeResponse.data!);
+        }
+      }
+      
+      return ApiResponse.success(bookmarkedRecipes);
+    } catch (e) {
+      return ApiResponse.error('Lỗi tải công thức đã lưu: $e');
+    }
   }
 }

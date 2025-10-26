@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cookbook_app/screens/main_screen.dart';
-import '../../widgets/gmail_signin_button.dart';
 import '../../providers/auth_provider.dart';
+import 'dart:ui';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -19,7 +18,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   bool _isLoading = false;
 
   late AnimationController _animationController;
-  // Provide a safe default so build doesn't crash before initState runs (e.g., after hot reload)
   Animation<double> _animation = const AlwaysStoppedAnimation(0.0);
 
   @override
@@ -47,6 +45,52 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     _passwordController.dispose();
     _animationController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final response = await authProvider.login(
+        username: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      if (response.success) {
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/main');
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.message ?? 'Đăng nhập thất bại'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -98,15 +142,15 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                   return Transform.translate(
                     offset: Offset(
                       0,
-                      -50 * _animation.value,
+                      -30 * _animation.value,
                     ),
                     child: Opacity(
                       opacity: (1 - _animation.value) * 0.6,
                       child: Container(
-                        width: 4 + (index % 3) * 2,
-                        height: 4 + (index % 3) * 2,
+                        width: 3 + (index % 3) * 2,
+                        height: 3 + (index % 3) * 2,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withOpacity(0.85),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -142,9 +186,21 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                   Container(
                     width: 100,
                     height: 100,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.8),
+                          blurRadius: 10,
+                          offset: const Offset(-5, -5),
+                        ),
+                      ],
                     ),
                     child: ShaderMask(
                       shaderCallback: (Rect bounds) {
@@ -156,7 +212,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                       child: const Icon(
                         Icons.restaurant,
                         size: 60,
-                        color: Color(0xFFEF3A16), // cần màu fill để mask hoạt động
+                        color: Color(0xFFEF3A16),
                       ),
                     ),
                   ),
@@ -169,6 +225,18 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black26,
+                          blurRadius: 10,
+                          offset: Offset(0, 2),
+                        ),
+                        Shadow(
+                          color: Colors.black12,
+                          blurRadius: 20,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
                     ),
                   ),
 
@@ -184,95 +252,292 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                   
                   const SizedBox(height: 20),
                   
-                  // Login Form
-                  Container(
+                  // Login Form - Glass Effect
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
                     padding: const EdgeInsets.all(30),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Colors.white.withOpacity(0.9),
+                              Colors.white.withOpacity(0.8),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.6),
+                            width: 2,
+                          ),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          spreadRadius: 2,
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                            BoxShadow(
+                              color: Colors.white.withOpacity(0.1),
+                              blurRadius: 20,
+                              offset: const Offset(-5, -5),
                         ),
                       ],
                     ),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        children: [
-                          // Email Field
-                          TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            decoration: InputDecoration(
-                              labelText: 'Email',
-                              prefixIcon: const Icon(Icons.email),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFEF3A16),
-                                  width: 2,
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            children: [
+                              // Email Field with nested ClipRRect
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.transparent,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      // Inner ClipRRect with glass effect for TextField
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(16),
+                                        child: BackdropFilter(
+                                          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                                colors: [
+                                                  Colors.white.withOpacity(0.7),
+                                                  Colors.white.withOpacity(0.6),
+                                                ],
+                                              ),
+                                              borderRadius: BorderRadius.circular(16),
+                                              border: Border.all(
+                                                color: Colors.white.withOpacity(0.8),
+                                                width: 1.5,
+                                              ),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withOpacity(0.1),
+                                                  blurRadius: 15,
+                                                  offset: const Offset(0, 8),
+                                                ),
+                                                BoxShadow(
+                                                  color: Colors.white.withOpacity(0.3),
+                                                  blurRadius: 10,
+                                                  offset: const Offset(-2, -2),
+                                                ),
+                                              ],
+                                            ),
+                                            child: TextFormField(
+                                              controller: _emailController,
+                                              keyboardType: TextInputType.emailAddress,
+                                              style: const TextStyle(
+                                                color: Color(0xFF0F172A),
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 16,
+                                              ),
+                                              decoration: InputDecoration(
+                                                labelText: 'Email',
+                                                labelStyle: const TextStyle(
+                                                  color: Color(0xFF475569),
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 15,
+                                                ),
+                                                prefixIcon: const Icon(
+                                                  Icons.email_outlined,
+                                                  color: Color(0xFFEF3A16),
+                                                ),
+                                                border: InputBorder.none,
+                                                contentPadding: const EdgeInsets.symmetric(
+                                                  horizontal: 20,
+                                                  vertical: 16,
+                                                ),
+                                                filled: true,
+                                                fillColor: Colors.transparent,
+                                                errorStyle: const TextStyle(height: 0),
+                                              ),
+                                              validator: (value) {
+                                                if (value == null || value.isEmpty) {
+                                                  return 'Vui lòng nhập email';
+                                                }
+                                                if (!value.contains('@')) {
+                                                  return 'Email không hợp lệ';
+                                                }
+                                                return null;
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      
+                                      // Error message outside inner ClipRRect (no glass effect)
+                                      ValueListenableBuilder<TextEditingValue>(
+                                        valueListenable: _emailController,
+                                        builder: (context, value, child) {
+                                          String? error;
+                                          if (value.text.isNotEmpty) {
+                                            if (!value.text.contains('@')) {
+                                              error = 'Email không hợp lệ';
+                                            }
+                                          }
+                                          
+                                          if (error != null) {
+                                            return Padding(
+                                              padding: const EdgeInsets.only(top: 8, left: 4),
+                                              child: Text(
+                                                error,
+                                                style: const TextStyle(
+                                                  color: Color(0xFFEF3A16),
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                          return const SizedBox.shrink();
+                                        },
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Vui lòng nhập email';
-                              }
-                              if (!value.contains('@')) {
-                                return 'Email không hợp lệ';
-                              }
-                              return null;
-                            },
-                          ),
                           
                           const SizedBox(height: 20),
                           
-                          // Password Field
-                          TextFormField(
-                            controller: _passwordController,
-                            obscureText: !_isPasswordVisible,
-                            decoration: InputDecoration(
-                              labelText: 'Mật khẩu',
-                              prefixIcon: const Icon(Icons.lock),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _isPasswordVisible
-                                      ? Icons.visibility
-                                      : Icons.visibility_off,
+                          // Password Field with nested ClipRRect
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.transparent,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      // Inner ClipRRect with glass effect for TextField
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(16),
+                                        child: BackdropFilter(
+                                          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                                colors: [
+                                                  Colors.white.withOpacity(0.7),
+                                                  Colors.white.withOpacity(0.6),
+                                                ],
+                                              ),
+                                              borderRadius: BorderRadius.circular(16),
+                                              border: Border.all(
+                                                color: Colors.white.withOpacity(0.8),
+                                                width: 1.5,
+                                              ),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withOpacity(0.1),
+                                                  blurRadius: 15,
+                                                  offset: const Offset(0, 8),
+                                                ),
+                                                BoxShadow(
+                                                  color: Colors.white.withOpacity(0.3),
+                                                  blurRadius: 10,
+                                                  offset: const Offset(-2, -2),
+                                                ),
+                                              ],
+                                            ),
+                                            child: TextFormField(
+                                              controller: _passwordController,
+                                              obscureText: !_isPasswordVisible,
+                                              style: const TextStyle(
+                                                color: Color(0xFF0F172A),
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 16,
+                                              ),
+                                              decoration: InputDecoration(
+                                                labelText: 'Mật khẩu',
+                                                labelStyle: const TextStyle(
+                                                  color: Color(0xFF475569),
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 15,
+                                                ),
+                                                prefixIcon: const Icon(
+                                                  Icons.lock_outline,
+                                                  color: Color(0xFFEF3A16),
+                                                ),
+                                                suffixIcon: IconButton(
+                                                  icon: Icon(
+                                                    _isPasswordVisible
+                                                        ? Icons.visibility_outlined
+                                                        : Icons.visibility_off_outlined,
+                                                    color: const Color(0xFF64748B),
+                                                  ),
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      _isPasswordVisible = !_isPasswordVisible;
+                                                    });
+                                                  },
+                                                ),
+                                                border: InputBorder.none,
+                                                contentPadding: const EdgeInsets.symmetric(
+                                                  horizontal: 20,
+                                                  vertical: 16,
+                                                ),
+                                                filled: true,
+                                                fillColor: Colors.transparent,
+                                                errorStyle: const TextStyle(height: 0),
+                                              ),
+                                              validator: (value) {
+                                                if (value == null || value.isEmpty) {
+                                                  return 'Vui lòng nhập mật khẩu';
+                                                }
+                                                if (value.length < 6) {
+                                                  return 'Mật khẩu phải có ít nhất 6 ký tự';
+                                                }
+                                                return null;
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      
+                                      // Error message outside inner ClipRRect (no glass effect)
+                                      ValueListenableBuilder<TextEditingValue>(
+                                        valueListenable: _passwordController,
+                                        builder: (context, value, child) {
+                                          String? error;
+                                          if (value.text.isNotEmpty) {
+                                            if (value.text.length < 6) {
+                                              error = 'Mật khẩu phải có ít nhất 6 ký tự';
+                                            }
+                                          }
+                                          
+                                          if (error != null) {
+                                            return Padding(
+                                              padding: const EdgeInsets.only(top: 8, left: 4),
+                                              child: Text(
+                                                error,
+                                                style: const TextStyle(
+                                                  color: Color(0xFFEF3A16),
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                          return const SizedBox.shrink();
+                                        },
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                onPressed: () {
-                                  setState(() {
-                                    _isPasswordVisible = !_isPasswordVisible;
-                                  });
-                                },
                               ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFEF3A16),
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Vui lòng nhập mật khẩu';
-                              }
-                              if (value.length < 6) {
-                                return 'Mật khẩu phải có ít nhất 6 ký tự';
-                              }
-                              return null;
-                            },
-                          ),
                           
                           const SizedBox(height: 5),
                           
@@ -281,7 +546,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                             alignment: Alignment.centerRight,
                             child: TextButton(
                               onPressed: () {
-                                // TODO: Implement forgot password
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text('Tính năng quên mật khẩu đang phát triển'),
@@ -331,62 +595,10 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                       ),
                     ),
                   ),
-                  
-                  const SizedBox(height: 10),
-                  
-                  // Divider with "or"
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            height: 1,
-                            color: Colors.white.withOpacity(0.3),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(
-                            'hoặc',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Container(
-                            height: 1,
-                            color: Colors.white.withOpacity(0.3),
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                   
-                  const SizedBox(height: 15),
-                  
-                  // Gmail Sign-In Button
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: GmailSignInButton(
-                      text: 'Đăng nhập với Gmail',
-                      onSuccess: () {
-                        // Navigate to main screen after successful Gmail sign-in
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (context) => const MainScreen()),
-                        );
-                      },
-                      onError: () {
-                        // Handle error if needed
-                      },
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 20),
                   
                   // Register Link
                   Row(
@@ -396,7 +608,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         'Chưa có tài khoản? ',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 15,
+                          fontSize: 16,
                         ),
                       ),
                       TextButton(
@@ -407,8 +619,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                           'Đăng ký ngay',
                           style: TextStyle(
                             color: Colors.white,
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            fontSize: 15,
                           ),
                         ),
                       ),
@@ -421,65 +633,5 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         ],
       ),
     );
-  }
-
-  void _handleLogin() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
-
-      try {
-        final authProvider = context.read<AuthProvider>();
-        final response = await authProvider.login(
-          username: _emailController.text.trim(),
-          password: _passwordController.text,
-        );
-
-        if (response.success) {
-          // Navigate to main screen
-          if (mounted) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const MainScreen()),
-            );
-          }
-        } else {
-          // Show error message
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(response.message ?? 'Đăng nhập thất bại'),
-                backgroundColor: Colors.red,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            );
-          }
-        }
-      } catch (e) {
-        // Show error message
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Lỗi: $e'),
-              backgroundColor: Colors.red,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          );
-        }
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-      }
-    }
   }
 }

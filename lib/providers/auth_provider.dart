@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/api_service.dart';
 import '../models/user_model.dart';
-import '../models/api_response.dart';
+import '../models/api_response_model.dart';
 
 class AuthProvider with ChangeNotifier {
   // State variables
@@ -9,6 +10,7 @@ class AuthProvider with ChangeNotifier {
   User? _currentUser;
   String? _token;
   bool _isLoading = false;
+  bool _isLoadingProfile = false;
   String? _error;
 
   // Getters
@@ -16,6 +18,7 @@ class AuthProvider with ChangeNotifier {
   User? get currentUser => _currentUser;
   String? get token => _token;
   bool get isLoading => _isLoading;
+  bool get isLoadingProfile => _isLoadingProfile;
   String? get error => _error;
 
   // Initialize auth state
@@ -241,8 +244,62 @@ class AuthProvider with ChangeNotifier {
   }
 
   // Helper methods
+  // Load user profile with detailed information
+  Future<void> loadUserProfile() async {
+    if (!_isLoggedIn || _token == null) return;
+    
+    _setLoadingProfile(true);
+    _clearError();
+    
+    try {
+      final response = await ApiService.getUserProfile(_token!);
+      if (response.success && response.data != null) {
+        _currentUser = response.data;
+        notifyListeners();
+      } else {
+        _setError(response.message ?? 'Không thể tải thông tin người dùng');
+      }
+    } catch (e) {
+      _setError('Lỗi tải thông tin: $e');
+    } finally {
+      _setLoadingProfile(false);
+    }
+  }
+
+  // Load user stats (mock data for now)
+  Future<void> loadUserStats() async {
+    if (!_isLoggedIn) return;
+    
+    try {
+      // Mock stats - replace with real API call when available
+      final mockStats = UserStats(
+        recipesCount: 15,
+        likesReceived: 120,
+        bookmarksReceived: 45,
+        commentsCount: 80,
+        ratingsGiven: 25,
+        averageRating: 4.2,
+        followersCount: 150,
+        followingCount: 75,
+      );
+      
+      // Update current user with stats
+      if (_currentUser != null) {
+        _currentUser = _currentUser!.copyWith(stats: mockStats);
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error loading user stats: $e');
+    }
+  }
+
   void _setLoading(bool loading) {
     _isLoading = loading;
+    notifyListeners();
+  }
+
+  void _setLoadingProfile(bool loading) {
+    _isLoadingProfile = loading;
     notifyListeners();
   }
 

@@ -57,12 +57,8 @@ class Recipe {
       userId: json['userId'] as int,
       userName: json['userName'] as String,
       userAvatar: json['userAvatar'] as String?,
-      ingredients: (json['ingredients'] as List<dynamic>?)
-          ?.map((e) => Ingredient.fromJson(e as Map<String, dynamic>))
-          .toList() ?? [],
-      steps: (json['steps'] as List<dynamic>?)
-          ?.map((e) => RecipeStep.fromJson(e as Map<String, dynamic>))
-          .toList() ?? [],
+      ingredients: _parseIngredients(json['ingredients']),
+      steps: _parseSteps(json['steps']),
       createdAt: json['createdAt'] != null 
           ? DateTime.parse(json['createdAt'] as String) 
           : null,
@@ -103,6 +99,40 @@ class Recipe {
       'isBookmarkedByCurrentUser': isBookmarkedByCurrentUser,
       'userRating': userRating,
     };
+  }
+
+  static List<Ingredient> _parseIngredients(dynamic ingredientsData) {
+    if (ingredientsData == null) return [];
+    
+    try {
+      if (ingredientsData is List) {
+        return ingredientsData
+            .where((e) => e is Map<String, dynamic>)
+            .map((e) => Ingredient.fromJsonSafe(e as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (e) {
+      print('❌ Error parsing ingredients: $e');
+      return [];
+    }
+  }
+
+  static List<RecipeStep> _parseSteps(dynamic stepsData) {
+    if (stepsData == null) return [];
+    
+    try {
+      if (stepsData is List) {
+        return stepsData
+            .where((e) => e is Map<String, dynamic>)
+            .map((e) => RecipeStep.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (e) {
+      print('❌ Error parsing steps: $e');
+      return [];
+    }
   }
 
   Recipe copyWith({

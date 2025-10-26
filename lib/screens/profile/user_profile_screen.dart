@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../../core/index.dart';
-import '../../models/post.dart';
+import '../../models/recipe_model.dart';
+import '../../models/post_model.dart';
+import '../../providers/recipe_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../feed/post_detail_screen.dart';
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
@@ -15,9 +20,41 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String _searchQuery = '';
 
   @override
+  void initState() {
+    super.initState();
+    // Load user profile, stats, and recipes when screen initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AuthProvider>().loadUserProfile();
+      context.read<AuthProvider>().loadUserStats();
+      context.read<RecipeProvider>().loadMyRecipes();
+    });
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  String _formatTimeAgo(DateTime? dateTime) {
+    if (dateTime == null) return 'Không xác định';
+    
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+    
+    if (difference.inDays > 0) {
+      return '${difference.inDays} ngày trước';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours} giờ trước';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes} phút trước';
+    } else {
+      return 'Vừa xong';
+    }
+  }
+
+  String _formatDate(DateTime dateTime) {
+    return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year}';
   }
 
   @override
@@ -181,48 +218,66 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               ),
                             ],
                           ),
-                          child: const CircleAvatar(
-                            radius: 50,
-                            backgroundColor: Colors.white,
-                            child: Icon(
-                              Icons.person,
-                              size: 50,
-                              color: Color(0xFFEF3A16),
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black26,
-                                  offset: Offset(1, 1),
-                                  blurRadius: 2,
-                                ),
-                              ],
-                            ),
+                          child: Consumer<AuthProvider>(
+                            builder: (context, authProvider, child) {
+                              final user = authProvider.currentUser;
+                              return CircleAvatar(
+                                radius: 50,
+                                backgroundColor: Colors.white,
+                                backgroundImage: user?.avatar != null && user!.avatar!.isNotEmpty
+                                    ? NetworkImage(user.avatar!)
+                                    : null,
+                                child: user?.avatar == null || user!.avatar!.isEmpty
+                                    ? const Icon(
+                                        Icons.person,
+                                        size: 50,
+                                        color: Color(0xFFEF3A16),
+                                        shadows: [
+                                          Shadow(
+                                            color: Colors.black26,
+                                            offset: Offset(1, 1),
+                                            blurRadius: 2,
+                                          ),
+                                        ],
+                                      )
+                                    : null,
+                              );
+                            },
                           ),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'Tên người dùng',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.5,
-                            shadows: [
-                              Shadow(
-                                color: Colors.black26,
-                                offset: Offset(1, 1),
-                                blurRadius: 2,
+                        Consumer<AuthProvider>(
+                          builder: (context, authProvider, child) {
+                            return Text(
+                              authProvider.currentUser?.fullName ?? 'Tên người dùng',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.5,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black26,
+                                    offset: Offset(1, 1),
+                                    blurRadius: 2,
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          'user@example.com',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        Consumer<AuthProvider>(
+                          builder: (context, authProvider, child) {
+                            return Text(
+                              authProvider.currentUser?.email ?? 'user@example.com',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -254,13 +309,38 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(20),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: const [
-                        _StatTile(label: 'Bài đã đăng', value: '12'),
-                        _StatTile(label: 'Đã lưu', value: '58'),
-                        _StatTile(label: 'Người theo dõi', value: '230'),
-                      ],
+                    child: Consumer<AuthProvider>(
+                      builder: (context, authProvider, child) {
+                        if (authProvider.isLoadingProfile) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20),
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFEF3A16)),
+                              ),
+                            ),
+                          );
+                        }
+                        
+                        final user = authProvider.currentUser;
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _StatTile(
+                              label: 'Bài đã đăng', 
+                              value: user?.recipesCount.toString() ?? '0'
+                            ),
+                            _StatTile(
+                              label: 'Lượt thích', 
+                              value: user?.likesReceived.toString() ?? '0'
+                            ),
+                            _StatTile(
+                              label: 'Người theo dõi', 
+                              value: user?.followersCount.toString() ?? '0'
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -305,9 +385,39 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        _infoTile(icon: Icons.badge, title: 'Họ và tên', value: 'Tên người dùng'),
-                        _infoTile(icon: Icons.phone, title: 'Số điện thoại', value: '+84 123 456 789'),
-                        _infoTile(icon: Icons.location_on, title: 'Địa chỉ', value: 'TP. Hồ Chí Minh'),
+                        Consumer<AuthProvider>(
+                          builder: (context, authProvider, child) {
+                            final user = authProvider.currentUser;
+                            return Column(
+                              children: [
+                                _infoTile(
+                                  icon: Icons.badge, 
+                                  title: 'Họ và tên', 
+                                  value: user?.fullName ?? 'Chưa cập nhật'
+                                ),
+                                _infoTile(
+                                  icon: Icons.email, 
+                                  title: 'Email', 
+                                  value: user?.email ?? 'Chưa cập nhật'
+                                ),
+                                _infoTile(
+                                  icon: Icons.calendar_today, 
+                                  title: 'Ngày tham gia', 
+                                  value: user?.createdAt != null 
+                                      ? _formatDate(user!.createdAt!)
+                                      : 'Không xác định'
+                                ),
+                                _infoTile(
+                                  icon: Icons.update, 
+                                  title: 'Cập nhật cuối', 
+                                  value: user?.updatedAt != null 
+                                      ? _formatDate(user!.updatedAt!)
+                                      : 'Không xác định'
+                                ),
+                              ],
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -426,13 +536,110 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ),
                     ],
                   ),
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    itemCount: 10,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (ctx, i) => _buildPostCard(i),
+                  child: Consumer<RecipeProvider>(
+                    builder: (context, recipeProvider, child) {
+                      if (recipeProvider.isLoadingMyRecipes) {
+                        return const Padding(
+                          padding: EdgeInsets.all(40),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFEF3A16)),
+                            ),
+                          ),
+                        );
+                      }
+                      
+                      if (recipeProvider.myRecipesError != null) {
+                        return Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Center(
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  size: 48,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Lỗi tải bài viết: ${recipeProvider.myRecipesError}',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 14,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 12),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    context.read<RecipeProvider>().loadMyRecipes();
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFEF3A16),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  child: const Text('Thử lại'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      
+                      final myRecipes = recipeProvider.myRecipes;
+                      
+                      if (myRecipes.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.all(40),
+                          child: Center(
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.article_outlined,
+                                  size: 48,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Chưa có bài viết nào',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Hãy tạo bài viết đầu tiên của bạn!',
+                                  style: TextStyle(
+                                    color: Colors.grey[500],
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      
+                      // Filter recipes based on search query
+                      final filteredRecipes = _searchQuery.isEmpty 
+                          ? myRecipes 
+                          : myRecipes.where((recipe) => 
+                              recipe.title.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+                      
+                      return ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        padding: const EdgeInsets.all(16),
+                        itemCount: filteredRecipes.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (ctx, i) => _buildRecipeCard(filteredRecipes[i]),
+                      );
+                    },
                   ),
                 ),
 
@@ -445,18 +652,21 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildPostCard(int index) {
+  Widget _buildRecipeCard(Recipe recipe) {
     return GestureDetector(
       onTap: () {
+        // Convert Recipe to Post for PostDetailScreen
         final post = Post(
-          id: 'my_$index',
-          title: 'Món tôi đăng ${index + 1}',
-          author: '@myusername',
-          minutesAgo: 5 + index,
-          savedCount: 15 + index,
-          imageUrl: '',
-          ingredients: const ['Nguyên liệu 1', 'Nguyên liệu 2', 'Nguyên liệu 3'],
-          steps: const ['Bước 1 ...', 'Bước 2 ...', 'Bước 3 ...'],
+          id: recipe.id.toString(),
+          title: recipe.title,
+          author: recipe.userName,
+          minutesAgo: recipe.createdAt != null 
+              ? DateTime.now().difference(recipe.createdAt!).inMinutes
+              : 0,
+          savedCount: recipe.bookmarksCount,
+          imageUrl: recipe.imageUrl ?? '',
+          ingredients: recipe.ingredients.map((ing) => ing.name).toList(),
+          steps: recipe.steps.map((step) => step.description ?? step.title).toList(),
         );
         Navigator.push(context, MaterialPageRoute(builder: (_) => PostDetailScreen(post: post)));
       },
@@ -503,11 +713,23 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     width: 60,
                     height: 60,
                     color: const Color(0xFFF1F5F9),
-                    child: const Icon(
-                      Icons.restaurant_menu,
-                      color: Color(0xFF64748B),
-                      size: 30,
-                    ),
+                    child: recipe.imageUrl != null && recipe.imageUrl!.isNotEmpty
+                        ? Image.network(
+                            recipe.imageUrl!,
+                            width: 60,
+                            height: 60,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => const Icon(
+                              Icons.restaurant_menu,
+                              color: Color(0xFF64748B),
+                              size: 30,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.restaurant_menu,
+                            color: Color(0xFF64748B),
+                            size: 30,
+                          ),
                   ),
                 ),
               ),
@@ -518,7 +740,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Món tôi đăng ${index + 1}',
+                      recipe.title,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -548,7 +770,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '${5 + index} phút trước',
+                          _formatTimeAgo(recipe.createdAt),
                           style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFF6B7280),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../constants/app_constants.dart';
-import '../models/api_response.dart';
+import '../models/api_response_model.dart';
 import '../models/user_model.dart';
 import 'api_service.dart';
 import 'auth_manager.dart';

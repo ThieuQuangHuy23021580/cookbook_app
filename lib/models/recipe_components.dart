@@ -20,6 +20,25 @@ class Ingredient {
     );
   }
 
+  factory Ingredient.fromJsonSafe(Map<String, dynamic> json) {
+    try {
+      return Ingredient(
+        id: json['id'] as int? ?? 0,
+        name: json['name'] as String? ?? '',
+        quantity: json['quantity'] as String?,
+        unit: json['unit'] as String?,
+      );
+    } catch (e) {
+      print('❌ Error parsing ingredient: $e');
+      return Ingredient(
+        id: 0,
+        name: 'Unknown',
+        quantity: null,
+        unit: null,
+      );
+    }
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -89,10 +108,25 @@ class RecipeStep {
       stepNumber: json['stepNumber'] as int,
       title: json['title'] as String,
       description: json['description'] as String?,
-      images: (json['images'] as List<dynamic>?)
-          ?.map((e) => StepImage.fromJson(e as Map<String, dynamic>))
-          .toList() ?? [],
+      images: _parseImages(json['images']),
     );
+  }
+
+  static List<StepImage> _parseImages(dynamic imagesData) {
+    if (imagesData == null) return [];
+    
+    try {
+      if (imagesData is List) {
+        return imagesData
+            .where((e) => e is Map<String, dynamic>)
+            .map((e) => StepImage.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (e) {
+      print('❌ Error parsing images: $e');
+      return [];
+    }
   }
 
   Map<String, dynamic> toJson() {

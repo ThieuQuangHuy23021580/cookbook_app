@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/recipe_model.dart';
 import '../repositories/recipe_repository.dart';
-import '../models/api_response.dart';
+import '../models/api_response_model.dart';
 
 class RecipeProvider with ChangeNotifier {
   

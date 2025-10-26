@@ -13,7 +13,11 @@ class _WelcomePageState extends State<WelcomePage> with TickerProviderStateMixin
   bool _isRegisterPressed = false;
   
   late AnimationController _animationController;
-  Animation<double> _animation = const AlwaysStoppedAnimation(0.0);
+  late AnimationController _logoAnimationController;
+  late Animation<double> _animation;
+  late Animation<double> _logoOpacity;
+  late Animation<double> _logoScale;
+  late Animation<Offset> _logoPosition;
 
   @override
   void initState() {
@@ -26,11 +30,32 @@ class _WelcomePageState extends State<WelcomePage> with TickerProviderStateMixin
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _animationController.repeat(reverse: true);
+
+    // Logo animations
+    _logoAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    
+    _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _logoAnimationController, curve: Curves.easeIn),
+    );
+    
+    _logoScale = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _logoAnimationController, curve: Curves.elasticOut),
+    );
+    
+    _logoPosition = Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
+      CurvedAnimation(parent: _logoAnimationController, curve: Curves.easeOut),
+    );
+    
+    _logoAnimationController.forward();
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _logoAnimationController.dispose();
     super.dispose();
   }
 
@@ -121,46 +146,107 @@ class _WelcomePageState extends State<WelcomePage> with TickerProviderStateMixin
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo
-                Container(
-                  width: 110,
-                  height: 110,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: ShaderMask(
-                    shaderCallback: (Rect bounds) {
-                      return const LinearGradient(
-                        colors: [Colors.transparent, Colors.transparent],
-                      ).createShader(bounds);
-                    },
-                    blendMode: BlendMode.dstOut,
-                    child: const Icon(
-                      Icons.restaurant,
-                      size: 68,
-                      color: Color(0xFFEF3A16),
+                // Logo with animation
+                SlideTransition(
+                  position: _logoPosition,
+                  child: FadeTransition(
+                    opacity: _logoOpacity,
+                    child: ScaleTransition(
+                      scale: _logoScale,
+                      child: Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                            BoxShadow(
+                              color: Colors.white.withOpacity(0.8),
+                              blurRadius: 10,
+                              offset: const Offset(-5, -5),
+                            ),
+                          ],
+                        ),
+                        child: ShaderMask(
+                          shaderCallback: (Rect bounds) {
+                            return const LinearGradient(
+                              colors: [Colors.transparent, Colors.transparent],
+                            ).createShader(bounds);
+                          },
+                          blendMode: BlendMode.dstOut,
+                          child: const Icon(
+                            Icons.restaurant,
+                            size: 68,
+                            color: Color(0xFFEF3A16),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 18),
-                const Text(
-                  'CookBook',
-                  style: TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                // App name animation
+                FadeTransition(
+                  opacity: _logoOpacity,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 0.3),
+                      end: Offset.zero,
+                    ).animate(CurvedAnimation(
+                      parent: _logoAnimationController,
+                      curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
+                    )),
+                    child: const Text(
+                      'CookBook',
+                      style: TextStyle(
+                        fontSize: 34,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black26,
+                            blurRadius: 10,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 28),
-                  child: Text(
-                    'Gắn kết yêu thương từ gian bếp nhỏ.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white,
+                // Subtitle animation
+                FadeTransition(
+                  opacity: _logoOpacity,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 0.3),
+                      end: Offset.zero,
+                    ).animate(CurvedAnimation(
+                      parent: _logoAnimationController,
+                      curve: const Interval(0.5, 1.0, curve: Curves.easeOut),
+                    )),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 28),
+                      child: Text(
+                        'Gắn kết yêu thương từ gian bếp nhỏ.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black26,
+                              blurRadius: 8,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),

@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:cookbook_app/screens/main_screen.dart';
 import '../../widgets/gmail_signin_button.dart';
 import '../../providers/auth_provider.dart';
+import 'otp_verification_page.dart';
+import 'dart:ui';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -20,6 +22,127 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _isLoading = false;
+
+  // Helper method to create glass text field
+  Widget _buildNeumorphicTextField({
+    required TextEditingController controller,
+    required String labelText,
+    required IconData prefixIcon,
+    bool obscureText = false,
+    Widget? suffixIcon,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          children: [
+            // Inner ClipRRect with glass effect for TextField
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.white.withOpacity(0.7),
+                        Colors.white.withOpacity(0.6),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.8),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 15,
+                        offset: const Offset(0, 8),
+                      ),
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(-2, -2),
+                      ),
+                    ],
+                  ),
+                  child: TextFormField(
+                    controller: controller,
+                    obscureText: obscureText,
+                    keyboardType: keyboardType,
+                    style: const TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: labelText,
+                      labelStyle: const TextStyle(
+                        color: Color(0xFF475569),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                      prefixIcon: Icon(
+                        prefixIcon,
+                        color: const Color(0xFFEF3A16),
+                      ),
+                      suffixIcon: suffixIcon,
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                      filled: true,
+                      fillColor: Colors.transparent,
+                      errorStyle: const TextStyle(height: 0),
+                    ),
+                    validator: validator,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Helper method to create error message outside container
+  Widget _buildErrorMessage(TextEditingController controller, String? Function(String?)? validator) {
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, child) {
+        String? error;
+        if (validator != null) {
+          error = validator(value.text);
+        }
+        
+        if (error != null && value.text.isNotEmpty) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 8, left: 4),
+            child: Text(
+              error,
+              style: const TextStyle(
+                color: Color(0xFFEF3A16),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
   bool _agreeToTerms = false;
   
   late AnimationController _animationController;
@@ -145,9 +268,21 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
                   Container(
                     width: 100,
                     height: 100,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.8),
+                          blurRadius: 10,
+                          offset: const Offset(-5, -5),
+                        ),
+                      ],
                     ),
                     child: ShaderMask(
                       shaderCallback: (Rect bounds) {
@@ -172,6 +307,18 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
                       fontSize: 38,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black26,
+                          blurRadius: 10,
+                          offset: Offset(0, 2),
+                        ),
+                        Shadow(
+                          color: Colors.black12,
+                          blurRadius: 20,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
                     ),
                   ),
 
@@ -188,43 +335,65 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
                   
                   const SizedBox(height: 20),
                   
-                  // Register Form
-                  Container(
-                    padding: const EdgeInsets.all(30),
-                    width: MediaQuery.of(context).size.width * 0.9,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        children: [
-                          // Name Field
-                          TextFormField(
-                            controller: _nameController,
-                            decoration: InputDecoration(
-                              labelText: 'Họ và tên',
-                              prefixIcon: const Icon(Icons.person),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFEF3A16),
-                                  width: 2,
-                                ),
-                              ),
+                  // Register Form - Glass Effect
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        padding: const EdgeInsets.all(30),
+                        width: MediaQuery.of(context).size.width * 0.9,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Colors.white.withOpacity(0.9),
+                              Colors.white.withOpacity(0.8),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.6),
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
                             ),
+                            BoxShadow(
+                              color: Colors.white.withOpacity(0.1),
+                              blurRadius: 20,
+                              offset: const Offset(-5, -5),
+                            ),
+                          ],
+                        ),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            children: [
+                          // Name Field
+                          _buildNeumorphicTextField(
+                            controller: _nameController,
+                            labelText: 'Họ và tên',
+                            prefixIcon: Icons.person_outline,
                             validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Vui lòng nhập họ và tên';
+                              }
+                              if (value.length < 2) {
+                                return 'Họ và tên phải có ít nhất 2 ký tự';
+                              }
+                              return null;
+                            },
+                          ),
+                          
+                          // Error message outside container
+                          _buildErrorMessage(
+                            _nameController,
+                            (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Vui lòng nhập họ và tên';
                               }
@@ -238,24 +407,26 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
                           const SizedBox(height: 15),
                           
                           // Email Field
-                          TextFormField(
+                          _buildNeumorphicTextField(
                             controller: _emailController,
+                            labelText: 'Email',
+                            prefixIcon: Icons.email_outlined,
                             keyboardType: TextInputType.emailAddress,
-                            decoration: InputDecoration(
-                              labelText: 'Email',
-                              prefixIcon: const Icon(Icons.email),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFEF3A16),
-                                  width: 2,
-                                ),
-                              ),
-                            ),
                             validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Vui lòng nhập email';
+                              }
+                              if (!value.contains('@')) {
+                                return 'Email không hợp lệ';
+                              }
+                              return null;
+                            },
+                          ),
+                          
+                          // Error message outside container
+                          _buildErrorMessage(
+                            _emailController,
+                            (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Vui lòng nhập email';
                               }
@@ -269,36 +440,39 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
                           const SizedBox(height: 15),
                           
                           // Password Field
-                          TextFormField(
+                          _buildNeumorphicTextField(
                             controller: _passwordController,
+                            labelText: 'Mật khẩu',
+                            prefixIcon: Icons.lock_outline,
                             obscureText: !_isPasswordVisible,
-                            decoration: InputDecoration(
-                              labelText: 'Mật khẩu',
-                              prefixIcon: const Icon(Icons.lock),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _isPasswordVisible
-                                      ? Icons.visibility
-                                      : Icons.visibility_off,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _isPasswordVisible = !_isPasswordVisible;
-                                  });
-                                },
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _isPasswordVisible
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                                color: const Color(0xFF64748B),
                               ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFEF3A16),
-                                  width: 2,
-                                ),
-                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _isPasswordVisible = !_isPasswordVisible;
+                                });
+                              },
                             ),
                             validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Vui lòng nhập mật khẩu';
+                              }
+                              if (value.length < 6) {
+                                return 'Mật khẩu phải có ít nhất 6 ký tự';
+                              }
+                              return null;
+                            },
+                          ),
+                          
+                          // Error message outside container
+                          _buildErrorMessage(
+                            _passwordController,
+                            (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Vui lòng nhập mật khẩu';
                               }
@@ -312,36 +486,39 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
                           const SizedBox(height: 15),
                           
                           // Confirm Password Field
-                          TextFormField(
+                          _buildNeumorphicTextField(
                             controller: _confirmPasswordController,
+                            labelText: 'Xác nhận mật khẩu',
+                            prefixIcon: Icons.lock_outline,
                             obscureText: !_isConfirmPasswordVisible,
-                            decoration: InputDecoration(
-                              labelText: 'Xác nhận mật khẩu',
-                              prefixIcon: const Icon(Icons.lock_outline),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _isConfirmPasswordVisible
-                                      ? Icons.visibility
-                                      : Icons.visibility_off,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
-                                  });
-                                },
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _isConfirmPasswordVisible
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                                color: const Color(0xFF64748B),
                               ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFEF3A16),
-                                  width: 2,
-                                ),
-                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                                });
+                              },
                             ),
                             validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Vui lòng xác nhận mật khẩu';
+                              }
+                              if (value != _passwordController.text) {
+                                return 'Mật khẩu xác nhận không khớp';
+                              }
+                              return null;
+                            },
+                          ),
+                          
+                          // Error message outside container
+                          _buildErrorMessage(
+                            _confirmPasswordController,
+                            (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Vui lòng xác nhận mật khẩu';
                               }
@@ -426,7 +603,9 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
                                     ),
                             ),
                           ),
-                        ],
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -549,52 +728,31 @@ class _RegisterPageState extends State<RegisterPage> with TickerProviderStateMix
           return;
         }
 
-        // Show OTP sent message
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('OTP đã được gửi đến email của bạn'),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          );
-        }
-
-        // Then register (using mock OTP)
-        final response = await authProvider.register(
-          email: _emailController.text.trim(),
-          username: _emailController.text.trim(),
-          password: _passwordController.text,
-          fullName: _nameController.text.trim(),
-          otp: '123456', // Mock OTP for testing
-        );
-
-        if (response.success) {
-          // Navigate to main screen
-          if (mounted) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const MainScreen()),
-            );
-          }
-        } else {
-          // Show error message
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(response.message ?? 'Đăng ký thất bại'),
-                backgroundColor: Colors.red,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            );
-          }
-        }
+         // Show OTP sent message
+         if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(
+               content: const Text('OTP đã được gửi đến email của bạn'),
+               backgroundColor: Colors.green,
+               behavior: SnackBarBehavior.floating,
+               shape: RoundedRectangleBorder(
+                 borderRadius: BorderRadius.circular(12),
+               ),
+             ),
+           );
+           
+           // Navigate to OTP verification page
+           Navigator.pushReplacement(
+             context,
+             MaterialPageRoute(
+               builder: (context) => OtpVerificationPage(
+                 email: _emailController.text.trim(),
+                 fullName: _nameController.text.trim(),
+                 password: _passwordController.text,
+               ),
+             ),
+           );
+         }
       } catch (e) {
         // Show error message with better error handling
         if (mounted) {

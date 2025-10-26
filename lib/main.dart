@@ -6,6 +6,8 @@ import 'providers/auth_provider.dart';
 import 'providers/recipe_provider.dart';
 import 'providers/comment_provider.dart';
 import 'providers/rating_provider.dart';
+import 'screens/splash_screen.dart';
+import 'screens/auth/login_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,8 +47,9 @@ class MyApp extends StatelessWidget {
           primarySwatch: Colors.orange,
           primaryColor: const Color(0xFFEF3A16),
         ),
-        home: const WelcomePage(),
+        home: const SplashScreen(),
         routes: {
+          '/welcome': (context) => const WelcomePage(),
           '/login': (context) => const LoginPage(),
           '/register': (context) => const RegisterPage(),
           '/main': (context) => const MainScreen(),

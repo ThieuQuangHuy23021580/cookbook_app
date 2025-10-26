@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../repositories/rating_repository.dart';
 import '../models/comment_rating_model.dart';
-import '../models/api_response.dart';
+import '../models/api_response_model.dart';
 
 class RatingProvider with ChangeNotifier {
   

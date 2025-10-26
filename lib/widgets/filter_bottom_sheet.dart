@@ -34,7 +34,9 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.7,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.9,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.only(
@@ -43,6 +45,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
         ),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Handle bar
           Container(
@@ -95,8 +98,8 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
           ),
           
           // Content
-          Expanded(
-            child: Padding(
+          Flexible(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,6 +149,9 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                       _buildQuickFilterChip('Nhanh gọn', Icons.timer),
                     ],
                   ),
+                  
+                  // Add some bottom padding to prevent content from being cut off
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -153,7 +159,12 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
           
           // Bottom buttons
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+            ),
             decoration: BoxDecoration(
               color: Colors.white,
               border: Border(
