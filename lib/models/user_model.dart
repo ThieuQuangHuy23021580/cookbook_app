@@ -4,6 +4,8 @@ class User {
   final String email;
   final String fullName;
   final String? avatar;
+  final String? bio;
+  final String? hometown;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   
@@ -15,6 +17,8 @@ class User {
     required this.email,
     required this.fullName,
     this.avatar,
+    this.bio,
+    this.hometown,
     this.createdAt,
     this.updatedAt,
     this.stats,
@@ -25,7 +29,9 @@ class User {
       id: json['id'] as int,
       email: json['email'] as String,
       fullName: json['fullName'] as String,
-      avatar: json['avatar'] as String?,
+      avatar: json['avatar'] as String? ?? json['avatarUrl'] as String?,
+      bio: json['bio'] as String?,
+      hometown: json['hometown'] as String?,
       createdAt: json['createdAt'] != null 
           ? DateTime.parse(json['createdAt'] as String) 
           : null,
@@ -44,6 +50,8 @@ class User {
       'email': email,
       'fullName': fullName,
       'avatar': avatar,
+      'bio': bio,
+      'hometown': hometown,
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
       'stats': stats?.toJson(),
@@ -55,6 +63,8 @@ class User {
     String? email,
     String? fullName,
     String? avatar,
+    String? bio,
+    String? hometown,
     DateTime? createdAt,
     DateTime? updatedAt,
     UserStats? stats,
@@ -64,6 +74,8 @@ class User {
       email: email ?? this.email,
       fullName: fullName ?? this.fullName,
       avatar: avatar ?? this.avatar,
+      bio: bio ?? this.bio,
+      hometown: hometown ?? this.hometown,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       stats: stats ?? this.stats,

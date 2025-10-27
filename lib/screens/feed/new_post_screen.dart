@@ -19,17 +19,17 @@ class _NewPostScreenState extends State<NewPostScreen> {
   final TextEditingController _descCtrl = TextEditingController();
   
   // Ingredients controllers: name, quantity, unit
-  final List<TextEditingController> _ingredientNameCtrls = List.generate(3, (_) => TextEditingController());
-  final List<TextEditingController> _ingredientQuantityCtrls = List.generate(3, (_) => TextEditingController()..text = '1');
-  final List<TextEditingController> _ingredientUnitCtrls = List.generate(3, (_) => TextEditingController()..text = 'cái');
+  final List<TextEditingController> _ingredientNameCtrls = List.generate(1, (_) => TextEditingController());
+  final List<TextEditingController> _ingredientQuantityCtrls = List.generate(1, (_) => TextEditingController()..text = '0');
+  final List<TextEditingController> _ingredientUnitCtrls = List.generate(1, (_) => TextEditingController()..text = 'cái');
   
   // Steps controllers: title, description
-  final List<TextEditingController> _stepTitleCtrls = List.generate(3, (_) => TextEditingController());
-  final List<TextEditingController> _stepDescCtrls = List.generate(3, (_) => TextEditingController());
+  final List<TextEditingController> _stepTitleCtrls = List.generate(1, (_) => TextEditingController());
+  final List<TextEditingController> _stepDescCtrls = List.generate(1, (_) => TextEditingController());
   
   // Images
   final List<File> _images = [];
-  final List<List<File>> _stepImages = List.generate(3, (_) => []);
+  final List<List<File>> _stepImages = List.generate(1, (_) => []);
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -289,14 +289,23 @@ class _NewPostScreenState extends State<NewPostScreen> {
                   const SizedBox(height: 20),
                   
                   // Ingredients section
-                  _buildSectionHeader('Nguyên liệu (tối thiểu 3)'),
+                  // _buildSectionHeader('Nguyên liệu (tối thiểu 3)'),
+                  const Text(
+                      'Nguyên liệu',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        color: Color(0xFF1F2937),
+                        letterSpacing: -0.3,
+                      ),
+                  ),
                   const SizedBox(height: 12),
                   ..._ingredientNameCtrls.asMap().entries.map((e) => _buildIngredientField(
                     index: e.key,
                     nameController: e.value,
                     quantityController: _ingredientQuantityCtrls[e.key],
                     unitController: _ingredientUnitCtrls[e.key],
-                    onRemove: _ingredientNameCtrls.length > 3 ? () => _removeIngredient(e.key) : null,
+                    onRemove: _ingredientNameCtrls.length > 1 ? () => _removeIngredient(e.key) : null,
                   )),
                   _buildAddButton(
                     text: 'Thêm nguyên liệu',
@@ -305,14 +314,22 @@ class _NewPostScreenState extends State<NewPostScreen> {
                   const SizedBox(height: 20),
                   
                   // Steps section
-                  _buildSectionHeader('Các bước (tối thiểu 3)'),
+                  const Text(
+                      'Các bước thực hiện',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        color: Color(0xFF1F2937),
+                        letterSpacing: -0.3,
+                      ),
+                  ),
                   const SizedBox(height: 12),
                   ..._stepTitleCtrls.asMap().entries.map((e) => _buildStepField(
                     index: e.key,
                     titleController: e.value,
                     descController: _stepDescCtrls[e.key],
                     images: _stepImages[e.key],
-                    onRemove: _stepTitleCtrls.length > 3 ? () => _removeStep(e.key) : null,
+                    onRemove: _stepTitleCtrls.length > 1 ? () => _removeStep(e.key) : null,
                     onAddImage: () => _pickStepImage(e.key),
                     onRemoveImage: (imageIndex) => _removeStepImage(e.key, imageIndex),
                   )),
@@ -704,14 +721,14 @@ class _NewPostScreenState extends State<NewPostScreen> {
           children: [
             Icon(
               icon,
-              color: const Color(0xFFEF3A16),
+              color: const Color(0xFF357ABD),
               size: 18,
             ),
             const SizedBox(width: 8),
             Text(
               text,
               style: const TextStyle(
-                color: Color(0xFFEF3A16),
+                color: Color(0xFF357ABD),
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
               ),
@@ -1512,12 +1529,12 @@ class _NewPostScreenState extends State<NewPostScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cần ít nhất 1 ảnh')));
       return false;
     }
-    if (_ingredientNameCtrls.take(3).any((c) => c.text.trim().isEmpty)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cần ít nhất 3 nguyên liệu')));
+    if (_ingredientNameCtrls.take(1).any((c) => c.text.trim().isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cần ít nhất 1 nguyên liệu')));
       return false;
     }
     if (_stepTitleCtrls.take(3).any((c) => c.text.trim().isEmpty)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cần ít nhất 3 bước')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cần ít nhất 1 bước')));
       return false;
     }
     return true;

@@ -192,11 +192,20 @@ Base Path: /api/auth
     Request Body:
 
     {
+        "fullName": "Nguyễn Văn A",
         "email": "register.test@example.com",
         "password": "StrongPassword!123",
-        "fullName": "New Register User",
+        "confirmPassword": "StrongPassword!123",
         "otp": "123456"
     }
+
+    Validation Rules:
+
+        fullName: Bắt buộc, không được để trống
+        email: Bắt buộc, phải đúng định dạng email
+        password: Bắt buộc, không được để trống
+        confirmPassword: Bắt buộc, phải khớp với password
+        otp: Bắt buộc, mã OTP đã được gửi đến email
 
     Responses:
 
@@ -210,7 +219,9 @@ Base Path: /api/auth
 
             Email đã tồn tại.
 
-            Dữ liệu không hợp lệ (password yếu, thiếu trường).
+            Mật khẩu xác nhận không khớp.
+
+            Dữ liệu không hợp lệ (thiếu trường bắt buộc).
 
 ### 2.3 Đăng nhập
 
@@ -284,7 +295,6 @@ Base Path: /api/recipes
                         "id": 1,
                         "stepNumber": 1,
                         "title": "Chuẩn bị nguyên liệu",
-                        "description": "Rửa sạch xương bò, thịt bò",
                         "images": [
                             {
                                 "id": 1,
@@ -297,7 +307,6 @@ Base Path: /api/recipes
                         "id": 2,
                         "stepNumber": 2,
                         "title": "Ninh nước dùng",
-                        "description": "Cho xương bò vào nồi nước sôi, ninh trong 3 tiếng",
                         "images": []
                     }
                 ],
@@ -463,13 +472,11 @@ Base Path: /api/recipes
             {
                 "stepNumber": 1,
                 "title": "Chuẩn bị",
-                "description": "Đập trứng, thái nhỏ hành lá",
                 "images": []
             },
             {
                 "stepNumber": 2,
                 "title": "Chiên",
-                "description": "Đun nóng chảo, cho trứng và cơm vào chiên",
                 "images": [
                     {
                         "imageUrl": "https://example.com/step2.jpg",
@@ -511,6 +518,93 @@ Base Path: /api/recipes
         400 Bad Request: Dữ liệu đầu vào không hợp lệ (thiếu trường bắt buộc, giá trị không hợp lệ).
 
         401 Unauthorized: Người dùng chưa đăng nhập hoặc token không hợp lệ.
+
+### 3.6.1 Tạo công thức với User ID (Admin)
+
+    Method: POST
+
+    Endpoint: /api/recipes/admin/create
+
+    Mô tả: Tạo một công thức nấu ăn mới cho một user cụ thể. API này cho phép admin tạo công thức thay mặt cho bất kỳ user nào.
+
+    Headers:
+
+        Content-Type: application/json
+
+    Request Body:
+
+    {
+        "userId": 5,
+        "title": "Cơm Chiên Trứng",
+        "imageUrl": "https://example.com/com-chien.jpg",
+        "servings": 2,
+        "cookingTime": 15,
+        "ingredients": [
+            {
+                "name": "Cơm nguội",
+                "quantity": "1",
+                "unit": "chén"
+            },
+            {
+                "name": "Trứng gà",
+                "quantity": "2",
+                "unit": "quả"
+            },
+            {
+                "name": "Hành lá",
+                "quantity": "2",
+                "unit": "cây"
+            }
+        ],
+        "steps": [
+            {
+                "stepNumber": 1,
+                "title": "Chuẩn bị",
+                "images": []
+            },
+            {
+                "stepNumber": 2,
+                "title": "Chiên",
+                "images": [
+                    {
+                        "imageUrl": "https://example.com/step2.jpg",
+                        "orderNumber": 1
+                    }
+                ]
+            }
+        ]
+    }
+
+    Validation Rules:
+
+        userId: Bắt buộc, phải > 0, user phải tồn tại trong hệ thống
+        title: Bắt buộc, không được để trống
+        servings: Bắt buộc, phải > 0
+        cookingTime: Tùy chọn, nếu có phải > 0
+        ingredients[].name: Bắt buộc cho mỗi nguyên liệu
+        steps[].stepNumber: Bắt buộc cho mỗi bước
+        steps[].title: Bắt buộc cho mỗi bước
+
+    Responses:
+
+        201 Created: Tạo công thức thành công, trả về thông tin công thức đã tạo.
+
+        {
+            "id": 3,
+            "title": "Cơm Chiên Trứng",
+            "imageUrl": "https://example.com/com-chien.jpg",
+            "servings": 2,
+            "cookingTime": 15,
+            "userId": 5,
+            "userName": "Nguyễn Văn B",
+            "userAvatar": "https://example.com/avatar.jpg",
+            "ingredients": [...],
+            "steps": [...],
+            "createdAt": "2025-10-15T11:00:00",
+            "updatedAt": "2025-10-15T11:00:00"
+        }
+
+        400 Bad Request: Dữ liệu đầu vào không hợp lệ (thiếu trường bắt buộc, giá trị không hợp lệ, user không tồn tại).
 
 ### 3.7 Cập nhật công thức
 
@@ -1261,8 +1355,7 @@ Base Path: /api/recipes
     id: BIGINT (Primary Key, Auto Increment)
     recipe_id: BIGINT NOT NULL (Foreign Key -> recipes.id)
     step_number: INT NOT NULL
-    title: VARCHAR(255) NOT NULL
-    description: TEXT
+    title: TEXT NOT NULL
 
 ### 4.4 Bảng step_images
 

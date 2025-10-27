@@ -398,9 +398,13 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
               ? DateTime.now().difference(recipe.createdAt).inMinutes
               : 0,
           savedCount: recipe.bookmarksCount,
-          imageUrl: recipe.imageUrl,
-          ingredients: recipe.ingredients,
-          steps: recipe.steps,
+          imageUrl: recipe.imageUrl ?? '',
+          ingredients: recipe.ingredients.map<String>((ing) => 
+            '${ing.name}${ing.quantity != null ? " ${ing.quantity}" : ""}${ing.unit != null ? " ${ing.unit}" : ""}'
+          ).toList(),
+          steps: recipe.steps.map<String>((step) => 
+            '${step.stepNumber}. ${step.title}${step.description != null ? ": ${step.description}" : ""}'
+          ).toList(),
         );
         
         Navigator.push(
@@ -543,51 +547,44 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                       final recipeId = recipe.id;
                       final isBookmarked = recipeProvider.bookmarkedRecipeIds.contains(recipeId);
                       
-                      return FutureBuilder<bool>(
-                        future: Future.value(isBookmarked),
-                        builder: (context, snapshot) {
-                          final isBookmarkedValue = snapshot.data ?? false;
-                          
-                          return IconButton(
-                            onPressed: () async {
-                              try {
-                                await recipeProvider.toggleBookmarkRecipe(recipeId);
-                                
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        isBookmarked ? 'Đã bỏ lưu công thức' : 'Đã lưu công thức',
-                                      ),
-                                      backgroundColor: isBookmarked ? Colors.orange : Colors.green,
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  );
-                                }
-                              } catch (e) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Lỗi: $e'),
-                                      backgroundColor: Colors.red,
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  );
-                                }
-                              }
-                            },
-                            icon: Icon(
-                              isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                              color: isBookmarked ? const Color(0xFFEF3A16) : Colors.grey[600],
-                            ),
-                          );
+                      return IconButton(
+                        onPressed: () async {
+                          try {
+                            await recipeProvider.toggleBookmarkRecipe(recipeId);
+                            
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    isBookmarked ? 'Đã bỏ lưu công thức' : 'Đã lưu công thức',
+                                  ),
+                                  backgroundColor: isBookmarked ? Colors.orange : Colors.green,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Lỗi: $e'),
+                                  backgroundColor: Colors.red,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              );
+                            }
+                          }
                         },
+                        icon: Icon(
+                          isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                          color: isBookmarked ? const Color(0xFFEF3A16) : Colors.grey[600],
+                        ),
                       );
                     },
                   ),

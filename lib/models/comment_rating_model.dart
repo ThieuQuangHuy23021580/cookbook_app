@@ -6,6 +6,8 @@ class Comment {
   final int recipeId;
   final String comment;
   final int? parentCommentId;
+  final int? repliedToUserId; // ID của user mà comment này đang reply
+  final String? repliedToUserName; // Username của user mà comment này đang reply
   final List<Comment> replies;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -18,20 +20,27 @@ class Comment {
     required this.recipeId,
     required this.comment,
     this.parentCommentId,
+    this.repliedToUserId,
+    this.repliedToUserName,
     this.replies = const [],
     this.createdAt,
     this.updatedAt,
   });
 
   factory Comment.fromJson(Map<String, dynamic> json) {
+    final avatar = json['userAvatar'];
+    final name = json['userName'];
+    
     return Comment(
       id: json['id'] as int,
       userId: json['userId'] as int,
-      userName: json['userName'] as String,
-      userAvatar: json['userAvatar'] as String?,
+      userName: (name != null && name.toString().isNotEmpty) ? name.toString() : 'Anonymous',
+      userAvatar: (avatar != null && avatar.toString().isNotEmpty) ? avatar.toString() : null,
       recipeId: json['recipeId'] as int,
       comment: json['comment'] as String,
       parentCommentId: json['parentCommentId'] as int?,
+      repliedToUserId: json['repliedToUserId'] as int?,
+      repliedToUserName: json['repliedToUserName'] as String?,
       replies: (json['replies'] as List<dynamic>?)
           ?.map((e) => Comment.fromJson(e as Map<String, dynamic>))
           .toList() ?? [],
@@ -53,6 +62,8 @@ class Comment {
       'recipeId': recipeId,
       'comment': comment,
       'parentCommentId': parentCommentId,
+      'repliedToUserId': repliedToUserId,
+      'repliedToUserName': repliedToUserName,
       'replies': replies.map((e) => e.toJson()).toList(),
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),

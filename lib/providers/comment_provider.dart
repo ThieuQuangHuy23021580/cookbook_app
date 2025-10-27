@@ -40,23 +40,51 @@ class CommentProvider with ChangeNotifier {
   }
 
   // Add comment
-  Future<ApiResponse<Comment>> addComment(int recipeId, String comment, {int? parentCommentId}) async {
+  Future<ApiResponse<Comment>> addComment(
+    int recipeId, 
+    String comment, {
+    int? parentCommentId,
+    int? repliedToUserId,
+    String? repliedToUserName,
+  }) async {
     try {
+      print('📝 CommentProvider.addComment - Starting for recipeId: $recipeId');
+      
       final response = await CommentRepository.addComment(
         recipeId, 
         {
           'comment': comment,
           if (parentCommentId != null) 'parentCommentId': parentCommentId,
+          if (repliedToUserId != null) 'repliedToUserId': repliedToUserId,
+          if (repliedToUserName != null) 'repliedToUserName': repliedToUserName,
         },
       );
       
+      print('📝 CommentProvider.addComment - Response success: ${response.success}');
+      print('📝 CommentProvider.addComment - Response data: ${response.data}');
+      
       if (response.success) {
-        // Refresh comments for this recipe
+        // Immediately add the comment to local state for instant UI update
+        if (response.data != null) {
+          print('📝 CommentProvider.addComment - Adding comment to local state');
+          if (!_comments.containsKey(recipeId)) {
+            _comments[recipeId] = [];
+          }
+          _comments[recipeId]!.insert(0, response.data!);
+          print('📝 CommentProvider.addComment - Current comments count: ${_comments[recipeId]?.length}');
+          notifyListeners(); // Immediate update
+          print('📝 CommentProvider.addComment - notifyListeners() called');
+        }
+        
+        // Then refresh from server to get complete data
+        print('📝 CommentProvider.addComment - Refreshing from server');
         await loadComments(recipeId);
+        print('📝 CommentProvider.addComment - Refresh complete');
       }
       
       return response;
     } catch (e) {
+      print('📝 CommentProvider.addComment - Error: $e');
       return ApiResponse.error('Lỗi thêm bình luận: $e');
     }
   }

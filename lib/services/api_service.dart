@@ -59,6 +59,28 @@ class ApiService {
     }
   }
 
+  // Handler for primitive type lists (int, String, etc.)
+  static ApiResponse<List<T>> _handlePrimitiveListResponse<T>(
+    http.Response response,
+  ) {
+    try {
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final List<dynamic> data = json.decode(response.body);
+        final List<T> items = data.cast<T>().toList();
+        return ApiResponse.success(items, statusCode: response.statusCode);
+      } else {
+        final data = json.decode(response.body);
+        return ApiResponse.error(
+          data is String ? data : data['message'] ?? ErrorMessages.serverError,
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      print('❌ [API] Error parsing primitive list: $e');
+      return ApiResponse.error(ErrorMessages.unknownError, statusCode: response.statusCode);
+    }
+  }
+
   static ApiResponse<String> _handleStringResponse(http.Response response) {
     try {
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -250,14 +272,21 @@ class ApiService {
 
   static Future<ApiResponse<User>> updateUser(int id, Map<String, dynamic> data, String token) async {
     try {
+      final url = '${ApiConfig.baseUrl}${ApiConfig.users}/$id';
+      print('🔍 UpdateUser URL: $url');
+      print('🔍 UpdateUser Data: ${json.encode(data)}');
+      
       final response = await _client.put(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.users}/$id'),
+        Uri.parse(url),
         headers: _getHeaders(token: token),
         body: json.encode(data),
       ).timeout(ApiConfig.timeout);
 
+      print('🔍 UpdateUser Response: ${response.statusCode} - ${response.body}');
+
       return _handleResponse(response, (json) => User.fromJson(json));
     } catch (e) {
+      print('❌ UpdateUser Error: $e');
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }
@@ -440,7 +469,7 @@ class ApiService {
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
 
-      return _handleListResponse(response, (json) => json as int);
+      return _handlePrimitiveListResponse<int>(response);
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
     }
@@ -448,39 +477,63 @@ class ApiService {
 
   static Future<ApiResponse<BookmarkResponse>> bookmarkRecipe(int id, String token) async {
     try {
+      final url = '${ApiConfig.baseUrl}${ApiConfig.recipes}/$id/bookmark';
+      print('📌 [BOOKMARK API] Request: POST $url');
+      print('📌 [BOOKMARK API] Recipe ID: $id');
+      
       final response = await _client.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.recipes}/$id/bookmark'),
+        Uri.parse(url),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
 
+      print('📌 [BOOKMARK API] Response Status: ${response.statusCode}');
+      print('📌 [BOOKMARK API] Response Body: ${response.body}');
+      
       return _handleResponse(response, (json) => BookmarkResponse.fromJson(json));
     } catch (e) {
+      print('❌ [BOOKMARK API] Error: $e');
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }
 
   static Future<ApiResponse<BookmarkResponse>> unbookmarkRecipe(int id, String token) async {
     try {
+      final url = '${ApiConfig.baseUrl}${ApiConfig.recipes}/$id/bookmark';
+      print('📌 [UNBOOKMARK API] Request: DELETE $url');
+      print('📌 [UNBOOKMARK API] Recipe ID: $id');
+      
       final response = await _client.delete(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.recipes}/$id/bookmark'),
+        Uri.parse(url),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
 
+      print('📌 [UNBOOKMARK API] Response Status: ${response.statusCode}');
+      print('📌 [UNBOOKMARK API] Response Body: ${response.body}');
+      
       return _handleResponse(response, (json) => BookmarkResponse.fromJson(json));
     } catch (e) {
+      print('❌ [UNBOOKMARK API] Error: $e');
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }
 
   static Future<ApiResponse<BookmarkResponse>> toggleBookmarkRecipe(int id, String token) async {
     try {
+      final url = '${ApiConfig.baseUrl}${ApiConfig.recipes}/$id/toggle-bookmark';
+      print('🔄 [TOGGLE BOOKMARK API] Request: POST $url');
+      print('🔄 [TOGGLE BOOKMARK API] Recipe ID: $id');
+      
       final response = await _client.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.recipes}/$id/toggle-bookmark'),
+        Uri.parse(url),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
 
+      print('🔄 [TOGGLE BOOKMARK API] Response Status: ${response.statusCode}');
+      print('🔄 [TOGGLE BOOKMARK API] Response Body: ${response.body}');
+      
       return _handleResponse(response, (json) => BookmarkResponse.fromJson(json));
     } catch (e) {
+      print('❌ [TOGGLE BOOKMARK API] Error: $e');
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }
@@ -500,40 +553,63 @@ class ApiService {
 
   static Future<ApiResponse<List<int>>> getBookmarkedRecipeIds(String token) async {
     try {
+      final url = '${ApiConfig.baseUrl}${ApiConfig.bookmarkedRecipes}';
+      print('📋 [GET BOOKMARKED IDS API] Request: GET $url');
+      
       final response = await _client.get(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.bookmarkedRecipes}'),
+        Uri.parse(url),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
 
-      return _handleListResponse(response, (json) => json as int);
+      print('📋 [GET BOOKMARKED IDS API] Response Status: ${response.statusCode}');
+      print('📋 [GET BOOKMARKED IDS API] Response Body: ${response.body}');
+      
+      final result = _handlePrimitiveListResponse<int>(response);
+      print('📋 [GET BOOKMARKED IDS API] Parsed ${result.data?.length ?? 0} IDs: ${result.data}');
+      
+      return result;
     } catch (e) {
+      print('❌ [GET BOOKMARKED IDS API] Error: $e');
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }
 
   static Future<ApiResponse<Comment>> addComment(int recipeId, Map<String, dynamic> data, String token) async {
     try {
+      final url = '${ApiConfig.baseUrl}${ApiConfig.recipes}/$recipeId/comments';
+      print('🔍 AddComment URL: $url');
+      print('🔍 AddComment Data: ${json.encode(data)}');
+      
       final response = await _client.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.recipes}/$recipeId/comments'),
+        Uri.parse(url),
         headers: _getHeaders(token: token),
         body: json.encode(data),
       ).timeout(ApiConfig.timeout);
 
+      print('🔍 AddComment Response: ${response.statusCode} - ${response.body}');
+
       return _handleResponse(response, (json) => Comment.fromJson(json));
     } catch (e) {
+      print('❌ AddComment Error: $e');
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }
 
   static Future<ApiResponse<List<Comment>>> getComments(int recipeId, {String? token}) async {
     try {
+      final url = '${ApiConfig.baseUrl}${ApiConfig.recipes}/$recipeId/comments';
+      print('🔍 GetComments URL: $url');
+      
       final response = await _client.get(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.recipes}/$recipeId/comments'),
+        Uri.parse(url),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
 
+      print('🔍 GetComments Response: ${response.statusCode} - ${response.body}');
+
       return _handleListResponse(response, (json) => Comment.fromJson(json));
     } catch (e) {
+      print('❌ GetComments Error: $e');
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }

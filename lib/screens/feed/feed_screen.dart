@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/index.dart';
 import '../../models/post_model.dart';
 import '../../providers/recipe_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../widgets/filter_bottom_sheet.dart';
 
 class FeedScreen extends StatefulWidget {
@@ -95,13 +96,20 @@ class _FeedScreenState extends State<FeedScreen> {
                 ),
                 PopupMenuButton<String>(
                   icon: const CircleAvatar(radius: 16, backgroundColor: Colors.white, child: Icon(Icons.person, size: 18, color: Color(0xFFEF3A16))),
-                  onSelected: (value) {
+                  onSelected: (value) async {
                     if (value == 'profile') {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const UserProfileScreen()));
                     } else if (value == 'settings') {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
                     } else if (value == 'logout') {
-                      // TODO: handle logout
+                      // Handle logout
+                      final authProvider = context.read<AuthProvider>();
+                      await authProvider.logout();
+                      
+                      if (context.mounted) {
+                        // Navigate to login screen
+                        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                      }
                     }
                   },
                   itemBuilder: (ctx) => const [

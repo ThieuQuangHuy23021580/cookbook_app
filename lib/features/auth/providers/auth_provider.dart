@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/api_service.dart';
-import '../../../shared/models/user.dart';
-import '../../../shared/models/api_response.dart';
+import '/models/user_model.dart';
+import '/models/api_response_model.dart';
 
 class AuthProvider with ChangeNotifier {
   // State variables
@@ -252,7 +252,7 @@ class AuthProvider with ChangeNotifier {
     _clearError();
     
     try {
-      final response = await ApiService.getUserProfile(_token!);
+      final response = await ApiService.getCurrentUser(_token!);
       if (response.success && response.data != null) {
         _currentUser = response.data;
         notifyListeners();

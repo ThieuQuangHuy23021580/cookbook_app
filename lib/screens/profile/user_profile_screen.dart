@@ -6,6 +6,7 @@ import '../../models/recipe_model.dart';
 import '../../models/post_model.dart';
 import '../../providers/recipe_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/api_service.dart';
 import '../feed/post_detail_screen.dart';
 
 class UserProfileScreen extends StatefulWidget {
@@ -53,8 +54,131 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
-  String _formatDate(DateTime dateTime) {
-    return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year}';
+  void _editProfile(BuildContext context, String field, String currentValue) {
+    final authProvider = context.read<AuthProvider>();
+    final user = authProvider.currentUser;
+    if (user == null) return;
+
+    final controller = TextEditingController(text: currentValue);
+
+    // Get field label
+    String label;
+    switch (field) {
+      case 'fullName':
+        label = 'Họ và tên';
+        break;
+      case 'hometown':
+        label = 'Quê quán';
+        break;
+      case 'bio':
+        label = 'Giới thiệu';
+        break;
+      default:
+        label = 'Cập nhật';
+    }
+
+    // Show dialog to edit
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Cập nhật $label'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: field == 'bio' ? 3 : 1,
+          decoration: InputDecoration(
+            labelText: label,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newValue = controller.text.trim();
+              
+              if (newValue.isEmpty) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Không được để trống')),
+                  );
+                }
+                return;
+              }
+
+              // Validate based on field
+              if (field == 'fullName' && newValue.length > 100) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Họ và tên không được vượt quá 100 ký tự')),
+                  );
+                }
+                return;
+              } else if (field == 'hometown' && newValue.length > 100) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Quê quán không được vượt quá 100 ký tự')),
+                  );
+                }
+                return;
+              } else if (field == 'bio' && newValue.length > 500) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Giới thiệu không được vượt quá 500 ký tự')),
+                  );
+                }
+                return;
+              }
+
+              // Build update data according to backend UserRequestDTO
+              // Note: Don't include password if not updating
+              final updatedData = <String, dynamic>{
+                'email': user.email, // Keep current email
+                'fullName': field == 'fullName' ? newValue : user.fullName,
+                'avatarUrl': user.avatar ?? '', // Map avatar to avatarUrl
+                'bio': field == 'bio' ? newValue : (user.bio ?? ''),
+                'hometown': field == 'hometown' ? newValue : (user.hometown ?? ''),
+              };
+
+              // Call update API
+              final response = await ApiService.updateUser(
+                user.id,
+                updatedData,
+                authProvider.token!,
+              );
+
+              if (response.success && mounted) {
+                // Reload user profile
+                await authProvider.loadUserProfile();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Cập nhật thành công!'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                Navigator.pop(context);
+              } else if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(response.message ?? 'Cập nhật thất bại'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF3A16),
+            ),
+            child: const Text('Lưu'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -393,26 +517,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 _infoTile(
                                   icon: Icons.badge, 
                                   title: 'Họ và tên', 
-                                  value: user?.fullName ?? 'Chưa cập nhật'
+                                  value: user?.fullName ?? 'Chưa cập nhật',
+                                  onTap: () => _editProfile(context, 'fullName', user?.fullName ?? ''),
                                 ),
                                 _infoTile(
-                                  icon: Icons.email, 
-                                  title: 'Email', 
-                                  value: user?.email ?? 'Chưa cập nhật'
+                                  icon: Icons.location_on, 
+                                  title: 'Quê quán', 
+                                  value: user?.hometown ?? 'Chưa cập nhật',
+                                  onTap: () => _editProfile(context, 'hometown', user?.hometown ?? ''),
                                 ),
                                 _infoTile(
-                                  icon: Icons.calendar_today, 
-                                  title: 'Ngày tham gia', 
-                                  value: user?.createdAt != null 
-                                      ? _formatDate(user!.createdAt!)
-                                      : 'Không xác định'
-                                ),
-                                _infoTile(
-                                  icon: Icons.update, 
-                                  title: 'Cập nhật cuối', 
-                                  value: user?.updatedAt != null 
-                                      ? _formatDate(user!.updatedAt!)
-                                      : 'Không xác định'
+                                  icon: Icons.info_outline, 
+                                  title: 'Giới thiệu', 
+                                  value: user?.bio ?? 'Chưa cập nhật',
+                                  onTap: () => _editProfile(context, 'bio', user?.bio ?? ''),
                                 ),
                               ],
                             );
@@ -817,7 +935,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _infoTile({required IconData icon, required String title, required String value}) {
+  Widget _infoTile({required IconData icon, required String title, required String value, VoidCallback? onTap}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -893,7 +1011,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             size: 16,
           ),
         ),
-        onTap: () {},
+        onTap: onTap,
       ),
     );
   }

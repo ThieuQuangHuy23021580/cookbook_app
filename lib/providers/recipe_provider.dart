@@ -105,6 +105,7 @@ class RecipeProvider with ChangeNotifier {
 
   // Load bookmarked recipes
   Future<void> loadBookmarkedRecipes() async {
+    print('📚 [PROVIDER] Loading bookmarked recipes...');
     _setLoadingBookmarked(true);
     _clearBookmarkedError();
     
@@ -112,10 +113,16 @@ class RecipeProvider with ChangeNotifier {
       final response = await RecipeRepository.getBookmarkedRecipes();
       if (response.success) {
         _bookmarkedRecipes = response.data ?? [];
+        print('📚 [PROVIDER] Loaded ${_bookmarkedRecipes.length} bookmarked recipes');
+        if (_bookmarkedRecipes.isNotEmpty) {
+          print('📚 [PROVIDER] Sample recipes: ${_bookmarkedRecipes.take(3).map((r) => r.title).toList()}');
+        }
       } else {
+        print('❌ [PROVIDER] Failed to load bookmarked recipes: ${response.message}');
         _setBookmarkedError(response.message ?? 'Không thể tải công thức đã lưu');
       }
     } catch (e) {
+      print('❌ [PROVIDER] Error loading bookmarked recipes: $e');
       _setBookmarkedError('Lỗi tải công thức đã lưu: $e');
     } finally {
       _setLoadingBookmarked(false);
@@ -136,12 +143,18 @@ class RecipeProvider with ChangeNotifier {
 
   // Load bookmarked recipe IDs
   Future<void> loadBookmarkedRecipeIds() async {
+    print('📋 [PROVIDER] Loading bookmarked recipe IDs...');
     try {
       final response = await RecipeRepository.getBookmarkedRecipeIds();
       if (response.success) {
         _bookmarkedRecipeIds = response.data ?? [];
+        print('📋 [PROVIDER] Loaded ${_bookmarkedRecipeIds.length} bookmarked recipe IDs: $_bookmarkedRecipeIds');
+        notifyListeners();
+      } else {
+        print('❌ [PROVIDER] Failed to load bookmarked IDs: ${response.message}');
       }
     } catch (e) {
+      print('❌ [PROVIDER] Error loading bookmarked IDs: $e');
       // Silent fail for bookmarked recipes
     }
   }
@@ -213,17 +226,28 @@ class RecipeProvider with ChangeNotifier {
 
   // Toggle bookmark recipe
   Future<void> toggleBookmarkRecipe(int recipeId) async {
+    print('🔄 [PROVIDER] Starting toggleBookmarkRecipe for Recipe ID: $recipeId');
     try {
       final response = await RecipeRepository.toggleBookmarkRecipe(recipeId);
+      print('🔄 [PROVIDER] Toggle response success: ${response.success}');
+      print('🔄 [PROVIDER] Toggle response message: ${response.message}');
+      
       if (response.success) {
+        print('✅ [PROVIDER] Bookmark toggled successfully, refreshing data...');
         // Update bookmarked recipe IDs
         await loadBookmarkedRecipeIds();
+        print('✅ [PROVIDER] Bookmarked IDs count: ${_bookmarkedRecipeIds.length}');
+        
         // Refresh recipes to update bookmark counts
         await loadRecipes();
         await loadSearchResults();
         await loadBookmarkedRecipes();
+        print('✅ [PROVIDER] All data refreshed');
+      } else {
+        print('❌ [PROVIDER] Toggle failed: ${response.message}');
       }
     } catch (e) {
+      print('❌ [PROVIDER] Error in toggleBookmarkRecipe: $e');
       // Handle error silently or show snackbar
     }
   }

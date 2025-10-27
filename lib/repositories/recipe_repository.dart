@@ -106,11 +106,16 @@ class RecipeRepository {
   }
 
   static Future<ApiResponse<BookmarkResponse>> toggleBookmarkRecipe(int id) async {
+    print('🔄 [REPOSITORY] toggleBookmarkRecipe called for Recipe ID: $id');
     final token = AuthService.currentToken;
     if (token == null) {
+      print('❌ [REPOSITORY] No token available');
       return ApiResponse.error(ErrorMessages.unauthorized);
     }
-    return await ApiService.toggleBookmarkRecipe(id, token);
+    print('✅ [REPOSITORY] Token available, calling API service...');
+    final result = await ApiService.toggleBookmarkRecipe(id, token);
+    print('🔄 [REPOSITORY] API result success: ${result.success}');
+    return result;
   }
 
   static Future<ApiResponse<Map<String, dynamic>>> isRecipeBookmarked(int id) async {
@@ -118,42 +123,60 @@ class RecipeRepository {
   }
 
   static Future<ApiResponse<List<int>>> getBookmarkedRecipeIds() async {
+    print('📋 [REPOSITORY] getBookmarkedRecipeIds called');
     final token = AuthService.currentToken;
     if (token == null) {
+      print('❌ [REPOSITORY] No token available');
       return ApiResponse.error(ErrorMessages.unauthorized);
     }
-    return await ApiService.getBookmarkedRecipeIds(token);
+    final result = await ApiService.getBookmarkedRecipeIds(token);
+    print('📋 [REPOSITORY] Got ${result.data?.length ?? 0} bookmarked IDs');
+    return result;
   }
 
   static Future<ApiResponse<List<Recipe>>> getBookmarkedRecipes() async {
+    print('📚 [REPOSITORY] getBookmarkedRecipes called');
     final token = AuthService.currentToken;
     if (token == null) {
+      print('❌ [REPOSITORY] No token available');
       return ApiResponse.error(ErrorMessages.unauthorized);
     }
     
     try {
       // First get the list of bookmarked recipe IDs
+      print('📚 [REPOSITORY] Fetching bookmarked recipe IDs...');
       final idsResponse = await ApiService.getBookmarkedRecipeIds(token);
       if (!idsResponse.success) {
+        print('❌ [REPOSITORY] Failed to get bookmarked IDs: ${idsResponse.message}');
         return ApiResponse.error(idsResponse.message ?? 'Không thể lấy danh sách ID đã lưu');
       }
       
       final bookmarkedIds = idsResponse.data ?? [];
+      print('📚 [REPOSITORY] Got ${bookmarkedIds.length} bookmarked IDs: $bookmarkedIds');
+      
       if (bookmarkedIds.isEmpty) {
+        print('📚 [REPOSITORY] No bookmarked recipes found');
         return ApiResponse.success([]);
       }
       
       // Then get the full recipe details for each ID
+      print('📚 [REPOSITORY] Fetching details for ${bookmarkedIds.length} recipes...');
       List<Recipe> bookmarkedRecipes = [];
       for (int id in bookmarkedIds) {
+        print('📚 [REPOSITORY] Fetching recipe ID: $id');
         final recipeResponse = await ApiService.getRecipeById(id, token: token);
         if (recipeResponse.success && recipeResponse.data != null) {
           bookmarkedRecipes.add(recipeResponse.data!);
+          print('✅ [REPOSITORY] Added recipe: ${recipeResponse.data!.title}');
+        } else {
+          print('❌ [REPOSITORY] Failed to get recipe $id: ${recipeResponse.message}');
         }
       }
       
+      print('📚 [REPOSITORY] Successfully loaded ${bookmarkedRecipes.length} recipes');
       return ApiResponse.success(bookmarkedRecipes);
     } catch (e) {
+      print('❌ [REPOSITORY] Error in getBookmarkedRecipes: $e');
       return ApiResponse.error('Lỗi tải công thức đã lưu: $e');
     }
   }
