@@ -25,11 +25,18 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    // Import ApiConfig để dùng fixImageUrl
+    // Đảm bảo import '../constants/app_constants.dart' ở đầu file
+    final rawAvatar = json['avatar'] as String? ?? json['avatarUrl'] as String?;
+    final fixedAvatar = rawAvatar != null && rawAvatar.isNotEmpty 
+        ? _fixImageUrl(rawAvatar) 
+        : null;
+    
     return User(
       id: json['id'] as int,
       email: json['email'] as String,
       fullName: json['fullName'] as String,
-      avatar: json['avatar'] as String? ?? json['avatarUrl'] as String?,
+      avatar: fixedAvatar,
       bio: json['bio'] as String?,
       hometown: json['hometown'] as String?,
       createdAt: json['createdAt'] != null 
@@ -42,6 +49,31 @@ class User {
           ? UserStats.fromJson(json['stats'] as Map<String, dynamic>)
           : null,
     );
+  }
+  
+  /// Helper để fix localhost URL
+  static String _fixImageUrl(String url) {
+    if (url.isEmpty) return url;
+    
+    // Nếu URL đã đúng (không chứa localhost), return luôn
+    if (!url.contains('localhost') && !url.contains('127.0.0.1')) {
+      return url;
+    }
+    
+    print('⚠️ [USER MODEL] Detected localhost URL: $url');
+    
+    // Replace localhost:8080 với ngrok domain
+    // Giả sử backend URL là: https://gearldine-subventral-overcuriously.ngrok-free.dev
+    const ngrokDomain = 'https://gearldine-subventral-overcuriously.ngrok-free.dev';
+    
+    // Extract path từ localhost URL
+    final uri = Uri.parse(url);
+    final path = uri.path; // /uploads/avatars/xxx.jpg
+    
+    final fixedUrl = '$ngrokDomain$path';
+    print('✅ [USER MODEL] Fixed URL: $fixedUrl');
+    
+    return fixedUrl;
   }
 
   Map<String, dynamic> toJson() {

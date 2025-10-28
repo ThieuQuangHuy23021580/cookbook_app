@@ -1,13 +1,22 @@
 class ApiConfig {
-  // Test API - sử dụng JSONPlaceholder để test
+  // IMPORTANT: Không dùng localhost khi test trên điện thoại thật!
+  // Localhost trên điện thoại sẽ trỏ về chính điện thoại, không phải máy tính
+  // Nếu dùng localhost, ảnh sẽ không load được!
+  
+  // Option 1: Sử dụng ngrok (recommended)
   static const String baseUrl = 'https://gearldine-subventral-overcuriously.ngrok-free.dev/api';
   
-  // Production API (uncomment when backend is ready)
-  // static const String baseUrl = 'https://gearldine-subventral-overcuriously.ngrok-free.dev/api';
+  // Option 2: Sử dụng IP của máy tính (thay YOUR_COMPUTER_IP)
+  // static const String baseUrl = 'http://YOUR_COMPUTER_IP:8080/api';
+  // Ví dụ: static const String baseUrl = 'http://192.168.1.100:8080/api';
+  
+  // Option 3: Chỉ dùng localhost khi test trên emulator Android (10.0.2.2 = host machine)
+  // static const String baseUrl = 'http://10.0.2.2:8080/api';
 
   static const String auth = '/auth';
   static const String users = '/users';
   static const String recipes = '/recipes';
+  static const String upload = '/upload';
 
   static const String sendOtp = '$auth/send-otp';
   static const String register = '$auth/register';
@@ -21,6 +30,8 @@ class ApiConfig {
   static const String myRecipes = '$recipes/my-recipes';
   static const String likedRecipes = '$recipes/liked';
   static const String bookmarkedRecipes = '$recipes/bookmarked';
+  
+  static const String uploadImage = '$upload/image';
 
   static const Map<String, String> defaultHeaders = {
     'Content-Type': 'application/json',
@@ -28,6 +39,33 @@ class ApiConfig {
   };
 
   static const Duration timeout = Duration(seconds: 30);
+  
+  /// Helper để fix localhost URL từ backend
+  /// Backend có thể trả về URL dạng http://localhost:8080/uploads/...
+  /// Cần convert sang URL thực tế để điện thoại có thể access
+  static String fixImageUrl(String url) {
+    if (url.isEmpty) return url;
+    
+    // Nếu URL đã đúng (không chứa localhost), return luôn
+    if (!url.contains('localhost') && !url.contains('127.0.0.1')) {
+      return url;
+    }
+    
+    print('⚠️ [URL FIX] Detected localhost URL: $url');
+    
+    // Extract path từ localhost URL
+    // Ví dụ: http://localhost:8080/uploads/avatars/xxx.jpg -> /uploads/avatars/xxx.jpg
+    final uri = Uri.parse(url);
+    final path = uri.path; // /uploads/avatars/xxx.jpg
+    
+    // Get base domain from baseUrl
+    // https://gearldine-subventral-overcuriously.ngrok-free.dev/api -> https://gearldine-subventral-overcuriously.ngrok-free.dev
+    final baseUri = Uri.parse(baseUrl);
+    final fixedUrl = '${baseUri.scheme}://${baseUri.host}${baseUri.port != 80 && baseUri.port != 443 ? ':${baseUri.port}' : ''}$path';
+    
+    print('✅ [URL FIX] Fixed URL: $fixedUrl');
+    return fixedUrl;
+  }
 }
 
 class AppConstants {

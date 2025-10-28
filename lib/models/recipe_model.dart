@@ -1,4 +1,5 @@
 import 'recipe_components.dart';
+import '../constants/app_constants.dart';
 
 class Recipe {
   final int id;
@@ -48,15 +49,27 @@ class Recipe {
   });
 
   factory Recipe.fromJson(Map<String, dynamic> json) {
+    // Fix localhost URL for userAvatar
+    final rawAvatar = json['userAvatar'] as String?;
+    final fixedAvatar = rawAvatar != null && rawAvatar.isNotEmpty 
+        ? ApiConfig.fixImageUrl(rawAvatar) 
+        : null;
+    
+    // Fix localhost URL for recipe imageUrl
+    final rawImageUrl = json['imageUrl'] as String?;
+    final fixedImageUrl = rawImageUrl != null && rawImageUrl.isNotEmpty 
+        ? ApiConfig.fixImageUrl(rawImageUrl) 
+        : null;
+    
     return Recipe(
       id: json['id'] as int,
       title: json['title'] as String,
-      imageUrl: json['imageUrl'] as String?,
+      imageUrl: fixedImageUrl,
       servings: json['servings'] as int,
       cookingTime: json['cookingTime'] as int?,
       userId: json['userId'] as int,
       userName: json['userName'] as String,
-      userAvatar: json['userAvatar'] as String?,
+      userAvatar: fixedAvatar,
       ingredients: _parseIngredients(json['ingredients']),
       steps: _parseSteps(json['steps']),
       createdAt: json['createdAt'] != null 

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import '../constants/app_constants.dart';
@@ -6,6 +7,7 @@ import '../models/api_response_model.dart';
 import '../models/user_model.dart';
 import '../models/recipe_model.dart';
 import '../models/comment_rating_model.dart';
+import '../models/upload_response_model.dart';
 
 class ApiService {
   static final http.Client _client = http.Client();
@@ -768,6 +770,63 @@ class ApiService {
       return ApiResponse.error('Không thể đăng ký/đăng nhập với Google');
     } catch (e) {
       return ApiResponse.error('Lỗi kết nối: $e');
+    }
+  }
+
+  // Upload image to server
+  static Future<ApiResponse<UploadResponse>> uploadImage({
+    required File imageFile,
+    String type = 'avatars', // avatars, recipes, steps, general
+    String? token,
+  }) async {
+    try {
+      final url = '${ApiConfig.baseUrl}${ApiConfig.uploadImage}';
+      print('📤 [UPLOAD API] Request: POST $url');
+      print('📤 [UPLOAD API] File: ${imageFile.path}');
+      print('📤 [UPLOAD API] Type: $type');
+
+      // Create multipart request
+      final request = http.MultipartRequest('POST', Uri.parse(url));
+      
+      // Add authorization header if token is provided
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+      
+      // Add file
+      final file = await http.MultipartFile.fromPath(
+        'file',
+        imageFile.path,
+      );
+      request.files.add(file);
+      
+      // Add type parameter
+      request.fields['type'] = type;
+      
+      print('📤 [UPLOAD API] Sending request...');
+      
+      // Send request
+      final streamedResponse = await request.send().timeout(ApiConfig.timeout);
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      print('📤 [UPLOAD API] Response Status: ${response.statusCode}');
+      print('📤 [UPLOAD API] Response Body: ${response.body}');
+      
+      // Handle response
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = json.decode(response.body);
+        final uploadResponse = UploadResponse.fromJson(data);
+        return ApiResponse.success(uploadResponse, statusCode: response.statusCode);
+      } else {
+        final data = json.decode(response.body);
+        return ApiResponse.error(
+          data is String ? data : data['message'] ?? ErrorMessages.serverError,
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      print('❌ [UPLOAD API] Error: $e');
+      return ApiResponse.error(ErrorMessages.networkError);
     }
   }
 

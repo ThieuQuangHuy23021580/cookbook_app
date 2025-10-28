@@ -60,6 +60,20 @@ class RecipeProvider with ChangeNotifier {
     }
   }
 
+  // Get recipe by ID
+  Future<Recipe?> getRecipeById(int id) async {
+    try {
+      final response = await RecipeRepository.getRecipeById(id);
+      if (response.success) {
+        return response.data;
+      }
+      return null;
+    } catch (e) {
+      print('❌ Error loading recipe by ID: $e');
+      return null;
+    }
+  }
+
   // Search recipes
   Future<void> searchRecipes(String query) async {
     if (query.trim().isEmpty) {

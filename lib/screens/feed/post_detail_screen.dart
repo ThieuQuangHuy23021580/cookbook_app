@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../models/post_model.dart';
 import '../../models/recipe_model.dart';
+import '../../models/recipe_components.dart';
 import '../../models/comment_rating_model.dart';
 import '../../providers/recipe_provider.dart';
 import '../../providers/comment_provider.dart';
@@ -20,6 +21,8 @@ class PostDetailScreen extends StatefulWidget {
 class _PostDetailScreenState extends State<PostDetailScreen> {
   bool _isBookmarked = false;
   bool _isBookmarking = false;
+  bool _isLoadingRecipe = false;
+  Recipe? _recipeDetail;
   final TextEditingController _commentController = TextEditingController();
   final TextEditingController _replyController = TextEditingController();
 
@@ -34,8 +37,35 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         context.read<RatingProvider>().loadAllRatingData(recipeId);
         // Load bookmark status
         _loadBookmarkStatus();
+        // Load full recipe detail
+        _loadRecipeDetail(recipeId);
       }
     });
+  }
+
+  Future<void> _loadRecipeDetail(int recipeId) async {
+    setState(() {
+      _isLoadingRecipe = true;
+    });
+
+    try {
+      final recipeProvider = context.read<RecipeProvider>();
+      final recipe = await recipeProvider.getRecipeById(recipeId);
+      
+      if (mounted) {
+        setState(() {
+          _recipeDetail = recipe;
+          _isLoadingRecipe = false;
+        });
+      }
+    } catch (e) {
+      print('❌ Error loading recipe detail: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingRecipe = false;
+        });
+      }
+    }
   }
 
   @override
@@ -965,64 +995,20 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                ...List.generate(widget.post.steps.length, (i) => Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              const Color(0xFFEF3A16),
-                              const Color(0xFFFF5A00),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFEF3A16).withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
+                _isLoadingRecipe
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20),
+                          child: CircularProgressIndicator(),
                         ),
-                        child: Center(
-                          child: Text(
-                            '${i + 1}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                            ),
+                      )
+                    : _recipeDetail != null && _recipeDetail!.steps.isNotEmpty
+                        ? Column(
+                            children: _recipeDetail!.steps.map((step) => _buildStepCard(step)).toList(),
+                          )
+                        : Column(
+                            children: List.generate(widget.post.steps.length, (i) => _buildSimpleStepCard(i, widget.post.steps[i])),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          widget.post.steps[i],
-                          style: const TextStyle(
-                            fontSize: 15,
-                            color: Color(0xFF1F2937),
-                            fontWeight: FontWeight.w500,
-                            height: 1.4,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )),
               ],
             ),
           ),
@@ -1109,6 +1095,215 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           ),
           const SizedBox(height: 20),
         ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepCard(RecipeStep step) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Step number and title
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      const Color(0xFFEF3A16),
+                      const Color(0xFFFF5A00),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFEF3A16).withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    '${step.stepNumber}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  step.title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: Color(0xFF1F2937),
+                    fontWeight: FontWeight.w500,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          // Step images if available
+          if (step.images.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            // Display images in a grid or horizontal scroll
+            if (step.images.length == 1)
+              _buildSingleStepImage(step.images.first)
+            else if (step.images.length == 2)
+              Row(
+                children: step.images
+                    .map((img) => Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: _buildStepImageThumbnail(img),
+                          ),
+                        ))
+                    .toList(),
+              )
+            else
+              SizedBox(
+                height: 120,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: step.images.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: _buildStepImageThumbnail(step.images[index]),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSingleStepImage(StepImage stepImage) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.network(
+        stepImage.imageUrl,
+        width: double.infinity,
+        height: 180,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            height: 180,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE2E8F0),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Center(
+              child: Icon(Icons.broken_image, size: 48, color: Color(0xFF94A3B8)),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildStepImageThumbnail(StepImage stepImage) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.network(
+        stepImage.imageUrl,
+        width: 120,
+        height: 120,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE2E8F0),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Center(
+              child: Icon(Icons.broken_image, size: 32, color: Color(0xFF94A3B8)),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSimpleStepCard(int index, String stepText) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFFEF3A16),
+                  const Color(0xFFFF5A00),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFEF3A16).withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                '${index + 1}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              stepText,
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF1F2937),
+                fontWeight: FontWeight.w500,
+                height: 1.4,
+              ),
+            ),
           ),
         ],
       ),

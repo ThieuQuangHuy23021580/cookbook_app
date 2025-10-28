@@ -31,11 +31,18 @@ class Comment {
     final avatar = json['userAvatar'];
     final name = json['userName'];
     
+    // Fix localhost URL for avatar
+    String? fixedAvatar;
+    if (avatar != null && avatar.toString().isNotEmpty) {
+      final avatarStr = avatar.toString();
+      fixedAvatar = _fixImageUrl(avatarStr);
+    }
+    
     return Comment(
       id: json['id'] as int,
       userId: json['userId'] as int,
       userName: (name != null && name.toString().isNotEmpty) ? name.toString() : 'Anonymous',
-      userAvatar: (avatar != null && avatar.toString().isNotEmpty) ? avatar.toString() : null,
+      userAvatar: fixedAvatar,
       recipeId: json['recipeId'] as int,
       comment: json['comment'] as String,
       parentCommentId: json['parentCommentId'] as int?,
@@ -51,6 +58,30 @@ class Comment {
           ? DateTime.parse(json['updatedAt'] as String) 
           : null,
     );
+  }
+  
+  /// Helper để fix localhost URL
+  static String _fixImageUrl(String url) {
+    if (url.isEmpty) return url;
+    
+    // Nếu URL đã đúng (không chứa localhost), return luôn
+    if (!url.contains('localhost') && !url.contains('127.0.0.1')) {
+      return url;
+    }
+    
+    print('⚠️ [COMMENT MODEL] Detected localhost URL: $url');
+    
+    // Replace localhost:8080 với ngrok domain
+    const ngrokDomain = 'https://gearldine-subventral-overcuriously.ngrok-free.dev';
+    
+    // Extract path từ localhost URL
+    final uri = Uri.parse(url);
+    final path = uri.path; // /uploads/avatars/xxx.jpg
+    
+    final fixedUrl = '$ngrokDomain$path';
+    print('✅ [COMMENT MODEL] Fixed URL: $fixedUrl');
+    
+    return fixedUrl;
   }
 
   Map<String, dynamic> toJson() {
@@ -98,11 +129,17 @@ class Rating {
   });
 
   factory Rating.fromJson(Map<String, dynamic> json) {
+    // Fix localhost URL for avatar
+    final rawAvatar = json['userAvatar'] as String?;
+    final fixedAvatar = rawAvatar != null && rawAvatar.isNotEmpty 
+        ? _fixImageUrl(rawAvatar) 
+        : null;
+    
     return Rating(
       id: json['id'] as int,
       userId: json['userId'] as int,
       userName: json['userName'] as String,
-      userAvatar: json['userAvatar'] as String?,
+      userAvatar: fixedAvatar,
       recipeId: json['recipeId'] as int,
       rating: json['rating'] as int,
       createdAt: json['createdAt'] != null 
@@ -112,6 +149,30 @@ class Rating {
           ? DateTime.parse(json['updatedAt'] as String) 
           : null,
     );
+  }
+  
+  /// Helper để fix localhost URL
+  static String _fixImageUrl(String url) {
+    if (url.isEmpty) return url;
+    
+    // Nếu URL đã đúng (không chứa localhost), return luôn
+    if (!url.contains('localhost') && !url.contains('127.0.0.1')) {
+      return url;
+    }
+    
+    print('⚠️ [RATING MODEL] Detected localhost URL: $url');
+    
+    // Replace localhost:8080 với ngrok domain
+    const ngrokDomain = 'https://gearldine-subventral-overcuriously.ngrok-free.dev';
+    
+    // Extract path từ localhost URL
+    final uri = Uri.parse(url);
+    final path = uri.path; // /uploads/avatars/xxx.jpg
+    
+    final fixedUrl = '$ngrokDomain$path';
+    print('✅ [RATING MODEL] Fixed URL: $fixedUrl');
+    
+    return fixedUrl;
   }
 
   Map<String, dynamic> toJson() {

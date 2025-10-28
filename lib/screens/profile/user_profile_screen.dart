@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/index.dart';
 import '../../models/recipe_model.dart';
 import '../../models/post_model.dart';
@@ -51,6 +53,230 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       return '${difference.inMinutes} phút trước';
     } else {
       return 'Vừa xong';
+    }
+  }
+
+  Future<void> _uploadAvatar(BuildContext context) async {
+    final authProvider = context.read<AuthProvider>();
+    final user = authProvider.currentUser;
+    if (user == null) return;
+
+    try {
+      // Show bottom sheet to choose camera or gallery
+      final ImageSource? source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (context) => Container(
+          padding: const EdgeInsets.all(20),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Text(
+                'Chọn ảnh đại diện',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1F2937),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF3A16).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.camera_alt, color: Color(0xFFEF3A16)),
+                ),
+                title: const Text('Chụp ảnh'),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF3A16).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.photo_library, color: Color(0xFFEF3A16)),
+                ),
+                title: const Text('Chọn từ thư viện'),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
+      );
+
+      if (source == null) return;
+
+      // Pick image
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (image == null) return;
+
+      // Validate file extension
+      final path = image.path.toLowerCase();
+      if (!path.endsWith('.jpg') && !path.endsWith('.jpeg') && 
+          !path.endsWith('.png') && !path.endsWith('.gif')) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Chỉ chấp nhận file ảnh (.jpg, .jpeg, .png, .gif)'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      if (!mounted) return;
+
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFEF3A16)),
+                  ),
+                  SizedBox(height: 16),
+                  Text('Đang tải ảnh lên...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Upload image
+      print('🔍 [AVATAR UPLOAD] Starting upload...');
+      print('🔍 [AVATAR UPLOAD] Image path: ${image.path}');
+      
+      final uploadResponse = await ApiService.uploadImage(
+        imageFile: File(image.path),
+        type: 'avatars',
+        token: authProvider.token,
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      print('🔍 [AVATAR UPLOAD] Upload response success: ${uploadResponse.success}');
+      print('🔍 [AVATAR UPLOAD] File URL: ${uploadResponse.data?.fileUrl}');
+
+      if (uploadResponse.success && uploadResponse.data?.fileUrl != null) {
+        final newAvatarUrl = uploadResponse.data!.fileUrl!;
+        print('🔍 [AVATAR UPLOAD] New avatar URL: $newAvatarUrl');
+        
+        // Update user profile with new avatar URL
+        final updatedData = <String, dynamic>{
+          'fullName': user.fullName,
+          'avatarUrl': newAvatarUrl,
+          'bio': user.bio ?? '',
+          'hometown': user.hometown ?? '',
+        };
+
+        print('🔍 [AVATAR UPLOAD] Updating user profile with data: $updatedData');
+
+        final updateResponse = await ApiService.updateUser(
+          user.id,
+          updatedData,
+          authProvider.token!,
+        );
+
+        print('🔍 [AVATAR UPLOAD] Update response success: ${updateResponse.success}');
+        print('🔍 [AVATAR UPLOAD] Updated user avatar: ${updateResponse.data?.avatar}');
+
+        if (updateResponse.success && mounted) {
+          // Clear image cache for the old avatar if exists
+          if (user.avatar != null && user.avatar!.isNotEmpty) {
+            try {
+              final oldImageProvider = NetworkImage(user.avatar!);
+              await oldImageProvider.evict();
+              print('🔍 [AVATAR UPLOAD] Cleared cache for old avatar');
+            } catch (e) {
+              print('⚠️ [AVATAR UPLOAD] Failed to clear old cache: $e');
+            }
+          }
+          
+          // Clear cache for new avatar to ensure fresh load
+          try {
+            final newImageProvider = NetworkImage(newAvatarUrl);
+            await newImageProvider.evict();
+            print('🔍 [AVATAR UPLOAD] Cleared cache for new avatar');
+          } catch (e) {
+            print('⚠️ [AVATAR UPLOAD] Failed to clear new cache: $e');
+          }
+          
+          // Reload user profile to fetch latest data
+          await authProvider.loadUserProfile();
+          
+          // Force rebuild the widget
+          if (mounted) {
+            setState(() {});
+          }
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Cập nhật ảnh đại diện thành công!\nURL: $newAvatarUrl'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(updateResponse.message ?? 'Cập nhật thất bại'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(uploadResponse.message ?? 'Upload ảnh thất bại'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog if open
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -325,49 +551,102 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     padding: const EdgeInsets.all(24),
                     child: Column(
                       children: [
-                        // Avatar with 3D effect
-                        Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 15,
-                                offset: const Offset(0, 8),
+                        // Avatar with 3D effect and edit button
+                        Stack(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 15,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                  BoxShadow(
+                                    color: Colors.white.withOpacity(0.3),
+                                    blurRadius: 4,
+                                    offset: const Offset(-2, -2),
+                                  ),
+                                ],
                               ),
-                              BoxShadow(
-                                color: Colors.white.withOpacity(0.3),
-                                blurRadius: 4,
-                                offset: const Offset(-2, -2),
+                              child: Consumer<AuthProvider>(
+                                builder: (context, authProvider, child) {
+                                  final user = authProvider.currentUser;
+                                  final hasAvatar = user?.avatar != null && user!.avatar!.isNotEmpty;
+                                  
+                                  print('🔍 [AVATAR DISPLAY] User avatar URL: ${user?.avatar}');
+                                  print('🔍 [AVATAR DISPLAY] Has avatar: $hasAvatar');
+                                  
+                                  // Check if URL contains localhost
+                                  if (hasAvatar && user!.avatar!.contains('localhost')) {
+                                    print('⚠️ [AVATAR DISPLAY] WARNING: URL contains localhost!');
+                                    print('⚠️ [AVATAR DISPLAY] Localhost on phone != localhost on computer');
+                                    print('⚠️ [AVATAR DISPLAY] Image will fail to load!');
+                                  }
+                                  
+                                  return CircleAvatar(
+                                    key: ValueKey(user?.avatar ?? 'no_avatar_${DateTime.now().millisecondsSinceEpoch}'),
+                                    radius: 50,
+                                    backgroundColor: Colors.white,
+                                    foregroundImage: hasAvatar
+                                        ? NetworkImage(user!.avatar!)
+                                        : null,
+                                    onForegroundImageError: hasAvatar ? (exception, stackTrace) {
+                                      print('❌ [AVATAR DISPLAY] Failed to load image: $exception');
+                                      print('❌ [AVATAR DISPLAY] URL was: ${user!.avatar}');
+                                      print('❌ [AVATAR DISPLAY] Stack trace: $stackTrace');
+                                    } : null,
+                                    child: !hasAvatar
+                                        ? const Icon(
+                                            Icons.person,
+                                            size: 50,
+                                            color: Color(0xFFEF3A16),
+                                            shadows: [
+                                              Shadow(
+                                                color: Colors.black26,
+                                                offset: Offset(1, 1),
+                                                blurRadius: 2,
+                                              ),
+                                            ],
+                                          )
+                                        : null,
+                                  );
+                                },
                               ),
-                            ],
-                          ),
-                          child: Consumer<AuthProvider>(
-                            builder: (context, authProvider, child) {
-                              final user = authProvider.currentUser;
-                              return CircleAvatar(
-                                radius: 50,
-                                backgroundColor: Colors.white,
-                                backgroundImage: user?.avatar != null && user!.avatar!.isNotEmpty
-                                    ? NetworkImage(user.avatar!)
-                                    : null,
-                                child: user?.avatar == null || user!.avatar!.isEmpty
-                                    ? const Icon(
-                                        Icons.person,
-                                        size: 50,
-                                        color: Color(0xFFEF3A16),
-                                        shadows: [
-                                          Shadow(
-                                            color: Colors.black26,
-                                            offset: Offset(1, 1),
-                                            blurRadius: 2,
-                                          ),
-                                        ],
-                                      )
-                                    : null,
-                              );
-                            },
-                          ),
+                            ),
+                            // Edit button
+                            Positioned(
+                              right: 0,
+                              bottom: 0,
+                              child: GestureDetector(
+                                onTap: () => _uploadAvatar(context),
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEF3A16),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt,
+                                    size: 18,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 16),
                         Consumer<AuthProvider>(

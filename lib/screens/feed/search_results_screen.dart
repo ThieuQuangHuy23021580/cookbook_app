@@ -334,15 +334,19 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               // Previous Page Button
-              ElevatedButton.icon(
-                onPressed: page > 1 ? onPrev : null,
-                icon: const Icon(Icons.arrow_back_ios, size: 16),
-                label: const Text('Trang trước'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: page > 1 ? const Color(0xFFEF3A16) : Colors.grey[300],
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              SizedBox(
+                width: 100,
+                child: ElevatedButton.icon(
+                  onPressed: page > 1 ? onPrev : null,
+                  icon: const Icon(Icons.arrow_back_ios, size: 16),
+                  label: const Text('Trước'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: page > 1 ? const Color(0xFFEF3A16) : Colors.grey[300],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ),
@@ -367,15 +371,19 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
               ),
               
               // Next Page Button
-              ElevatedButton.icon(
-                onPressed: endIndex < sortedRecipes.length ? onNext : null,
-                icon: const Icon(Icons.arrow_forward_ios, size: 16),
-                label: const Text('Trang sau'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: endIndex < sortedRecipes.length ? const Color(0xFFEF3A16) : Colors.grey[300],
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              SizedBox(
+                width: 100,
+                child: ElevatedButton.icon(
+                  onPressed: endIndex < sortedRecipes.length ? onNext : null,
+                  icon: const Icon(Icons.arrow_forward_ios, size: 16),
+                  label: const Text('Sau'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: endIndex < sortedRecipes.length ? const Color(0xFFEF3A16) : Colors.grey[300],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ),
@@ -390,6 +398,18 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
     return GestureDetector(
       onTap: () {
         // Convert recipe to Post format for PostDetailScreen
+        final List<String> ingredientsList = [];
+        for (var ing in recipe.ingredients) {
+          ingredientsList.add(
+            '${ing.name}${ing.quantity != null ? " ${ing.quantity}" : ""}${ing.unit != null ? " ${ing.unit}" : ""}'
+          );
+        }
+        
+        final List<String> stepsList = [];
+        for (var step in recipe.steps) {
+          stepsList.add(step.title);
+        }
+        
         final post = Post(
           id: recipe.id.toString(),
           title: recipe.title,
@@ -399,12 +419,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
               : 0,
           savedCount: recipe.bookmarksCount,
           imageUrl: recipe.imageUrl ?? '',
-          ingredients: recipe.ingredients.map<String>((ing) => 
-            '${ing.name}${ing.quantity != null ? " ${ing.quantity}" : ""}${ing.unit != null ? " ${ing.unit}" : ""}'
-          ).toList(),
-          steps: recipe.steps.map<String>((step) => 
-            '${step.stepNumber}. ${step.title}${step.description != null ? ": ${step.description}" : ""}'
-          ).toList(),
+          ingredients: ingredientsList,
+          steps: stepsList,
         );
         
         Navigator.push(
@@ -547,44 +563,51 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                       final recipeId = recipe.id;
                       final isBookmarked = recipeProvider.bookmarkedRecipeIds.contains(recipeId);
                       
-                      return IconButton(
-                        onPressed: () async {
-                          try {
-                            await recipeProvider.toggleBookmarkRecipe(recipeId);
-                            
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    isBookmarked ? 'Đã bỏ lưu công thức' : 'Đã lưu công thức',
-                                  ),
-                                  backgroundColor: isBookmarked ? Colors.orange : Colors.green,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                              );
-                            }
-                          } catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Lỗi: $e'),
-                                  backgroundColor: Colors.red,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                              );
-                            }
-                          }
+                      return FutureBuilder<bool>(
+                        future: Future.value(isBookmarked),
+                        builder: (context, snapshot) {
+                          final isBookmarkedValue = snapshot.data ?? false;
+                          
+                          return IconButton(
+                            onPressed: () async {
+                              try {
+                                await recipeProvider.toggleBookmarkRecipe(recipeId);
+                                
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        isBookmarked ? 'Đã bỏ lưu công thức' : 'Đã lưu công thức',
+                                      ),
+                                      backgroundColor: isBookmarked ? Colors.orange : Colors.green,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Lỗi: $e'),
+                                      backgroundColor: Colors.red,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            icon: Icon(
+                              isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                              color: isBookmarked ? const Color(0xFFEF3A16) : Colors.grey[600],
+                            ),
+                          );
                         },
-                        icon: Icon(
-                          isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                          color: isBookmarked ? const Color(0xFFEF3A16) : Colors.grey[600],
-                        ),
                       );
                     },
                   ),

@@ -15,7 +15,6 @@ class FeedScreen extends StatefulWidget {
 }
 
 class _FeedScreenState extends State<FeedScreen> {
-  final List<String> popularKeywords = const ['Thực đơn món ngon mỗi ngày', 'Thịt băm', 'Trứng', 'Cá', 'Đùi gà', 'Bánh'];
   final List<String> recentKeywords = const ['Bún bò', 'Canh chua', 'Sushi', 'Bánh mì', 'Salad'];
   
   // ScrollController cho danh sách món gần đây
@@ -23,6 +22,106 @@ class _FeedScreenState extends State<FeedScreen> {
   
   // Search state
   String _currentSearchQuery = '';
+
+  // Danh sách từ dừng (stop words) để loại bỏ khi phân tích
+  static const List<String> _stopWords = [
+    'món', 'bữa', 'ngày', 'đơn', 'thực', 'các', 'với', 'cho',
+    'của', 'và', 'thêm', 'kiểu', 'cách', 'làm', 'nấu', 'chế', 'biến',
+    'theo', 'phong', 'cách', 'miền', 'kiểu', 'đặc', 'sản', 'truyền',
+    'thống', 'gia', 'đình', 'nhà', 'hàng', 'quán', 'simple', 'easy',
+  ];
+
+  /// Phân tích recipes để lấy từ khóa thịnh hành
+  List<String> _getTrendingKeywords(List<Recipe> recipes) {
+    if (recipes.isEmpty) {
+      print('⚠️ [TRENDING] No recipes available, using default keywords');
+      return ['Thịt băm', 'Trứng', 'Cá', 'Đùi gà', 'Bánh', 'Phở'];
+    }
+
+    print('📊 [TRENDING] Analyzing ${recipes.length} recipes for trending keywords...');
+    
+    // Map để đếm số lần xuất hiện của mỗi từ
+    Map<String, int> wordCount = {};
+
+    for (var recipe in recipes) {
+      // Tách title thành các từ
+      final words = recipe.title
+          .toLowerCase()
+          .trim()
+          .replaceAll(RegExp(r'[^\w\s\u00C0-\u1EF9]'), '') // Loại bỏ ký tự đặc biệt, giữ tiếng Việt
+          .split(RegExp(r'\s+'));
+
+      for (var word in words) {
+        final cleanWord = word.trim();
+        
+        // Bỏ qua từ quá ngắn, từ dừng, và số
+        if (cleanWord.length <= 2 || 
+            _stopWords.contains(cleanWord) ||
+            RegExp(r'^\d+$').hasMatch(cleanWord)) {
+          continue;
+        }
+
+        // Capitalize first letter
+        final capitalizedWord = cleanWord[0].toUpperCase() + cleanWord.substring(1);
+        wordCount[capitalizedWord] = (wordCount[capitalizedWord] ?? 0) + 1;
+      }
+    }
+
+    // Sắp xếp theo số lần xuất hiện giảm dần và lấy top 6
+    final sortedWords = wordCount.entries.toList()
+      ..sort((a, b) {
+        // Ưu tiên từ xuất hiện nhiều hơn
+        final countCompare = b.value.compareTo(a.value);
+        if (countCompare != 0) return countCompare;
+        // Nếu bằng nhau thì sắp xếp theo alphabet
+        return a.key.compareTo(b.key);
+      });
+
+    // Lấy top 6 từ khóa, đảm bảo có ít nhất 2 lần xuất hiện
+    final topKeywords = sortedWords
+        .where((e) => e.value >= 2)
+        .take(6)
+        .map((e) => e.key)
+        .toList();
+
+    // Nếu không đủ 6 từ khóa, thêm từ default
+    if (topKeywords.length < 6) {
+      final defaultKeywords = ['Thịt băm', 'Trứng', 'Cá', 'Đùi gà', 'Bánh', 'Phở'];
+      for (var keyword in defaultKeywords) {
+        if (topKeywords.length >= 6) break;
+        if (!topKeywords.contains(keyword)) {
+          topKeywords.add(keyword);
+        }
+      }
+    }
+
+    print('✅ [TRENDING] Top keywords: $topKeywords');
+    if (sortedWords.isNotEmpty) {
+      print('📈 [TRENDING] Top 10 with counts:');
+      for (var entry in sortedWords.take(10)) {
+        print('   - ${entry.key}: ${entry.value} times');
+      }
+    }
+
+    return topKeywords;
+  }
+
+  /// Lấy hình ảnh đại diện cho từ khóa
+  String? _getKeywordImage(String keyword, List<Recipe> recipes) {
+    // Tìm recipe đầu tiên có chứa keyword trong title
+    final recipe = recipes.firstWhere(
+      (r) => r.title.toLowerCase().contains(keyword.toLowerCase()),
+      orElse: () => recipes.isNotEmpty ? recipes.first : Recipe(
+        id: 0,
+        title: '',
+        servings: 0,
+        userId: 0,
+        userName: '',
+      ),
+    );
+    
+    return recipe.imageUrl;
+  }
 
   @override
   void initState() {
@@ -317,141 +416,165 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 
   Widget _popularGrid() {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
-        childAspectRatio: 1.0,
-      ),
-      itemCount: popularKeywords.length,
-      itemBuilder: (ctx, i) {
-        final k = popularKeywords[i];
-        return GestureDetector(
-          onTap: () {
-            _openSearch(k);
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Glassmorphism background
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          const Color(0xFFFF6B35).withOpacity(0.8),
-                          const Color(0xFFFF8E53).withOpacity(0.6),
-                          const Color(0xFFFFB366).withOpacity(0.4),
-                        ],
-                        stops: const [0.0, 0.6, 1.0],
-                      ),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.2),
-                        width: 1.5,
-                      ),
+    return Consumer<RecipeProvider>(
+      builder: (context, recipeProvider, child) {
+        // Lấy trending keywords từ recipes
+        final trendingKeywords = _getTrendingKeywords(recipeProvider.recipes);
+        
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 1.0,
+          ),
+          itemCount: trendingKeywords.length,
+          itemBuilder: (ctx, i) {
+            final k = trendingKeywords[i];
+            final keywordImage = _getKeywordImage(k, recipeProvider.recipes);
+            
+            return GestureDetector(
+              onTap: () {
+                _openSearch(k);
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.2),
+                      width: 1.5,
                     ),
-                  ),
-                  // Glassmorphism overlay
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withOpacity(0.25),
-                          Colors.white.withOpacity(0.1),
-                        ],
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
-                    ),
+                    ],
                   ),
-                  // Animated floating particles
-                  ...List.generate(3, (index) => 
-                    Positioned(
-                      top: (index * 30.0) % 100,
-                      left: (index * 40.0) % 100,
-                      child: AnimatedContainer(
-                        duration: Duration(milliseconds: 2000 + (index * 500)),
-                        curve: Curves.easeInOut,
-                        width: 4 + (index * 2),
-                        height: 4 + (index * 2),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.3),
-                          shape: BoxShape.circle,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // Background image or gradient fallback
+                        if (keywordImage != null && keywordImage.isNotEmpty)
+                          Image.network(
+                            keywordImage,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      const Color(0xFFFF6B35).withOpacity(0.8),
+                                      const Color(0xFFFF8E53).withOpacity(0.6),
+                                      const Color(0xFFFFB366).withOpacity(0.4),
+                                    ],
+                                    stops: const [0.0, 0.6, 1.0],
+                                  ),
+                                ),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.restaurant_menu,
+                                    size: 40,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              );
+                            },
+                          )
+                        else
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  const Color(0xFFFF6B35).withOpacity(0.8),
+                                  const Color(0xFFFF8E53).withOpacity(0.6),
+                                  const Color(0xFFFFB366).withOpacity(0.4),
+                                ],
+                                stops: const [0.0, 0.6, 1.0],
+                              ),
+                            ),
+                            child: const Center(
+                              child: Icon(
+                                Icons.restaurant_menu,
+                                size: 40,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        // Dark overlay for better text visibility
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.black.withOpacity(0.1),
+                                Colors.black.withOpacity(0.4),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
-                  // Icon with 3D effect
-                  const Align(
-                    alignment: Alignment.center,
-                    child: Icon(
-                      Icons.restaurant_menu, 
-                      size: 40, 
-                      color: Colors.white,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black26,
-                          offset: Offset(2, 2),
-                          blurRadius: 4,
+                        // Bottom overlay gradient covering a portion of the tile (not only behind the text)
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: FractionallySizedBox(
+                            widthFactor: 1,
+                            heightFactor: 0.40,
+                            child: Container(
+                              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.black.withOpacity(0.4),
+                                    Colors.black.withOpacity(0.6),
+                                  ],
+                                ),
+                              ),
+                              child: Text(
+                                k,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  letterSpacing: 0.3,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black54,
+                                      offset: Offset(1, 1),
+                                      blurRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  // Bottom overlay gradient covering a portion of the tile (not only behind the text)
-                  Align(
-                    alignment: Alignment.bottomCenter,
-                    child: FractionallySizedBox(
-                      widthFactor: 1,
-                      heightFactor: 0.40,
-                      child: Container(
-                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withOpacity(0.4),
-                              Colors.black.withOpacity(0.6),
-                            ],
-                          ),
-                        ),
-                        child: Text(
-                          k,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                            letterSpacing: 0.3,
-                            shadows: [
-                              Shadow(
-                                color: Colors.black54,
-                                offset: Offset(1, 1),
-                                blurRadius: 2,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
@@ -541,16 +664,39 @@ class _FeedScreenState extends State<FeedScreen> {
                       topLeft: Radius.circular(20),
                       topRight: Radius.circular(20),
                     ),
-                    child: Image.network(
-                      'https://picsum.photos/200/200?random=$i',
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                    ),
+                    child: recipes[i].imageUrl != null && recipes[i].imageUrl!.isNotEmpty
+                        ? Image.network(
+                            recipes[i].imageUrl!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: const Color(0xFFF1F5F9),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.restaurant,
+                                    size: 40,
+                                    color: Color(0xFF94A3B8),
+                                  ),
+                                ),
+                              );
+                            },
+                          )
+                        : Container(
+                            color: const Color(0xFFF1F5F9),
+                            child: const Center(
+                              child: Icon(
+                                Icons.restaurant,
+                                size: 40,
+                                color: Color(0xFF94A3B8),
+                              ),
+                            ),
+                          ),
                   ),
                 ),
                 // Phần thông tin (4/10)
                 Expanded(
-                  flex: 4,
+                  flex: 5,
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Column(
@@ -561,7 +707,7 @@ class _FeedScreenState extends State<FeedScreen> {
                         Text(
                           '@${recipes[i].userName}',
                           style: const TextStyle(
-                            fontSize: 10,
+                            fontSize: 9,
                             color: Color(0xFF6B7280),
                             fontWeight: FontWeight.w500,
                             letterSpacing: 0.1,
@@ -573,7 +719,7 @@ class _FeedScreenState extends State<FeedScreen> {
                         Text(
                           recipes[i].title,
                           style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: 10,
                             color: Color(0xFF1F2937),
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.1,

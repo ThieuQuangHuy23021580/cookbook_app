@@ -1,3 +1,5 @@
+import '../constants/app_constants.dart';
+
 class Ingredient {
   final int id;
   final String name;
@@ -68,7 +70,7 @@ class StepImage {
   factory StepImage.fromJson(Map<String, dynamic> json) {
     return StepImage(
       id: json['id'] as int,
-      imageUrl: json['imageUrl'] as String,
+      imageUrl: json['imageUrl'] as String? ?? '',
       orderNumber: json['orderNumber'] as int?,
     );
   }
@@ -119,7 +121,16 @@ class RecipeStep {
       if (imagesData is List) {
         return imagesData
             .where((e) => e is Map<String, dynamic>)
-            .map((e) => StepImage.fromJson(e as Map<String, dynamic>))
+            .map((e) {
+              final img = StepImage.fromJson(e as Map<String, dynamic>);
+              // Fix localhost URL for step image
+              final fixedUrl = ApiConfig.fixImageUrl(img.imageUrl);
+              return StepImage(
+                id: img.id,
+                imageUrl: fixedUrl,
+                orderNumber: img.orderNumber,
+              );
+            })
             .toList();
       }
       return [];
