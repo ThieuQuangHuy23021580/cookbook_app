@@ -5,6 +5,10 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../providers/recipe_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/api_service.dart';
+import '../../models/post_model.dart';
+import '../profile/user_profile_screen.dart';
+import 'post_detail_screen.dart';
 
 class NewPostScreen extends StatefulWidget {
   const NewPostScreen({super.key});
@@ -23,9 +27,8 @@ class _NewPostScreenState extends State<NewPostScreen> {
   final List<TextEditingController> _ingredientQuantityCtrls = List.generate(1, (_) => TextEditingController()..text = '0');
   final List<TextEditingController> _ingredientUnitCtrls = List.generate(1, (_) => TextEditingController()..text = 'cái');
   
-  // Steps controllers: title, description
+  // Steps controllers: title only (description removed)
   final List<TextEditingController> _stepTitleCtrls = List.generate(1, (_) => TextEditingController());
-  final List<TextEditingController> _stepDescCtrls = List.generate(1, (_) => TextEditingController());
   
   // Images
   final List<File> _images = [];
@@ -40,7 +43,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
     for (final c in _ingredientQuantityCtrls) c.dispose();
     for (final c in _ingredientUnitCtrls) c.dispose();
     for (final c in _stepTitleCtrls) c.dispose();
-    for (final c in _stepDescCtrls) c.dispose();
     super.dispose();
   }
 
@@ -327,7 +329,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
                   ..._stepTitleCtrls.asMap().entries.map((e) => _buildStepField(
                     index: e.key,
                     titleController: e.value,
-                    descController: _stepDescCtrls[e.key],
                     images: _stepImages[e.key],
                     onRemove: _stepTitleCtrls.length > 1 ? () => _removeStep(e.key) : null,
                     onAddImage: () => _pickStepImage(e.key),
@@ -765,90 +766,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
       child: ElevatedButton(
         onPressed: () async {
           if (_validateAll()) {
-            final recipeProvider = context.read<RecipeProvider>();
-            final authProvider = context.read<AuthProvider>();
-            
-            if (!authProvider.isLoggedIn) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Vui lòng đăng nhập để đăng bài'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-              return;
-            }
-            
-            // Prepare recipe data
-            final recipeData = {
-              'title': _titleCtrl.text,
-              'description': _descCtrl.text,
-              'servings': 4, // Default servings
-              'cookingTime': 30, // Default cooking time
-              'ingredients': _ingredientNameCtrls.asMap().entries.map((entry) => {
-                'name': entry.value.text,
-                'quantity': _ingredientQuantityCtrls[entry.key].text.isNotEmpty 
-                    ? _ingredientQuantityCtrls[entry.key].text 
-                    : '1',
-                'unit': _ingredientUnitCtrls[entry.key].text.isNotEmpty 
-                    ? _ingredientUnitCtrls[entry.key].text 
-                    : 'cái',
-              }).toList(),
-              'steps': _stepTitleCtrls.asMap().entries.map((entry) => {
-                'stepNumber': entry.key + 1,
-                'title': entry.value.text,
-                'description': _stepDescCtrls[entry.key].text,
-                'images': _stepImages[entry.key].map((file) => {
-                  'imageUrl': 'https://picsum.photos/400/300?random=${DateTime.now().millisecondsSinceEpoch}',
-                  'orderNumber': _stepImages[entry.key].indexOf(file) + 1,
-                }).toList(),
-              }).toList(),
-              // TODO: Upload images to server and get URLs
-              // For now, we'll use placeholder URLs
-              'images': _images.map((file) => {
-                'url': 'https://picsum.photos/400/300?random=${DateTime.now().millisecondsSinceEpoch}',
-                'caption': 'Ảnh món ăn',
-              }).toList(),
-            };
-            
-            // Show loading
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => const Center(
-                child: CircularProgressIndicator(),
-              ),
-            );
-            
-            // Create recipe
-            final response = await recipeProvider.createRecipe(recipeData);
-            
-            // Hide loading
-            Navigator.pop(context);
-            
-            if (response.success) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Đăng bài thành công!'),
-                  backgroundColor: const Color(0xFFEF3A16),
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              );
-              Navigator.pop(context);
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(response.message ?? 'Đăng bài thất bại'),
-                  backgroundColor: Colors.red,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              );
-            }
+            await _submitRecipe();
           }
         },
         style: ElevatedButton.styleFrom(
@@ -896,7 +814,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
   void _addStep() {
     setState(() {
       _stepTitleCtrls.add(TextEditingController());
-      _stepDescCtrls.add(TextEditingController());
       _stepImages.add([]);
     });
   }
@@ -904,9 +821,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
   void _removeStep(int index) {
     setState(() {
       _stepTitleCtrls[index].dispose();
-      _stepDescCtrls[index].dispose();
       _stepTitleCtrls.removeAt(index);
-      _stepDescCtrls.removeAt(index);
       _stepImages.removeAt(index);
     });
   }
@@ -1023,23 +938,27 @@ class _NewPostScreenState extends State<NewPostScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.3),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF64748B).withOpacity(0.2),
-            blurRadius: 8,
-            offset: const Offset(4, 4),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
           BoxShadow(
             color: Colors.white.withOpacity(0.8),
-            blurRadius: 8,
-            offset: const Offset(-4, -4),
+            blurRadius: 4,
+            offset: const Offset(-2, -2),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1091,18 +1010,21 @@ class _NewPostScreenState extends State<NewPostScreen> {
               decoration: InputDecoration(
                 labelText: 'Tên nguyên liệu',
                 hintText: 'Ví dụ: Thịt bò, Cà chua...',
-                labelStyle: const TextStyle(
-                  color: Color(0xFF64748B),
-                  fontWeight: FontWeight.w500,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
                 ),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 2),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 filled: true,
-                fillColor: Colors.transparent,
-              ),
-              style: const TextStyle(
-                color: Color(0xFF1F2937),
-                fontWeight: FontWeight.w500,
+                fillColor: Colors.grey[50],
               ),
               validator: (v) => (v == null || v.trim().isEmpty) ? 'Bắt buộc' : null,
             ),
@@ -1205,18 +1127,21 @@ class _NewPostScreenState extends State<NewPostScreen> {
                     decoration: InputDecoration(
                       labelText: 'Đơn vị',
                       hintText: 'cái, kg, ml...',
-                      labelStyle: const TextStyle(
-                        color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w500,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
                       ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 2),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       filled: true,
-                      fillColor: Colors.transparent,
-                    ),
-                    style: const TextStyle(
-                      color: Color(0xFF1F2937),
-                      fontWeight: FontWeight.w500,
+                      fillColor: Colors.grey[50],
                     ),
                   ),
                 ),
@@ -1231,7 +1156,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
   Widget _buildStepField({
     required int index,
     required TextEditingController titleController,
-    required TextEditingController descController,
     required List<File> images,
     VoidCallback? onRemove,
     VoidCallback? onAddImage,
@@ -1241,21 +1165,22 @@ class _NewPostScreenState extends State<NewPostScreen> {
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            Colors.grey[50]!,
-          ],
+        color: Colors.white.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.3),
+          width: 1.5,
         ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+          BoxShadow(
+            color: Colors.white.withOpacity(0.8),
+            blurRadius: 4,
+            offset: const Offset(-2, -2),
           ),
         ],
       ),
@@ -1304,38 +1229,12 @@ class _NewPostScreenState extends State<NewPostScreen> {
           ),
           const SizedBox(height: 16),
           
-          // Tiêu đề bước
+          // Mô tả chi tiết
           TextFormField(
             controller: titleController,
             decoration: InputDecoration(
-              labelText: 'Tiêu đề bước',
-              hintText: 'Ví dụ: Chuẩn bị nguyên liệu...',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 2),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              filled: true,
-              fillColor: Colors.grey[50],
-            ),
-            validator: (v) => (v == null || v.trim().isEmpty) ? 'Bắt buộc' : null,
-          ),
-          const SizedBox(height: 16),
-          
-          // Mô tả chi tiết
-          TextFormField(
-            controller: descController,
-            decoration: InputDecoration(
               labelText: 'Mô tả chi tiết',
-              hintText: 'Mô tả từng bước thực hiện...',
+              hintText: 'Ví dụ: Rửa sạch rau củ, thái nhỏ vừa ăn...',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(color: Colors.grey[300]!),
@@ -1352,7 +1251,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
               filled: true,
               fillColor: Colors.grey[50],
             ),
-            maxLines: 3,
+            maxLines: 4,
             validator: (v) => (v == null || v.trim().isEmpty) ? 'Bắt buộc' : null,
           ),
           const SizedBox(height: 16),
@@ -1538,6 +1437,278 @@ class _NewPostScreenState extends State<NewPostScreen> {
       return false;
     }
     return true;
+  }
+
+  Future<void> _submitRecipe() async {
+    final authProvider = context.read<AuthProvider>();
+    
+    if (!authProvider.isLoggedIn) {
+      _showErrorSnackBar('Vui lòng đăng nhập để đăng bài');
+      return;
+    }
+    
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => WillPopScope(
+        onWillPop: () async => false,
+        child: const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Đang đăng bài...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    
+    try {
+      print('🚀 [NEW POST] Starting recipe creation...');
+      
+      // Step 1: Upload main recipe image
+      print('📸 [NEW POST] Uploading main image...');
+      String? mainImageUrl;
+      if (_images.isNotEmpty) {
+        final uploadResult = await ApiService.uploadImage(
+          imageFile: _images.first,
+          type: 'recipes',
+        );
+        
+        if (uploadResult.success && uploadResult.data != null) {
+          mainImageUrl = uploadResult.data!.fileUrl;
+          print('✅ [NEW POST] Main image uploaded: $mainImageUrl');
+        } else {
+          throw Exception('Upload ảnh chính thất bại: ${uploadResult.message}');
+        }
+      }
+      
+      // Step 2: Upload step images
+      print('📸 [NEW POST] Uploading step images...');
+      final List<List<Map<String, dynamic>>> stepsWithImages = [];
+      
+      for (int stepIndex = 0; stepIndex < _stepTitleCtrls.length; stepIndex++) {
+        final stepImagesList = <Map<String, dynamic>>[];
+        
+        if (_stepImages[stepIndex].isNotEmpty) {
+          for (int imgIdx = 0; imgIdx < _stepImages[stepIndex].length; imgIdx++) {
+            final imageFile = _stepImages[stepIndex][imgIdx];
+            final uploadResult = await ApiService.uploadImage(
+              imageFile: imageFile,
+              type: 'steps',
+            );
+            
+            if (uploadResult.success && uploadResult.data != null) {
+              stepImagesList.add({
+                'imageUrl': uploadResult.data!.fileUrl,
+                'orderNumber': imgIdx + 1,
+              });
+              print('✅ [NEW POST] Step ${stepIndex + 1} image ${imgIdx + 1} uploaded');
+            }
+          }
+        }
+        
+        stepsWithImages.add(stepImagesList);
+      }
+      
+      // Step 3: Prepare recipe data
+      print('📝 [NEW POST] Preparing recipe data...');
+      final recipeData = {
+        'title': _titleCtrl.text.trim(),
+        'imageUrl': mainImageUrl,
+        'servings': 4, // Default
+        'cookingTime': 30, // Default
+        'ingredients': _ingredientNameCtrls.asMap().entries.map((entry) {
+          return {
+            'name': entry.value.text.trim(),
+            'quantity': _ingredientQuantityCtrls[entry.key].text.trim().isEmpty 
+                ? '1' 
+                : _ingredientQuantityCtrls[entry.key].text.trim(),
+            'unit': _ingredientUnitCtrls[entry.key].text.trim().isEmpty 
+                ? 'cái' 
+                : _ingredientUnitCtrls[entry.key].text.trim(),
+          };
+        }).toList(),
+        'steps': _stepTitleCtrls.asMap().entries.map((entry) {
+          return {
+            'stepNumber': entry.key + 1,
+            'title': entry.value.text.trim(),
+            'images': stepsWithImages[entry.key],
+          };
+        }).toList(),
+      };
+      
+      print('📦 [NEW POST] Recipe data prepared:');
+      print('   - Title: ${recipeData['title']}');
+      print('   - Image URL: ${recipeData['imageUrl']}');
+      print('   - Ingredients count: ${(recipeData['ingredients'] as List).length}');
+      print('   - Steps count: ${(recipeData['steps'] as List).length}');
+      print('📦 [NEW POST] Ingredients:');
+      for (var i = 0; i < (recipeData['ingredients'] as List).length; i++) {
+        final ing = (recipeData['ingredients'] as List)[i];
+        print('   ${i + 1}. ${ing['name']} - ${ing['quantity']} ${ing['unit']}');
+      }
+      print('📦 [NEW POST] Steps:');
+      for (var i = 0; i < (recipeData['steps'] as List).length; i++) {
+        final step = (recipeData['steps'] as List)[i];
+        print('   ${i + 1}. ${step['title']} - ${(step['images'] as List).length} images');
+      }
+      
+      // Step 4: Create recipe
+      print('🚀 [NEW POST] Creating recipe...');
+      final recipeProvider = context.read<RecipeProvider>();
+      final response = await recipeProvider.createRecipe(recipeData);
+      
+      // Hide loading
+      Navigator.pop(context);
+      
+      if (response.success) {
+        print('');
+        print('🎉 ==========================================');
+        print('✅ [NEW POST] ĐĂNG BÀI THÀNH CÔNG!');
+        print('🎉 ==========================================');
+        print('📝 Recipe ID: ${response.data?.id}');
+        print('📝 Title: ${response.data?.title}');
+        print('📝 Image URL: ${response.data?.imageUrl}');
+        print('📝 Ingredients: ${response.data?.ingredients.length ?? 0}');
+        print('📝 Steps: ${response.data?.steps.length ?? 0}');
+        print('🎉 ==========================================');
+        print('');
+        
+        // Get current user info
+        final authProvider = context.read<AuthProvider>();
+        final currentUser = authProvider.currentUser;
+        final recipeProvider = context.read<RecipeProvider>();
+        
+        // Get recipe ID
+        final recipeId = response.data!.id;
+        
+        print('🔄 [NEW POST] Fetching full recipe detail for ID: $recipeId');
+        
+        // Fetch full recipe detail to ensure we have all data
+        final recipe = await recipeProvider.getRecipeById(recipeId);
+        
+        if (recipe == null) {
+          print('❌ [NEW POST] Failed to load recipe detail');
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Lỗi tải chi tiết bài viết'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+        
+        print('🔍 [NEW POST] Recipe data check:');
+        print('   - userName: ${recipe.userName}');
+        print('   - currentUser: ${currentUser?.fullName}');
+        print('   - createdAt: ${recipe.createdAt}');
+        print('   - ingredients count: ${recipe.ingredients.length}');
+        print('   - steps count: ${recipe.steps.length}');
+        
+        // Map ingredients with detailed logging
+        final ingredientsList = <String>[];
+        for (var ing in recipe.ingredients) {
+          final text = '${ing.name}${ing.quantity != null ? " ${ing.quantity}" : ""}${ing.unit != null ? " ${ing.unit}" : ""}';
+          ingredientsList.add(text);
+          print('   - Ingredient: $text');
+        }
+        
+        // Map steps with detailed logging
+        final stepsList = <String>[];
+        for (var step in recipe.steps) {
+          final text = '${step.stepNumber}. ${step.title}';
+          stepsList.add(text);
+          print('   - Step: $text');
+        }
+        
+        final post = Post(
+          id: recipe.id.toString(),
+          title: recipe.title,
+          author: recipe.userName ?? currentUser?.fullName ?? 'Unknown',
+          minutesAgo: recipe.createdAt != null 
+              ? DateTime.now().difference(recipe.createdAt!).inMinutes
+              : 0,
+          savedCount: recipe.bookmarksCount,
+          imageUrl: recipe.imageUrl ?? '',
+          ingredients: ingredientsList,
+          steps: stepsList,
+          createdAt: recipe.createdAt ?? DateTime.now(),
+        );
+        
+        print('📝 [NEW POST] Post object created:');
+        print('   - Author: ${post.author}');
+        print('   - Ingredients: ${post.ingredients.length}');
+        print('   - Steps: ${post.steps.length}');
+        print('   - CreatedAt: ${post.createdAt}');
+        
+        // Show success notification with loading overlay
+        if (!mounted) return;
+        _showSuccessSnackBar('🎉 Đăng bài thành công! Đang hiển thị bài viết...');
+        
+        // Show loading overlay while navigating
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+        
+        // Small delay for smooth transition
+        await Future.delayed(const Duration(milliseconds: 300));
+        
+        if (!mounted) return;
+        
+        // Close loading overlay
+        Navigator.pop(context);
+        
+        // Pop the new post screen
+        Navigator.pop(context);
+        
+        // Navigate to post detail screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PostDetailScreen(post: post),
+          ),
+        );
+        
+        print('✅ [NEW POST] Navigated to Post Detail Screen');
+        
+        // Reload recipes in background (don't await)
+        print('🔄 [NEW POST] Reloading recipes in background...');
+        context.read<RecipeProvider>().loadRecipes().then((_) {
+          print('✅ [NEW POST] Feed recipes reloaded');
+        });
+        context.read<RecipeProvider>().loadMyRecipes().then((_) {
+          print('✅ [NEW POST] My recipes reloaded');
+        });
+      } else {
+        print('');
+        print('❌ ==========================================');
+        print('❌ [NEW POST] ĐĂNG BÀI THẤT BẠI!');
+        print('❌ ==========================================');
+        print('❌ Error: ${response.message}');
+        print('❌ ==========================================');
+        print('');
+        _showErrorSnackBar(response.message ?? 'Đăng bài thất bại');
+      }
+    } catch (e, stackTrace) {
+      print('❌ [NEW POST] Error: $e');
+      print('❌ [NEW POST] Stack trace: $stackTrace');
+      Navigator.pop(context); // Hide loading
+      _showErrorSnackBar('Lỗi: $e');
+    }
   }
 }
 

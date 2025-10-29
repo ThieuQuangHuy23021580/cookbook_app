@@ -40,10 +40,10 @@ class User {
       bio: json['bio'] as String?,
       hometown: json['hometown'] as String?,
       createdAt: json['createdAt'] != null 
-          ? DateTime.parse(json['createdAt'] as String) 
+          ? DateTime.parse(json['createdAt'] as String).subtract(const Duration(hours: 7))
           : null,
       updatedAt: json['updatedAt'] != null 
-          ? DateTime.parse(json['updatedAt'] as String) 
+          ? DateTime.parse(json['updatedAt'] as String).subtract(const Duration(hours: 7))
           : null,
       stats: json['stats'] != null 
           ? UserStats.fromJson(json['stats'] as Map<String, dynamic>)

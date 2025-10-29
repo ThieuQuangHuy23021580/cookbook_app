@@ -28,14 +28,27 @@ class ApiService {
       final data = json.decode(response.body);
       
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return ApiResponse.success(fromJson(data), statusCode: response.statusCode);
+        print('✅ [HANDLE RESPONSE] Success status: ${response.statusCode}');
+        print('📝 [HANDLE RESPONSE] Parsing data with fromJson...');
+        try {
+          final result = fromJson(data);
+          print('✅ [HANDLE RESPONSE] Successfully parsed data');
+          return ApiResponse.success(result, statusCode: response.statusCode);
+        } catch (parseError, stackTrace) {
+          print('❌ [HANDLE RESPONSE] Parse error: $parseError');
+          print('❌ [HANDLE RESPONSE] Stack trace: $stackTrace');
+          print('❌ [HANDLE RESPONSE] Data received: $data');
+          return ApiResponse.error('Lỗi parse dữ liệu: $parseError', statusCode: response.statusCode);
+        }
       } else {
         return ApiResponse.error(
           data is String ? data : data['message'] ?? ErrorMessages.serverError,
           statusCode: response.statusCode,
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ [HANDLE RESPONSE] General error: $e');
+      print('❌ [HANDLE RESPONSE] Stack trace: $stackTrace');
       return ApiResponse.error(ErrorMessages.unknownError, statusCode: response.statusCode);
     }
   }
@@ -373,14 +386,26 @@ class ApiService {
 
   static Future<ApiResponse<Recipe>> createRecipe(Map<String, dynamic> data, String token) async {
     try {
+      print('📤 [CREATE RECIPE API] Request: POST ${ApiConfig.baseUrl}${ApiConfig.recipes}');
+      print('📤 [CREATE RECIPE API] Request Data:');
+      print('   - Title: ${data['title']}');
+      print('   - Image URL: ${data['imageUrl']}');
+      print('   - Ingredients: ${data['ingredients']?.length ?? 0}');
+      print('   - Steps: ${data['steps']?.length ?? 0}');
+      
       final response = await _client.post(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.recipes}'),
         headers: _getHeaders(token: token),
         body: json.encode(data),
       ).timeout(ApiConfig.timeout);
 
+      print('📥 [CREATE RECIPE API] Response Status: ${response.statusCode}');
+      print('📥 [CREATE RECIPE API] Response Body: ${response.body}');
+      
       return _handleResponse(response, (json) => Recipe.fromJson(json));
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ [CREATE RECIPE API] Error: $e');
+      print('❌ [CREATE RECIPE API] Stack trace: $stackTrace');
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }

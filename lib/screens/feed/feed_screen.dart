@@ -854,7 +854,7 @@ class _FeedScreenState extends State<FeedScreen> {
                 final post = Post(
                   id: recipe.id.toString(),
                   title: recipe.title,
-                  author: recipe.userName,
+                  author: recipe.userName ?? 'Unknown',
                   minutesAgo: recipe.createdAt != null 
                       ? DateTime.now().difference(recipe.createdAt!).inMinutes
                       : 0,
@@ -862,6 +862,7 @@ class _FeedScreenState extends State<FeedScreen> {
                   imageUrl: recipe.imageUrl ?? '',
                   ingredients: recipe.ingredients.map((ing) => '${ing.name} ${ing.quantity} ${ing.unit}').toList(),
                   steps: recipe.steps.map((step) => '${step.stepNumber}. ${step.title}: ${step.description}').toList(),
+                  createdAt: recipe.createdAt,
                 );
                 Navigator.push(context, MaterialPageRoute(builder: (_) => PostDetailScreen(post: post)));
               },
@@ -943,7 +944,7 @@ class _FeedScreenState extends State<FeedScreen> {
                       children: [
                         // Tên người đăng
                         Text(
-                          '@${recipes[i].userName}',
+                          '@${recipes[i].userName ?? 'Unknown'}',
                           style: const TextStyle(
                             fontSize: 9,
                             color: Color(0xFF6B7280),

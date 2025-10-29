@@ -16,7 +16,7 @@ class SearchHistory {
       id: json['id'] as int,
       userId: json['userId'] as int,
       searchQuery: json['searchQuery'] as String,
-      searchedAt: DateTime.parse(json['searchedAt'] as String),
+      searchedAt: DateTime.parse(json['searchedAt'] as String).subtract(const Duration(hours: 7)),
     );
   }
 

@@ -8,7 +8,7 @@ class Recipe {
   final int servings;
   final int? cookingTime;
   final int userId;
-  final String userName;
+  final String? userName;
   final String? userAvatar;
   final List<Ingredient> ingredients;
   final List<RecipeStep> steps;
@@ -32,7 +32,7 @@ class Recipe {
     required this.servings,
     this.cookingTime,
     required this.userId,
-    required this.userName,
+    this.userName,
     this.userAvatar,
     this.ingredients = const [],
     this.steps = const [],
@@ -68,15 +68,15 @@ class Recipe {
       servings: json['servings'] as int,
       cookingTime: json['cookingTime'] as int?,
       userId: json['userId'] as int,
-      userName: json['userName'] as String,
+      userName: json['userName'] as String?,
       userAvatar: fixedAvatar,
       ingredients: _parseIngredients(json['ingredients']),
       steps: _parseSteps(json['steps']),
       createdAt: json['createdAt'] != null 
-          ? DateTime.parse(json['createdAt'] as String) 
+          ? DateTime.parse(json['createdAt'] as String).subtract(const Duration(hours: 7))
           : null,
       updatedAt: json['updatedAt'] != null 
-          ? DateTime.parse(json['updatedAt'] as String) 
+          ? DateTime.parse(json['updatedAt'] as String).subtract(const Duration(hours: 7))
           : null,
       likesCount: json['likesCount'] as int? ?? 0,
       bookmarksCount: json['bookmarksCount'] as int? ?? 0,

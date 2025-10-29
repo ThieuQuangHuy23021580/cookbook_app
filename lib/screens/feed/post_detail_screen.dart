@@ -25,6 +25,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   Recipe? _recipeDetail;
   final TextEditingController _commentController = TextEditingController();
   final TextEditingController _replyController = TextEditingController();
+  
+  // Track expanded state for replies of each comment
+  final Map<int, bool> _expandedReplies = {};
 
   @override
   void initState() {
@@ -322,7 +325,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Trả lời @${comment.userName}',
+                        'Trả lời @${comment.userName ?? 'Unknown'}',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -350,7 +353,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               autofocus: true,
               onTap: () {
                 if (_replyController.text.isEmpty) {
-                  _replyController.text = '@${comment.userName} ';
+                  _replyController.text = '@${comment.userName ?? 'Unknown'} ';
                   _replyController.selection = TextSelection.fromPosition(
                     TextPosition(offset: _replyController.text.length),
                   );
@@ -743,7 +746,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${widget.post.minutesAgo} phút trước',
+                        widget.post.getFormattedTime(),
                         style: const TextStyle(
                           fontSize: 14,
                           color: Color(0xFF6B7280),
@@ -1012,6 +1015,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 20),
+          // Rating section
+          _buildRatingSection(),
           const SizedBox(height: 20),
           // Comments section
           Container(
@@ -1310,6 +1316,268 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     );
   }
 
+  Widget _buildRatingSection() {
+    final recipeId = int.tryParse(widget.post.id) ?? 0;
+    
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            spreadRadius: 0,
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: Colors.white.withOpacity(0.8),
+            spreadRadius: 0,
+            blurRadius: 4,
+            offset: const Offset(-2, -2),
+          ),
+        ],
+      ),
+      child: Consumer<RatingProvider>(
+        builder: (context, ratingProvider, child) {
+          final myRating = ratingProvider.getMyRating(recipeId);
+          final stats = ratingProvider.getRatingStats(recipeId);
+          
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Đánh giá món ăn',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1F2937),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Average rating display
+              if (stats != null) ...[
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFEF3A16), Color(0xFFFF5A00)],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFEF3A16).withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            stats.averageRating.toStringAsFixed(1),
+                            style: const TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Row(
+                            children: List.generate(5, (index) => const Icon(
+                              Icons.star,
+                              size: 16,
+                              color: Colors.white,
+                            )),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${stats.ratingsCount} đánh giá',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1F2937),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Dựa trên ${stats.ratingsCount} người dùng',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF6B7280),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                const Divider(),
+                const SizedBox(height: 20),
+              ],
+              
+              // User's rating
+              const Text(
+                'Đánh giá của bạn',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1F2937),
+                ),
+              ),
+              const SizedBox(height: 12),
+              
+              // Star rating input
+              Row(
+                children: List.generate(5, (index) {
+                  final starValue = index + 1;
+                  final isSelected = myRating != null && starValue <= myRating.rating;
+                  final hasRated = myRating != null;
+                  
+                  return GestureDetector(
+                    onTap: hasRated ? null : () => _rateRecipe(recipeId, starValue),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      child: Icon(
+                        isSelected ? Icons.star : Icons.star_border,
+                        size: 40,
+                        color: isSelected 
+                            ? const Color(0xFFFFA500)
+                            : (hasRated 
+                                ? const Color(0xFFE2E8F0).withOpacity(0.5)
+                                : const Color(0xFFE2E8F0)),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+              
+              if (myRating != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF3A16).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.check_circle,
+                        color: Color(0xFFEF3A16),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Bạn đã đánh giá ${myRating.rating} sao',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFFEF3A16),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3B82F6).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        color: Color(0xFF3B82F6),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'Nhấn vào sao để đánh giá (chỉ đánh giá 1 lần)',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF3B82F6),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _rateRecipe(int recipeId, int rating) async {
+    print('⭐ [RATING] User rating: $rating stars for recipe $recipeId');
+    
+    final ratingProvider = context.read<RatingProvider>();
+    final response = await ratingProvider.addRating(recipeId, rating);
+    
+    if (!mounted) return;
+    
+    if (response.success) {
+      print('✅ [RATING] Rating successful, reloading stats...');
+      
+      // Reload rating stats to get updated average
+      await ratingProvider.loadRatingStats(recipeId);
+      
+      // Also reload the recipe detail to update the display
+      _loadRecipeDetail(recipeId);
+      
+      // Reload all recipes to update the list
+      context.read<RecipeProvider>().loadRecipes();
+      context.read<RecipeProvider>().loadMyRecipes();
+      
+      print('✅ [RATING] Stats reloaded');
+      print('📊 [RATING] New average: ${response.data?.averageRating}');
+      print('📊 [RATING] Total ratings: ${response.data?.ratingsCount}');
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã đánh giá $rating sao!'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response.message ?? 'Đánh giá thất bại'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
+  }
+
+
   Widget _buildComment(Comment comment) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1340,7 +1608,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      comment.userName,
+                      comment.userName ?? 'Unknown',
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -1381,54 +1649,104 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           // Render replies if they exist
           if (comment.replies.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Container(
-              margin: const EdgeInsets.only(left: 52),
-              child: Column(
-                children: comment.replies.map((reply) => Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundColor: const Color(0xFFE2E8F0),
-                        backgroundImage: reply.userAvatar != null 
-                            ? NetworkImage(reply.userAvatar!)
-                            : null,
-                        child: reply.userAvatar == null
-                            ? const Icon(Icons.person, color: Color(0xFF64748B), size: 18)
-                            : null,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              reply.userName,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF1F2937),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            _buildCommentText(reply),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                )).toList(),
-              ),
-            ),
+            _buildRepliesSection(comment),
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildRepliesSection(Comment comment) {
+    final isExpanded = _expandedReplies[comment.id] ?? false;
+    final totalReplies = comment.replies.length;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Toggle button - YouTube style
+        InkWell(
+          onTap: () {
+            setState(() {
+              _expandedReplies[comment.id] = !isExpanded;
+            });
+          },
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                  size: 20,
+                  color: const Color(0xFF0284C7),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  isExpanded 
+                      ? 'Ẩn câu trả lời' 
+                      : '$totalReplies câu trả lời',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF0284C7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        
+        // Replies list - chỉ hiện khi expanded
+        if (isExpanded) ...[
+          const SizedBox(height: 8),
+          Container(
+            margin: const EdgeInsets.only(left: 52),
+            child: Column(
+              children: comment.replies.map((reply) => Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 16,
+                      backgroundColor: const Color(0xFFE2E8F0),
+                      backgroundImage: reply.userAvatar != null 
+                          ? NetworkImage(reply.userAvatar!)
+                          : null,
+                      child: reply.userAvatar == null
+                          ? const Icon(Icons.person, color: Color(0xFF64748B), size: 18)
+                          : null,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            reply.userName ?? 'Unknown',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1F2937),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          _buildCommentText(reply),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              )).toList(),
+            ),
+          ),
+        ],
+      ],
     );
   }
 

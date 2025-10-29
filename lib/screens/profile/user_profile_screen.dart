@@ -56,6 +56,202 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
+  Future<void> _showDeleteConfirmDialog(Recipe recipe) async {
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red[50],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.delete_outline,
+                color: Colors.red,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Xóa bài viết?',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1F2937),
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Bạn có chắc chắn muốn xóa bài viết "${recipe.title}"?',
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFF6B7280),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Hành động này không thể hoàn tác.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.red,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Hủy',
+              style: TextStyle(
+                color: Color(0xFF6B7280),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteRecipe(recipe);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            child: const Text(
+              'Xóa',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteRecipe(Recipe recipe) async {
+    print('🗑️ [DELETE RECIPE] Starting deletion...');
+    print('🗑️ [DELETE RECIPE] Recipe ID: ${recipe.id}');
+    print('🗑️ [DELETE RECIPE] Recipe Title: ${recipe.title}');
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => WillPopScope(
+        onWillPop: () async => false,
+        child: const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+                  ),
+                  SizedBox(height: 16),
+                  Text('Đang xóa bài viết...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final recipeProvider = context.read<RecipeProvider>();
+      final response = await recipeProvider.deleteRecipe(recipe.id);
+
+      if (!mounted) return;
+      
+      // Close loading dialog
+      Navigator.pop(context);
+
+      if (response.success) {
+        print('');
+        print('✅ ==========================================');
+        print('✅ [DELETE RECIPE] XÓA BÀI VIẾT THÀNH CÔNG!');
+        print('✅ ==========================================');
+        print('✅ Recipe ID: ${recipe.id}');
+        print('✅ Recipe Title: ${recipe.title}');
+        print('✅ ==========================================');
+        print('');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Đã xóa bài viết "${recipe.title}" thành công!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+
+        // Reload data
+        context.read<RecipeProvider>().loadMyRecipes();
+        context.read<AuthProvider>().loadUserStats();
+      } else {
+        print('');
+        print('❌ ==========================================');
+        print('❌ [DELETE RECIPE] XÓA BÀI VIẾT THẤT BẠI!');
+        print('❌ ==========================================');
+        print('❌ Error: ${response.message}');
+        print('❌ ==========================================');
+        print('');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.message ?? 'Xóa bài viết thất bại'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ [DELETE RECIPE] Error: $e');
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _uploadAvatar(BuildContext context) async {
     final authProvider = context.read<AuthProvider>();
     final user = authProvider.currentUser;
@@ -1056,7 +1252,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         final post = Post(
           id: recipe.id.toString(),
           title: recipe.title,
-          author: recipe.userName,
+          author: recipe.userName ?? 'Unknown',
           minutesAgo: recipe.createdAt != null 
               ? DateTime.now().difference(recipe.createdAt!).inMinutes
               : 0,
@@ -1064,6 +1260,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           imageUrl: recipe.imageUrl ?? '',
           ingredients: recipe.ingredients.map((ing) => ing.name).toList(),
           steps: recipe.steps.map((step) => step.description ?? step.title).toList(),
+          createdAt: recipe.createdAt,
         );
         Navigator.push(context, MaterialPageRoute(builder: (_) => PostDetailScreen(post: post)));
       },
@@ -1150,24 +1347,32 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEF3A16).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            'Đã đăng',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: const Color(0xFFEF3A16),
-                            ),
+                        // Star rating
+                        Row(
+                          children: List.generate(5, (starIndex) {
+                            return Icon(
+                              starIndex < recipe.averageRating.floor()
+                                  ? Icons.star
+                                  : (starIndex < recipe.averageRating
+                                      ? Icons.star_half
+                                      : Icons.star_border),
+                              size: 16,
+                              color: const Color(0xFFFFA500),
+                            );
+                          }),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          recipe.averageRating.toStringAsFixed(1),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1F2937),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 4),
                         Text(
-                          _formatTimeAgo(recipe.createdAt),
+                          '(${recipe.ratingsCount})',
                           style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFF6B7280),
@@ -1179,6 +1384,36 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   ],
                 ),
               ),
+              // Delete button
+              GestureDetector(
+                onTap: () => _showDeleteConfirmDialog(recipe),
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.red.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(2, 2),
+                      ),
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.8),
+                        blurRadius: 4,
+                        offset: const Offset(-2, -2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.delete_outline,
+                    color: Colors.red,
+                    size: 20,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               // Chevron icon
               SizedBox(
                 width: 32,

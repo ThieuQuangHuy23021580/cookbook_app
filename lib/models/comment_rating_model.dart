@@ -1,7 +1,7 @@
 class Comment {
   final int id;
   final int userId;
-  final String userName;
+  final String? userName;
   final String? userAvatar;
   final int recipeId;
   final String comment;
@@ -15,7 +15,7 @@ class Comment {
   Comment({
     required this.id,
     required this.userId,
-    required this.userName,
+    this.userName,
     this.userAvatar,
     required this.recipeId,
     required this.comment,
@@ -41,7 +41,7 @@ class Comment {
     return Comment(
       id: json['id'] as int,
       userId: json['userId'] as int,
-      userName: (name != null && name.toString().isNotEmpty) ? name.toString() : 'Anonymous',
+      userName: (name != null && name.toString().isNotEmpty) ? name.toString() : null,
       userAvatar: fixedAvatar,
       recipeId: json['recipeId'] as int,
       comment: json['comment'] as String,
@@ -52,10 +52,10 @@ class Comment {
           ?.map((e) => Comment.fromJson(e as Map<String, dynamic>))
           .toList() ?? [],
       createdAt: json['createdAt'] != null 
-          ? DateTime.parse(json['createdAt'] as String) 
+          ? DateTime.parse(json['createdAt'] as String).subtract(const Duration(hours: 7))
           : null,
       updatedAt: json['updatedAt'] != null 
-          ? DateTime.parse(json['updatedAt'] as String) 
+          ? DateTime.parse(json['updatedAt'] as String).subtract(const Duration(hours: 7))
           : null,
     );
   }
@@ -110,7 +110,7 @@ class Comment {
 class Rating {
   final int id;
   final int userId;
-  final String userName;
+  final String? userName;
   final String? userAvatar;
   final int recipeId;
   final int rating;
@@ -120,7 +120,7 @@ class Rating {
   Rating({
     required this.id,
     required this.userId,
-    required this.userName,
+    this.userName,
     this.userAvatar,
     required this.recipeId,
     required this.rating,
@@ -138,15 +138,15 @@ class Rating {
     return Rating(
       id: json['id'] as int,
       userId: json['userId'] as int,
-      userName: json['userName'] as String,
+      userName: json['userName'] as String?,
       userAvatar: fixedAvatar,
       recipeId: json['recipeId'] as int,
       rating: json['rating'] as int,
       createdAt: json['createdAt'] != null 
-          ? DateTime.parse(json['createdAt'] as String) 
+          ? DateTime.parse(json['createdAt'] as String).subtract(const Duration(hours: 7))
           : null,
       updatedAt: json['updatedAt'] != null 
-          ? DateTime.parse(json['updatedAt'] as String) 
+          ? DateTime.parse(json['updatedAt'] as String).subtract(const Duration(hours: 7))
           : null,
     );
   }

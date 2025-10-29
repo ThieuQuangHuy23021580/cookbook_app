@@ -236,7 +236,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       final filteredRecipes = recipeProvider.bookmarkedRecipes
                           .where((recipe) =>
                               recipe.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                              recipe.userName.toLowerCase().contains(_searchQuery.toLowerCase()))
+                              (recipe.userName ?? '').toLowerCase().contains(_searchQuery.toLowerCase()))
                           .toList();
 
                       // Sort recipes
@@ -278,7 +278,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         final post = Post(
           id: recipe.id.toString(),
           title: recipe.title,
-          author: recipe.userName,
+          author: recipe.userName ?? 'Unknown',
           minutesAgo: recipe.createdAt != null 
               ? DateTime.now().difference(recipe.createdAt).inMinutes
               : 0,
@@ -290,6 +290,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
           steps: recipe.steps.map<String>((step) => 
             '${step.stepNumber}. ${step.title}${step.description != null ? ": ${step.description}" : ""}'
           ).toList(),
+          createdAt: recipe.createdAt,
         );
         
         Navigator.push(
@@ -391,7 +392,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'by ${recipe.userName}',
+                          'by ${recipe.userName ?? 'Unknown'}',
                           style: const TextStyle(
                             fontSize: 14,
                             color: Color(0xFF6B7280),
@@ -400,28 +401,32 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Icon(
-                              Icons.access_time,
-                              size: 14,
-                              color: Colors.grey[600],
+                            // Star rating
+                            Row(
+                              children: List.generate(5, (starIndex) {
+                                return Icon(
+                                  starIndex < recipe.averageRating.floor()
+                                      ? Icons.star
+                                      : (starIndex < recipe.averageRating
+                                          ? Icons.star_half
+                                          : Icons.star_border),
+                                  size: 16,
+                                  color: const Color(0xFFFFA500),
+                                );
+                              }),
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 6),
                             Text(
-                              '${recipe.cookingTime} phút',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
+                              recipe.averageRating.toStringAsFixed(1),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1F2937),
                               ),
                             ),
-                            const SizedBox(width: 16),
-                            Icon(
-                              Icons.people,
-                              size: 14,
-                              color: Colors.grey[600],
-                            ),
                             const SizedBox(width: 4),
                             Text(
-                              '${recipe.servings} người',
+                              '(${recipe.ratingsCount})',
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: Color(0xFF6B7280),
