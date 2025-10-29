@@ -5,6 +5,7 @@ import '../../core/index.dart';
 import '../../models/post_model.dart';
 import '../../providers/recipe_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/search_history_provider.dart';
 import '../../widgets/filter_bottom_sheet.dart';
 
 class FeedScreen extends StatefulWidget {
@@ -15,8 +16,6 @@ class FeedScreen extends StatefulWidget {
 }
 
 class _FeedScreenState extends State<FeedScreen> {
-  final List<String> recentKeywords = const ['Bún bò', 'Canh chua', 'Sushi', 'Bánh mì', 'Salad'];
-  
   // ScrollController cho danh sách món gần đây
   final ScrollController _recentScrollController = ScrollController();
   
@@ -131,6 +130,7 @@ class _FeedScreenState extends State<FeedScreen> {
       context.read<RecipeProvider>().loadRecipes();
       context.read<RecipeProvider>().loadLikedRecipeIds();
       context.read<RecipeProvider>().loadBookmarkedRecipeIds();
+      context.read<SearchHistoryProvider>().loadSearchHistory(limit: 10);
     });
   }
 
@@ -281,62 +281,7 @@ class _FeedScreenState extends State<FeedScreen> {
           // Nút lướt bên dưới danh sách
           _buildScrollButtons(),
           const SizedBox(height: 50),
-          _sectionHeader('Tìm kiếm gần đây'),
-          const SizedBox(height: 10),
-          ...recentKeywords.asMap().entries.map((entry) {
-            final index = entry.key;
-            final keyword = entry.value;
-            return Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFF1F5F9)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-              ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.history, color: Color(0xFF64748B), size: 18),
-                ),
-                title: Text(
-                  keyword,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF1F2937),
-                  ),
-                ),
-                subtitle: Text(
-                  '${(index + 1) * 2} tiếng trước',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF6B7280),
-                  ),
-                ),
-                trailing: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Icon(Icons.north_east, size: 14, color: Color(0xFF64748B)),
-                ),
-                onTap: () => _openSearch(keyword),
-              ),
-            );
-          }),
+          _buildRecentSearchSection(),
           const SizedBox(height: 15),
             ],
           ),
@@ -413,6 +358,299 @@ class _FeedScreenState extends State<FeedScreen> {
         color: Color(0xFF1A1A1A),
       ),
     );
+  }
+
+  // Build Recent Search Section from API
+  Widget _buildRecentSearchSection() {
+    return Consumer<SearchHistoryProvider>(
+      builder: (context, searchProvider, child) {
+        print('🎨 [UI] Building recent search section...');
+        final searchHistory = searchProvider.searchHistory;
+        final isLoading = searchProvider.isLoading;
+        final error = searchProvider.error;
+        
+        print('🎨 [UI] Search history count: ${searchHistory.length}');
+        print('🎨 [UI] Is loading: $isLoading');
+        print('🎨 [UI] Error: $error');
+        print('🎨 [UI] Search history: $searchHistory');
+
+        // Section header with clear all button
+        Widget headerRow = Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _sectionHeader('Tìm kiếm gần đây'),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Debug refresh button
+                IconButton(
+                  icon: const Icon(Icons.refresh, size: 20, color: Color(0xFF64748B)),
+                  onPressed: () {
+                    print('🔄 [DEBUG] Manual refresh button pressed');
+                    context.read<SearchHistoryProvider>().loadSearchHistory(limit: 10);
+                  },
+                  tooltip: 'Làm mới',
+                ),
+                if (searchHistory.isNotEmpty)
+                  TextButton(
+                    onPressed: () => _showClearHistoryConfirmation(context),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    ),
+                    child: const Text(
+                      'Xóa tất cả',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFFEF3A16),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        );
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            headerRow,
+            const SizedBox(height: 10),
+            
+            // Loading state
+            if (isLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFEF3A16)),
+                  ),
+                ),
+              )
+            
+            // Error state
+            else if (error != null && error.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFFECACA)),
+                ),
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 40,
+                      color: Color(0xFFEF4444),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      error,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFFDC2626),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        print('🔄 [ERROR] Retry button pressed');
+                        context.read<SearchHistoryProvider>().loadSearchHistory(limit: 10);
+                      },
+                      icon: const Icon(Icons.refresh, size: 18),
+                      label: const Text('Thử lại'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFEF3A16),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            
+            // Empty state
+            else if (searchHistory.isEmpty)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFF1F5F9)),
+                ),
+                child: const Center(
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.search_off_rounded,
+                        size: 40,
+                        color: Color(0xFF94A3B8),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Chưa có lịch sử tìm kiếm',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            
+            // Search history list
+            else
+              ...searchHistory.asMap().entries.map((entry) {
+                final index = entry.key;
+                final keyword = entry.value;
+                return _buildSearchHistoryItem(keyword, index);
+              }),
+          ],
+        );
+      },
+    );
+  }
+
+  // Build individual search history item
+  Widget _buildSearchHistoryItem(String keyword, int index) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFF1F5F9)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.history, color: Color(0xFF64748B), size: 18),
+        ),
+        title: Text(
+          keyword,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF1F2937),
+          ),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Delete button
+            IconButton(
+              icon: const Icon(Icons.close, size: 18, color: Color(0xFF94A3B8)),
+              onPressed: () => _deleteSearchQuery(keyword),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 8),
+            // Search again button
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Icon(Icons.north_east, size: 14, color: Color(0xFF64748B)),
+            ),
+          ],
+        ),
+        onTap: () => _openSearch(keyword),
+      ),
+    );
+  }
+
+  // Delete a specific search query
+  Future<void> _deleteSearchQuery(String query) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Xóa từ khóa'),
+        content: Text('Bạn muốn xóa "$query" khỏi lịch sử?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFEF3A16),
+            ),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final success = await context.read<SearchHistoryProvider>().deleteQuery(query);
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Đã xóa "$query"'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  // Show confirmation dialog for clearing all history
+  Future<void> _showClearHistoryConfirmation(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Xóa toàn bộ lịch sử'),
+        content: const Text('Bạn có chắc muốn xóa toàn bộ lịch sử tìm kiếm?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFEF3A16),
+            ),
+            child: const Text('Xóa tất cả'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final success = await context.read<SearchHistoryProvider>().clearAllHistory();
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã xóa toàn bộ lịch sử'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   Widget _popularGrid() {
@@ -813,9 +1051,19 @@ class _FeedScreenState extends State<FeedScreen> {
     );
   }
 
-  void _openSearch(String query) {
+  Future<void> _openSearch(String query) async {
     _currentSearchQuery = query;
-    Navigator.push(context, MaterialPageRoute(builder: (_) => SearchResultsScreen(initialQuery: query)));
+    await Navigator.push(
+      context, 
+      MaterialPageRoute(
+        builder: (_) => SearchResultsScreen(initialQuery: query),
+      ),
+    );
+    
+    // Refresh search history when coming back (backend auto-saves during search)
+    if (mounted) {
+      context.read<SearchHistoryProvider>().refreshAfterSearch();
+    }
   }
 
   void _showFilterBottomSheet() {

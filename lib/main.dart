@@ -6,6 +6,7 @@ import 'providers/auth_provider.dart';
 import 'providers/recipe_provider.dart';
 import 'providers/comment_provider.dart';
 import 'providers/rating_provider.dart';
+import 'providers/search_history_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/auth/login_page.dart';
 
@@ -39,6 +40,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => RecipeProvider()),
         ChangeNotifierProvider(create: (_) => CommentProvider()),
         ChangeNotifierProvider(create: (_) => RatingProvider()),
+        ChangeNotifierProvider(create: (_) => SearchHistoryProvider()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
