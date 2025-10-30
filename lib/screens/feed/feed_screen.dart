@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -6,7 +7,9 @@ import '../../models/post_model.dart';
 import '../../providers/recipe_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/search_history_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../widgets/filter_bottom_sheet.dart';
+import 'notifications_screen.dart';
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -15,9 +18,10 @@ class FeedScreen extends StatefulWidget {
   State<FeedScreen> createState() => _FeedScreenState();
 }
 
-class _FeedScreenState extends State<FeedScreen> {
+class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
   // ScrollController cho danh sách món gần đây
   final ScrollController _recentScrollController = ScrollController();
+  Timer? _notificationRefreshTimer;
   
   // Search state
   String _currentSearchQuery = '';
@@ -125,19 +129,40 @@ class _FeedScreenState extends State<FeedScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    
     // Load data when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<RecipeProvider>().loadRecipes();
       context.read<RecipeProvider>().loadLikedRecipeIds();
       context.read<RecipeProvider>().loadBookmarkedRecipeIds();
       context.read<SearchHistoryProvider>().loadSearchHistory(limit: 10);
+      context.read<NotificationProvider>().loadUnreadCount();
+    });
+    
+    // Auto-refresh notification count every 60 seconds
+    _notificationRefreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      if (mounted) {
+        context.read<NotificationProvider>().loadUnreadCount();
+      }
     });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _notificationRefreshTimer?.cancel();
     _recentScrollController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Refresh notifications when app comes to foreground
+    if (state == AppLifecycleState.resumed && mounted) {
+      context.read<NotificationProvider>().loadUnreadCount();
+    }
   }
 
   @override
@@ -189,9 +214,51 @@ class _FeedScreenState extends State<FeedScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                IconButton(
-                  icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-                  onPressed: () {},
+                Consumer<NotificationProvider>(
+                  builder: (context, notificationProvider, child) {
+                    return Stack(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const NotificationsScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        if (notificationProvider.unreadCount > 0)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                notificationProvider.unreadCount > 99
+                                    ? '99+'
+                                    : '${notificationProvider.unreadCount}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 ),
                 PopupMenuButton<String>(
                   icon: const CircleAvatar(radius: 16, backgroundColor: Colors.white, child: Icon(Icons.person, size: 18, color: Color(0xFFEF3A16))),

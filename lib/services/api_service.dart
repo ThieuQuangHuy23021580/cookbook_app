@@ -8,6 +8,7 @@ import '../models/user_model.dart';
 import '../models/recipe_model.dart';
 import '../models/comment_rating_model.dart';
 import '../models/upload_response_model.dart';
+import '../models/notification_model.dart';
 
 class ApiService {
   static final http.Client _client = http.Client();
@@ -851,6 +852,152 @@ class ApiService {
       }
     } catch (e) {
       print('❌ [UPLOAD API] Error: $e');
+      return ApiResponse.error(ErrorMessages.networkError);
+    }
+  }
+
+  // ==================== NOTIFICATION APIs ====================
+  
+  /// GET /api/notifications - Get all notifications
+  static Future<ApiResponse<List<AppNotification>>> getNotifications(String token) async {
+    try {
+      final url = '${ApiConfig.baseUrl}${ApiConfig.notifications}';
+      print('📤 [NOTIFICATION API] GET $url');
+      
+      final response = await _client.get(
+        Uri.parse(url),
+        headers: _getHeaders(token: token),
+      ).timeout(ApiConfig.timeout);
+
+      print('📥 [NOTIFICATION API] Status: ${response.statusCode}');
+      print('📥 [NOTIFICATION API] Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        print('✅ [NOTIFICATION API] Found ${data.length} notifications');
+        final notifications = data.map((json) => AppNotification.fromJson(json)).toList();
+        return ApiResponse.success(notifications);
+      } else {
+        final errorData = json.decode(response.body);
+        print('❌ [NOTIFICATION API] Error: ${errorData['message']}');
+        return ApiResponse.error(
+          errorData['message'] ?? ErrorMessages.serverError,
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e, stackTrace) {
+      print('❌ [NOTIFICATION API] Get notifications error: $e');
+      print('❌ [NOTIFICATION API] Stack trace: $stackTrace');
+      return ApiResponse.error(ErrorMessages.networkError);
+    }
+  }
+
+  /// GET /api/notifications/unread - Get unread notifications
+  static Future<ApiResponse<List<AppNotification>>> getUnreadNotifications(String token) async {
+    try {
+      final response = await _client.get(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.notifications}/unread'),
+        headers: _getHeaders(token: token),
+      ).timeout(ApiConfig.timeout);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        final notifications = data.map((json) => AppNotification.fromJson(json)).toList();
+        return ApiResponse.success(notifications);
+      } else {
+        final errorData = json.decode(response.body);
+        return ApiResponse.error(
+          errorData['message'] ?? ErrorMessages.serverError,
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      print('❌ [NOTIFICATION API] Get unread notifications error: $e');
+      return ApiResponse.error(ErrorMessages.networkError);
+    }
+  }
+
+  /// GET /api/notifications/unread/count - Get unread count
+  static Future<ApiResponse<int>> getUnreadNotificationCount(String token) async {
+    try {
+      final url = '${ApiConfig.baseUrl}${ApiConfig.notifications}/unread/count';
+      print('📤 [NOTIFICATION COUNT] GET $url');
+      
+      final response = await _client.get(
+        Uri.parse(url),
+        headers: _getHeaders(token: token),
+      ).timeout(ApiConfig.timeout);
+
+      print('📥 [NOTIFICATION COUNT] Status: ${response.statusCode}');
+      print('📥 [NOTIFICATION COUNT] Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final count = data['count'] as int;
+        print('✅ [NOTIFICATION COUNT] Unread count: $count');
+        return ApiResponse.success(count);
+      } else {
+        print('❌ [NOTIFICATION COUNT] Error status: ${response.statusCode}');
+        return ApiResponse.error(ErrorMessages.serverError, statusCode: response.statusCode);
+      }
+    } catch (e, stackTrace) {
+      print('❌ [NOTIFICATION COUNT] Get unread count error: $e');
+      print('❌ [NOTIFICATION COUNT] Stack trace: $stackTrace');
+      return ApiResponse.error(ErrorMessages.networkError);
+    }
+  }
+
+  /// PUT /api/notifications/:id/read - Mark notification as read
+  static Future<ApiResponse<String>> markNotificationAsRead(int notificationId, String token) async {
+    try {
+      final url = '${ApiConfig.baseUrl}${ApiConfig.notifications}/$notificationId/read';
+      print('📤 [NOTIFICATION READ] PUT $url');
+      
+      final response = await _client.put(
+        Uri.parse(url),
+        headers: _getHeaders(token: token),
+      ).timeout(ApiConfig.timeout);
+
+      print('📥 [NOTIFICATION READ] Status: ${response.statusCode}');
+      print('📥 [NOTIFICATION READ] Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        print('✅ [NOTIFICATION READ] Marked notification $notificationId as read');
+        return ApiResponse.success('Đã đánh dấu đã đọc');
+      } else {
+        final errorData = json.decode(response.body);
+        print('❌ [NOTIFICATION READ] Error: ${errorData['message']}');
+        return ApiResponse.error(
+          errorData['message'] ?? ErrorMessages.serverError,
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e, stackTrace) {
+      print('❌ [NOTIFICATION READ] Mark as read error: $e');
+      print('❌ [NOTIFICATION READ] Stack trace: $stackTrace');
+      return ApiResponse.error(ErrorMessages.networkError);
+    }
+  }
+
+  /// DELETE /api/notifications/:id - Delete notification
+  static Future<ApiResponse<String>> deleteNotification(int notificationId, String token) async {
+    try {
+      final response = await _client.delete(
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.notifications}/$notificationId'),
+        headers: _getHeaders(token: token),
+      ).timeout(ApiConfig.timeout);
+
+      if (response.statusCode == 200) {
+        return ApiResponse.success('Đã xóa thông báo');
+      } else {
+        final errorData = json.decode(response.body);
+        return ApiResponse.error(
+          errorData['message'] ?? ErrorMessages.serverError,
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e) {
+      print('❌ [NOTIFICATION API] Delete notification error: $e');
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }

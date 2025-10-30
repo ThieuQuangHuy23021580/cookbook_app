@@ -17,6 +17,7 @@ class ApiConfig {
   static const String users = '/users';
   static const String recipes = '/recipes';
   static const String upload = '/upload';
+  static const String notifications = '/notifications';
 
   static const String sendOtp = '$auth/send-otp';
   static const String register = '$auth/register';
