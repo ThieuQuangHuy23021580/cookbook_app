@@ -10,6 +10,7 @@ class RecipeProvider with ChangeNotifier {
   List<Recipe> _searchResults = [];
   List<Recipe> _myRecipes = [];
   List<Recipe> _bookmarkedRecipes = [];
+  List<Recipe> _recentlyViewedRecipes = [];
   List<int> _likedRecipeIds = [];
   List<int> _bookmarkedRecipeIds = [];
   
@@ -17,17 +18,20 @@ class RecipeProvider with ChangeNotifier {
   bool _isSearching = false;
   bool _isLoadingMyRecipes = false;
   bool _isLoadingBookmarked = false;
+  bool _isLoadingRecentlyViewed = false;
   
   String? _error;
   String? _searchError;
   String? _myRecipesError;
   String? _bookmarkedError;
+  String? _recentlyViewedError;
 
   // Getters
   List<Recipe> get recipes => _recipes;
   List<Recipe> get searchResults => _searchResults;
   List<Recipe> get myRecipes => _myRecipes;
   List<Recipe> get bookmarkedRecipes => _bookmarkedRecipes;
+  List<Recipe> get recentlyViewedRecipes => _recentlyViewedRecipes;
   List<int> get likedRecipeIds => _likedRecipeIds;
   List<int> get bookmarkedRecipeIds => _bookmarkedRecipeIds;
   
@@ -35,11 +39,13 @@ class RecipeProvider with ChangeNotifier {
   bool get isSearching => _isSearching;
   bool get isLoadingMyRecipes => _isLoadingMyRecipes;
   bool get isLoadingBookmarked => _isLoadingBookmarked;
+  bool get isLoadingRecentlyViewed => _isLoadingRecentlyViewed;
   
   String? get error => _error;
   String? get searchError => _searchError;
   String? get myRecipesError => _myRecipesError;
   String? get bookmarkedError => _bookmarkedError;
+  String? get recentlyViewedError => _recentlyViewedError;
 
   // Load all recipes
   Future<void> loadRecipes() async {
@@ -140,6 +146,32 @@ class RecipeProvider with ChangeNotifier {
       _setBookmarkedError('Lỗi tải công thức đã lưu: $e');
     } finally {
       _setLoadingBookmarked(false);
+    }
+  }
+
+  // Load recently viewed recipes
+  Future<void> loadRecentlyViewedRecipes({int limit = 9}) async {
+    print('👀 [PROVIDER] Loading recently viewed recipes with limit: $limit...');
+    _setLoadingRecentlyViewed(true);
+    _clearRecentlyViewedError();
+    
+    try {
+      final response = await RecipeRepository.getRecentlyViewedRecipes(limit: limit);
+      if (response.success) {
+        _recentlyViewedRecipes = response.data ?? [];
+        print('👀 [PROVIDER] Loaded ${_recentlyViewedRecipes.length} recently viewed recipes');
+        if (_recentlyViewedRecipes.isNotEmpty) {
+          print('👀 [PROVIDER] Sample recipes: ${_recentlyViewedRecipes.take(3).map((r) => r.title).toList()}');
+        }
+      } else {
+        print('❌ [PROVIDER] Failed to load recently viewed recipes: ${response.message}');
+        _setRecentlyViewedError(response.message ?? 'Không thể tải lịch sử xem');
+      }
+    } catch (e) {
+      print('❌ [PROVIDER] Error loading recently viewed recipes: $e');
+      _setRecentlyViewedError('Lỗi tải lịch sử xem: $e');
+    } finally {
+      _setLoadingRecentlyViewed(false);
     }
   }
 
@@ -297,6 +329,11 @@ class RecipeProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void _setLoadingRecentlyViewed(bool loading) {
+    _isLoadingRecentlyViewed = loading;
+    notifyListeners();
+  }
+
   void _setError(String error) {
     _error = error;
     notifyListeners();
@@ -317,6 +354,11 @@ class RecipeProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void _setRecentlyViewedError(String error) {
+    _recentlyViewedError = error;
+    notifyListeners();
+  }
+
   void _clearError() {
     _error = null;
   }
@@ -333,18 +375,24 @@ class RecipeProvider with ChangeNotifier {
     _bookmarkedError = null;
   }
 
+  void _clearRecentlyViewedError() {
+    _recentlyViewedError = null;
+  }
+
   // Clear all data
   void clearAll() {
     _recipes = [];
     _searchResults = [];
     _myRecipes = [];
     _bookmarkedRecipes = [];
+    _recentlyViewedRecipes = [];
     _likedRecipeIds = [];
     _bookmarkedRecipeIds = [];
     _error = null;
     _searchError = null;
     _myRecipesError = null;
     _bookmarkedError = null;
+    _recentlyViewedError = null;
     notifyListeners();
   }
 }

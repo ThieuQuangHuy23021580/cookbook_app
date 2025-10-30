@@ -21,6 +21,18 @@ class RecipeRepository {
     return await ApiService.getMyRecipes(token);
   }
 
+  static Future<ApiResponse<List<Recipe>>> getRecentlyViewedRecipes({int limit = 20}) async {
+    print('👀 [REPOSITORY] getRecentlyViewedRecipes called with limit: $limit');
+    final token = AuthService.currentToken;
+    if (token == null) {
+      print('❌ [REPOSITORY] No token available');
+      return ApiResponse.error(ErrorMessages.unauthorized);
+    }
+    final result = await ApiService.getRecentlyViewedRecipes(token, limit: limit);
+    print('👀 [REPOSITORY] Got ${result.data?.length ?? 0} recently viewed recipes');
+    return result;
+  }
+
   static Future<ApiResponse<List<Recipe>>> searchRecipes(String title) async {
     return await ApiService.searchRecipes(title, token: AuthService.currentToken);
   }

@@ -335,13 +335,26 @@ class ApiService {
 
   static Future<ApiResponse<Recipe>> getRecipeById(int id, {String? token}) async {
     try {
+      final url = '${ApiConfig.baseUrl}${ApiConfig.recipes}/$id';
+      print('📖 [GET RECIPE BY ID] GET $url (token: ${token != null ? "present" : "none"})');
+      
       final response = await _client.get(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.recipes}/$id'),
+        Uri.parse(url),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
 
-      return _handleResponse(response, (json) => Recipe.fromJson(json));
+      print('📖 [GET RECIPE BY ID] Status: ${response.statusCode}');
+      
+      final result = _handleResponse(response, (json) => Recipe.fromJson(json));
+      if (result.success) {
+        print('✅ [GET RECIPE BY ID] Successfully loaded recipe: ${result.data?.title}');
+        print('💡 [INFO] Backend should auto-save this to view history');
+      } else {
+        print('❌ [GET RECIPE BY ID] Failed: ${result.message}');
+      }
+      return result;
     } catch (e) {
+      print('❌ [GET RECIPE BY ID] Error: $e');
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }
@@ -368,6 +381,32 @@ class ApiService {
 
       return _handleListResponse(response, (json) => Recipe.fromJson(json));
     } catch (e) {
+      return ApiResponse.error(ErrorMessages.networkError);
+    }
+  }
+
+  static Future<ApiResponse<List<Recipe>>> getRecentlyViewedRecipes(String token, {int limit = 20}) async {
+    try {
+      final url = '${ApiConfig.baseUrl}/recipes/recently-viewed?limit=$limit';
+      print('📤 [RECENTLY VIEWED] GET $url');
+      
+      final response = await _client.get(
+        Uri.parse(url),
+        headers: _getHeaders(token: token),
+      ).timeout(ApiConfig.timeout);
+
+      print('📥 [RECENTLY VIEWED] Status: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final result = _handleListResponse(response, (json) => Recipe.fromJson(json));
+        print('✅ [RECENTLY VIEWED] Found ${result.data?.length ?? 0} recipes');
+        return result;
+      } else {
+        return _handleListResponse(response, (json) => Recipe.fromJson(json));
+      }
+    } catch (e, stackTrace) {
+      print('❌ [RECENTLY VIEWED] Error: $e');
+      print('❌ [RECENTLY VIEWED] Stack trace: $stackTrace');
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }

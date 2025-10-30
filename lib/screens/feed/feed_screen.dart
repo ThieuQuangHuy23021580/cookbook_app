@@ -134,16 +134,18 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
     // Load data when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<RecipeProvider>().loadRecipes();
+      context.read<RecipeProvider>().loadRecentlyViewedRecipes(limit: 9);
       context.read<RecipeProvider>().loadLikedRecipeIds();
       context.read<RecipeProvider>().loadBookmarkedRecipeIds();
       context.read<SearchHistoryProvider>().loadSearchHistory(limit: 10);
       context.read<NotificationProvider>().loadUnreadCount();
     });
     
-    // Auto-refresh notification count every 60 seconds
+    // Auto-refresh notification count and recently viewed every 60 seconds
     _notificationRefreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
       if (mounted) {
         context.read<NotificationProvider>().loadUnreadCount();
+        context.read<RecipeProvider>().loadRecentlyViewedRecipes(limit: 9);
       }
     });
   }
@@ -159,9 +161,10 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    // Refresh notifications when app comes to foreground
+    // Refresh notifications and recently viewed when app comes to foreground
     if (state == AppLifecycleState.resumed && mounted) {
       context.read<NotificationProvider>().loadUnreadCount();
+      context.read<RecipeProvider>().loadRecentlyViewedRecipes(limit: 9);
     }
   }
 
@@ -888,9 +891,9 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
   Widget _recentHorizontal() {
     return Consumer<RecipeProvider>(
       builder: (context, recipeProvider, child) {
-        final recipes = recipeProvider.recipes.take(9).toList();
+        final recipes = recipeProvider.recentlyViewedRecipes;
         
-        if (recipeProvider.isLoading) {
+        if (recipeProvider.isLoadingRecentlyViewed) {
           return const SizedBox(
             height: 160,
             child: Center(child: CircularProgressIndicator()),
@@ -902,7 +905,7 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
             height: 160,
             child: Center(
               child: Text(
-                'Chưa có công thức nào',
+                'Chưa xem công thức nào',
                 style: TextStyle(color: Colors.grey),
               ),
             ),
@@ -931,7 +934,15 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
                   steps: recipe.steps.map((step) => '${step.stepNumber}. ${step.title}: ${step.description}').toList(),
                   createdAt: recipe.createdAt,
                 );
-                Navigator.push(context, MaterialPageRoute(builder: (_) => PostDetailScreen(post: post)));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => PostDetailScreen(post: post)),
+                ).then((_) {
+                  // Reload recently viewed when user comes back
+                  if (mounted) {
+                    context.read<RecipeProvider>().loadRecentlyViewedRecipes(limit: 9);
+                  }
+                });
               },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 300),
