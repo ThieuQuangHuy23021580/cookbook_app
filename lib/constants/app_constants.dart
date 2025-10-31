@@ -4,7 +4,7 @@ class ApiConfig {
   // Nếu dùng localhost, ảnh sẽ không load được!
   
   // Option 1: Sử dụng ngrok (recommended)
-  static const String baseUrl = 'https://gearldine-subventral-overcuriously.ngrok-free.dev/api';
+  static const String baseUrl = 'https://centroidal-ventriloquially-donnetta.ngrok-free.dev/api';
   
   // Option 2: Sử dụng IP của máy tính (thay YOUR_COMPUTER_IP)
   // static const String baseUrl = 'http://YOUR_COMPUTER_IP:8080/api';

@@ -379,6 +379,12 @@ class RecipeProvider with ChangeNotifier {
     _recentlyViewedError = null;
   }
 
+  /// Update recently viewed recipes directly (for background updates)
+  void updateRecentlyViewedRecipes(List<Recipe> recipes) {
+    _recentlyViewedRecipes = recipes;
+    notifyListeners();
+  }
+
   // Clear all data
   void clearAll() {
     _recipes = [];

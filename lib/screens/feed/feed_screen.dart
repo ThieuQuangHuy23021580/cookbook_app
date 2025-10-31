@@ -9,6 +9,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/search_history_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../widgets/filter_bottom_sheet.dart';
+import '../../services/background_fetch_service.dart';
 import 'notifications_screen.dart';
 
 class FeedScreen extends StatefulWidget {
@@ -21,7 +22,7 @@ class FeedScreen extends StatefulWidget {
 class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
   // ScrollController cho danh sách món gần đây
   final ScrollController _recentScrollController = ScrollController();
-  Timer? _notificationRefreshTimer;
+  AdaptiveBackgroundPolling? _backgroundPolling;
   
   // Search state
   String _currentSearchQuery = '';
@@ -139,21 +140,72 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
       context.read<RecipeProvider>().loadBookmarkedRecipeIds();
       context.read<SearchHistoryProvider>().loadSearchHistory(limit: 10);
       context.read<NotificationProvider>().loadUnreadCount();
+      
+      // Start adaptive background polling with isolate
+      _startBackgroundPolling();
     });
+  }
+  
+  /// Start adaptive background polling using isolate (non-blocking)
+  Future<void> _startBackgroundPolling() async {
+    print('🚀 [FEED] Starting adaptive background polling with isolate');
     
-    // Auto-refresh notification count and recently viewed every 60 seconds
-    _notificationRefreshTimer = Timer.periodic(const Duration(seconds: 60), (_) {
-      if (mounted) {
-        context.read<NotificationProvider>().loadUnreadCount();
-        context.read<RecipeProvider>().loadRecentlyViewedRecipes(limit: 9);
+    _backgroundPolling = AdaptiveBackgroundPolling(
+      onDataFetched: () {
+        if (!mounted) return;
+        
+        // Fetch data in background isolate (won't block UI)
+        _fetchDataInBackground();
+      },
+    );
+    
+    await _backgroundPolling!.start();
+    print('✅ [FEED] Background polling started');
+  }
+  
+  /// Fetch data in background without blocking UI
+  Future<void> _fetchDataInBackground() async {
+    final token = AuthService.currentToken;
+    if (token == null || !mounted) return;
+    
+    print('🔒 [FEED] Fetching data in background isolate (non-blocking)...');
+    
+    // Fetch in background isolate - won't block UI
+    try {
+      // Fetch notification count
+      final notificationCount = await BackgroundFetchService.fetchNotificationCount(
+        token: token,
+      );
+      
+      if (mounted && notificationCount != null) {
+        context.read<NotificationProvider>().updateUnreadCount(notificationCount);
+        print('✅ [FEED] Updated notification count: $notificationCount');
       }
-    });
+      
+      // Fetch recently viewed recipes
+      final recentlyViewedData = await BackgroundFetchService.fetchRecentlyViewed(
+        token: token,
+        limit: 9,
+      );
+      
+      if (mounted && recentlyViewedData != null) {
+        // Parse and update recipes
+        final recipes = recentlyViewedData
+            .map((json) => Recipe.fromJson(json as Map<String, dynamic>))
+            .toList();
+        context.read<RecipeProvider>().updateRecentlyViewedRecipes(recipes);
+        print('✅ [FEED] Updated recently viewed: ${recipes.length} recipes');
+      }
+    } catch (e) {
+      print('❌ [FEED] Background fetch error: $e');
+      // Don't show error to user, just log it
+    }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _notificationRefreshTimer?.cancel();
+    _backgroundPolling?.stop();
     _recentScrollController.dispose();
     super.dispose();
   }
@@ -161,10 +213,10 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    // Refresh notifications and recently viewed when app comes to foreground
+    // Mark activity and refresh when app comes to foreground
     if (state == AppLifecycleState.resumed && mounted) {
-      context.read<NotificationProvider>().loadUnreadCount();
-      context.read<RecipeProvider>().loadRecentlyViewedRecipes(limit: 9);
+      _backgroundPolling?.markActivity();
+      _fetchDataInBackground();
     }
   }
 

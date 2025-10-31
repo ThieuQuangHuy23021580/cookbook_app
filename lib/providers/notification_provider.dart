@@ -107,6 +107,12 @@ class NotificationProvider with ChangeNotifier {
     _unreadCount = _notifications.where((n) => !n.isRead).length;
   }
 
+  /// Update unread count directly (for background updates)
+  void updateUnreadCount(int count) {
+    _unreadCount = count;
+    notifyListeners();
+  }
+
   /// Clear all data
   void clear() {
     _notifications = [];

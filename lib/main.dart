@@ -9,7 +9,6 @@ import 'providers/rating_provider.dart';
 import 'providers/search_history_provider.dart';
 import 'providers/notification_provider.dart';
 import 'screens/splash_screen.dart';
-import 'screens/auth/login_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

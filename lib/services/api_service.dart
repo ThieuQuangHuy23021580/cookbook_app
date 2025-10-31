@@ -64,13 +64,23 @@ class ApiService {
         final List<T> items = data.map((item) => fromJson(item as Map<String, dynamic>)).toList();
         return ApiResponse.success(items, statusCode: response.statusCode);
       } else {
+        // Log error response for debugging
+        print('❌ [LIST RESPONSE] Error Status: ${response.statusCode}');
+        print('❌ [LIST RESPONSE] Response Body: ${response.body}');
+        
         final data = json.decode(response.body);
+        final errorMessage = data is String ? data : data['message'] ?? ErrorMessages.serverError;
+        print('❌ [LIST RESPONSE] Error Message: $errorMessage');
+        
         return ApiResponse.error(
-          data is String ? data : data['message'] ?? ErrorMessages.serverError,
+          errorMessage,
           statusCode: response.statusCode,
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ [LIST RESPONSE] Exception: $e');
+      print('❌ [LIST RESPONSE] Stack trace: $stackTrace');
+      print('❌ [LIST RESPONSE] Response body: ${response.body}');
       return ApiResponse.error(ErrorMessages.unknownError, statusCode: response.statusCode);
     }
   }
@@ -389,10 +399,14 @@ class ApiService {
     try {
       final url = '${ApiConfig.baseUrl}/recipes/recently-viewed?limit=$limit';
       print('📤 [RECENTLY VIEWED] GET $url');
+      print('🔐 [RECENTLY VIEWED] Token: ${token.substring(0, 20)}...');
+      
+      final headers = _getHeaders(token: token);
+      print('📋 [RECENTLY VIEWED] Headers: ${headers.keys.join(", ")}');
       
       final response = await _client.get(
         Uri.parse(url),
-        headers: _getHeaders(token: token),
+        headers: headers,
       ).timeout(ApiConfig.timeout);
 
       print('📥 [RECENTLY VIEWED] Status: ${response.statusCode}');
