@@ -9,6 +9,7 @@ import '../models/recipe_model.dart';
 import '../models/comment_rating_model.dart';
 import '../models/upload_response_model.dart';
 import '../models/notification_model.dart';
+import '../models/ai_chat_model.dart';
 
 class ApiService {
   static final http.Client _client = http.Client();
@@ -19,6 +20,71 @@ class ApiService {
       headers['Authorization'] = 'Bearer $token';
     }
     return headers;
+  }
+
+  /// Get trending search keywords from backend
+  /// Supports optional token, days window and limit
+  static Future<ApiResponse<List<String>>> getTrendingKeywords({
+    String? token,
+    int? days,
+    int limit = 20,
+  }) async {
+    try {
+      final base = Uri.parse('${ApiConfig.baseUrl}${ApiConfig.trendingSearch}');
+      final params = <String, String>{
+        'limit': limit.toString(),
+      };
+      if (days != null) params['days'] = days.toString();
+      final uri = base.replace(queryParameters: params);
+
+      final headers = _getHeaders(token: token);
+      print('📤 [TRENDING] GET $uri');
+      print('📋 [TRENDING] Headers: ${headers.keys.join(", ")}');
+
+      final response = await _client
+          .get(uri, headers: headers)
+          .timeout(ApiConfig.timeout);
+
+      print('📥 [TRENDING] Status: ${response.statusCode}');
+
+      // Custom parsing due to potential different shapes
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final body = json.decode(response.body);
+        final List<String> keywords = [];
+
+        if (body is List) {
+          // Could be list of strings or objects
+          for (final item in body) {
+            if (item is String) {
+              keywords.add(item);
+            } else if (item is Map<String, dynamic>) {
+              final k = item['keyword'] ?? item['key'] ?? item['term'];
+              if (k is String) keywords.add(k);
+            }
+          }
+        } else if (body is Map<String, dynamic>) {
+          final dynamic trend = body['trending'] ?? body['data'] ?? body['items'];
+          if (trend is List) {
+            for (final item in trend) {
+              if (item is String) {
+                keywords.add(item);
+              } else if (item is Map<String, dynamic>) {
+                final k = item['keyword'] ?? item['key'] ?? item['term'];
+                if (k is String) keywords.add(k);
+              }
+            }
+          }
+        }
+
+        return ApiResponse.success(keywords);
+      } else {
+        return ApiResponse.error('Không lấy được từ khóa thịnh hành', statusCode: response.statusCode);
+      }
+    } catch (e, st) {
+      print('❌ [TRENDING] Error: $e');
+      print('❌ [TRENDING] Stack: $st');
+      return ApiResponse.error(ErrorMessages.unknownError);
+    }
   }
 
   static ApiResponse<T> _handleResponse<T>(
@@ -434,6 +500,43 @@ class ApiService {
 
       return _handleListResponse(response, (json) => Recipe.fromJson(json));
     } catch (e) {
+      return ApiResponse.error(ErrorMessages.networkError);
+    }
+  }
+
+  /// POST /api/recipes/filter-by-ingredients - Filter recipes by ingredients (Public - no auth required)
+  static Future<ApiResponse<List<Recipe>>> filterByIngredients({
+    List<String>? includeIngredients,
+    List<String>? excludeIngredients,
+    String? token,
+  }) async {
+    try {
+      final url = '${ApiConfig.baseUrl}${ApiConfig.filterByIngredients}';
+      print('📤 [FILTER INGREDIENTS API] POST $url');
+      print('📤 [FILTER INGREDIENTS API] Include: ${includeIngredients ?? []}');
+      print('📤 [FILTER INGREDIENTS API] Exclude: ${excludeIngredients ?? []}');
+      
+      final requestBody = <String, dynamic>{};
+      if (includeIngredients != null && includeIngredients.isNotEmpty) {
+        requestBody['includeIngredients'] = includeIngredients;
+      }
+      if (excludeIngredients != null && excludeIngredients.isNotEmpty) {
+        requestBody['excludeIngredients'] = excludeIngredients;
+      }
+      
+      final response = await _client.post(
+        Uri.parse(url),
+        headers: _getHeaders(token: token),
+        body: json.encode(requestBody),
+      ).timeout(ApiConfig.timeout);
+
+      print('📥 [FILTER INGREDIENTS API] Status: ${response.statusCode}');
+      print('📥 [FILTER INGREDIENTS API] Body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}...');
+
+      return _handleListResponse(response, (json) => Recipe.fromJson(json));
+    } catch (e, stackTrace) {
+      print('❌ [FILTER INGREDIENTS API] Exception: $e');
+      print('❌ [FILTER INGREDIENTS API] Stack trace: $stackTrace');
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }
@@ -1051,6 +1154,53 @@ class ApiService {
       }
     } catch (e) {
       print('❌ [NOTIFICATION API] Delete notification error: $e');
+      return ApiResponse.error(ErrorMessages.networkError);
+    }
+  }
+
+  // ==================== AI CHAT APIs ====================
+  
+  /// POST /api/ai/chat - Chat with AI about recipes (Public - no auth required)
+  static Future<ApiResponse<AIChatResponse>> chatWithAI({
+    required String question,
+  }) async {
+    try {
+      final url = '${ApiConfig.baseUrl}${ApiConfig.aiChat}';
+      print('📤 [AI CHAT API] POST $url');
+      print('📤 [AI CHAT API] Question: $question');
+      
+      final requestBody = {
+        'question': question,
+      };
+      
+      final response = await _client.post(
+        Uri.parse(url),
+        headers: _getHeaders(),
+        body: json.encode(requestBody),
+      ).timeout(ApiConfig.timeout);
+
+      print('📥 [AI CHAT API] Status: ${response.statusCode}');
+      print('📥 [AI CHAT API] Body: ${response.body}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = json.decode(response.body);
+        final aiResponse = AIChatResponse.fromJson(data as Map<String, dynamic>);
+        print('✅ [AI CHAT API] Success - Answer length: ${aiResponse.answer.length}, Sources: ${aiResponse.sources.length}');
+        return ApiResponse.success(aiResponse);
+      } else {
+        final errorData = json.decode(response.body);
+        final errorMessage = errorData is Map<String, dynamic>
+            ? (errorData['error'] ?? errorData['message'] ?? ErrorMessages.serverError)
+            : (errorData.toString().isNotEmpty ? errorData.toString() : ErrorMessages.serverError);
+        print('❌ [AI CHAT API] Error: $errorMessage');
+        return ApiResponse.error(
+          errorMessage,
+          statusCode: response.statusCode,
+        );
+      }
+    } catch (e, stackTrace) {
+      print('❌ [AI CHAT API] Exception: $e');
+      print('❌ [AI CHAT API] Stack trace: $stackTrace');
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }

@@ -18,6 +18,10 @@ class ApiConfig {
   static const String recipes = '/recipes';
   static const String upload = '/upload';
   static const String notifications = '/notifications';
+  static const String searchHistory = '/search-history';
+  static const String trendingSearch = '$searchHistory/trending';
+  static const String ai = '/ai';
+  static const String aiChat = '$ai/chat';
 
   static const String sendOtp = '$auth/send-otp';
   static const String register = '$auth/register';
@@ -28,6 +32,7 @@ class ApiConfig {
 
   static const String getRecipes = '$recipes/getRecipes';
   static const String searchRecipes = '$recipes/search';
+  static const String filterByIngredients = '$recipes/filter-by-ingredients';
   static const String myRecipes = '$recipes/my-recipes';
   static const String likedRecipes = '$recipes/liked';
   static const String bookmarkedRecipes = '$recipes/bookmarked';

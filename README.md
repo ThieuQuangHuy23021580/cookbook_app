@@ -687,7 +687,145 @@ Base Path: /api/recipes
 
         401 Unauthorized: Người dùng chưa đăng nhập hoặc token không hợp lệ.
 
-### 6.6.1 Tạo công thức với User ID (Admin)
+### 6.6.1 Lọc công thức theo nguyên liệu
+
+    Method: POST
+
+    Endpoint: /api/recipes/filter-by-ingredients
+
+    Mô tả: Tìm kiếm công thức dựa trên nguyên liệu có (include) hoặc không có (exclude). API này cho phép lọc món ăn phù hợp với nguyên liệu có sẵn hoặc loại trừ nguyên liệu không mong muốn (dị ứng, không thích, v.v.). (Public - không cần xác thực)
+
+    Headers:
+
+        Content-Type: application/json
+
+    Request Body:
+
+```json
+{
+  "includeIngredients": ["thịt bò", "hành tây"],
+  "excludeIngredients": ["tôm", "hải sản"]
+}
+```
+
+    Fields:
+
+        includeIngredients (List<String>, optional): Danh sách nguyên liệu phải có trong công thức
+        excludeIngredients (List<String>, optional): Danh sách nguyên liệu không được có trong công thức
+
+    Use Cases:
+
+        Case 1 - Chỉ include: Tìm món có nguyên liệu cụ thể
+
+```json
+{
+  "includeIngredients": ["gà", "sả"]
+}
+```
+
+        Case 2 - Chỉ exclude: Tìm món không chứa nguyên liệu nào đó
+
+```json
+{
+  "excludeIngredients": ["hải sản", "tôm", "mực"]
+}
+```
+
+        Case 3 - Cả include và exclude: Tìm món có nguyên liệu X nhưng không có Y
+
+```json
+{
+  "includeIngredients": ["thịt bò"],
+  "excludeIngredients": ["ớt", "tiêu"]
+}
+```
+
+        Case 4 - Không có filter: Trả về tất cả công thức
+
+```json
+{}
+```
+
+    Responses:
+
+        200 OK: Trả về danh sách công thức phù hợp.
+
+```json
+[
+  {
+    "id": 15,
+    "title": "Bò Xào Hành Tây",
+    "imageUrl": "https://example.com/bo-xao.jpg",
+    "servings": 2,
+    "cookingTime": 30,
+    "userId": 5,
+    "userName": "Nguyễn Văn A",
+    "userAvatar": "https://example.com/avatar.jpg",
+    "ingredients": [
+      {
+        "id": 45,
+        "name": "Thịt bò",
+        "quantity": "300",
+        "unit": "g"
+      },
+      {
+        "id": 46,
+        "name": "Hành tây",
+        "quantity": "1",
+        "unit": "củ"
+      }
+    ],
+    "steps": [...],
+    "createdAt": "2025-01-15T10:30:00",
+    "updatedAt": "2025-01-15T10:30:00"
+  }
+]
+```
+
+        400 Bad Request: Dữ liệu không hợp lệ.
+
+    Examples:
+
+Example 1: Tìm món từ gà (dị ứng hải sản)
+
+```bash
+curl -X POST http://localhost:8080/api/recipes/filter-by-ingredients \
+  -H "Content-Type: application/json" \
+  -d '{
+    "includeIngredients": ["gà"],
+    "excludeIngredients": ["tôm", "cua", "mực", "hải sản"]
+  }'
+```
+
+Example 2: Tìm món chay (không thịt, không hải sản)
+
+```bash
+curl -X POST http://localhost:8080/api/recipes/filter-by-ingredients \
+  -H "Content-Type: application/json" \
+  -d '{
+    "excludeIngredients": ["thịt", "gà", "bò", "heo", "tôm", "cá", "hải sản"]
+  }'
+```
+
+Example 3: Tìm món có thịt bò và khoai tây
+
+```bash
+curl -X POST http://localhost:8080/api/recipes/filter-by-ingredients \
+  -H "Content-Type: application/json" \
+  -d '{
+    "includeIngredients": ["thịt bò", "khoai tây"]
+  }'
+```
+
+    Notes:
+
+        Tìm kiếm không phân biệt chữ hoa/thường (case-insensitive)
+        Khi dùng includeIngredients, công thức phải chứa TẤT CẢ nguyên liệu trong danh sách
+        Khi dùng excludeIngredients, công thức không được chứa BẤT KỲ nguyên liệu nào trong danh sách
+        Có thể dùng cả 2 filter cùng lúc để tìm kiếm chính xác hơn
+        Trả về công thức với thông tin like/bookmark nếu user đã đăng nhập
+
+### 6.6.2 Tạo công thức với User ID (Admin)
 
     Method: POST
 
@@ -1160,7 +1298,137 @@ Base Path: /api/recipes
 
         401 Unauthorized: Người dùng chưa đăng nhập.
 
-### 6.19 Thêm bình luận cho công thức
+### 6.19 Lấy danh sách công thức đã xem gần đây
+
+    Method: GET
+
+    Endpoint: /api/recipes/recently-viewed
+
+    Mô tả: Lấy danh sách các công thức mà người dùng hiện tại đã xem gần đây, sắp xếp theo thời gian xem mới nhất. (Requires Authentication)
+
+    Headers:
+
+        Authorization: Bearer <JWT_TOKEN>
+
+    Query Parameters:
+
+        limit (Integer, optional): Số lượng công thức tối đa trả về (mặc định: 20)
+
+    Example:
+        /api/recipes/recently-viewed?limit=10
+
+    Response Body:
+
+```json
+[
+  {
+    "id": 15,
+    "title": "Bún Chả Hà Nội",
+    "description": "Món ăn đặc trưng của Hà Nội",
+    "imageUrl": "https://example.com/bun-cha.jpg",
+    "userId": 3,
+    "userName": "Nguyễn Thị C",
+    "userAvatar": "https://example.com/avatar3.jpg",
+    "cookingTime": 60,
+    "servings": 2,
+    "difficulty": "easy",
+    "category": "Vietnamese",
+    "averageRating": 4.8,
+    "totalRatings": 25,
+    "totalLikes": 120,
+    "totalBookmarks": 45,
+    "totalComments": 18,
+    "isLikedByCurrentUser": true,
+    "isBookmarkedByCurrentUser": false,
+    "createdAt": "2024-01-10T14:30:00"
+  },
+  {
+    "id": 8,
+    "title": "Phở Gà",
+    "description": "Phở gà thơm ngon bổ dưỡng",
+    "imageUrl": "https://example.com/pho-ga.jpg",
+    "userId": 2,
+    "userName": "Trần Văn B",
+    "userAvatar": "https://example.com/avatar2.jpg",
+    "cookingTime": 90,
+    "servings": 4,
+    "difficulty": "medium",
+    "category": "Vietnamese",
+    "averageRating": 4.5,
+    "totalRatings": 15,
+    "totalLikes": 85,
+    "totalBookmarks": 30,
+    "totalComments": 12,
+    "isLikedByCurrentUser": false,
+    "isBookmarkedByCurrentUser": true,
+    "createdAt": "2024-01-05T10:00:00"
+  }
+]
+```
+
+    Responses:
+
+        200 OK: Trả về danh sách các công thức đã xem gần đây.
+
+        401 Unauthorized: Người dùng chưa đăng nhập.
+
+### 6.20 Xóa lịch sử xem công thức
+
+    Method: DELETE
+
+    Endpoint: /api/recipes/recently-viewed
+
+    Mô tả: Xóa toàn bộ lịch sử xem công thức của người dùng hiện tại. (Requires Authentication)
+
+    Headers:
+
+        Authorization: Bearer <JWT_TOKEN>
+
+    Response Body:
+
+```json
+{
+  "message": "View history cleared successfully"
+}
+```
+
+    Responses:
+
+        200 OK: Xóa lịch sử thành công.
+
+        401 Unauthorized: Người dùng chưa đăng nhập.
+
+### 6.21 Xóa một công thức khỏi lịch sử xem
+
+    Method: DELETE
+
+    Endpoint: /api/recipes/recently-viewed/{recipeId}
+
+    Mô tả: Xóa một công thức cụ thể khỏi lịch sử xem của người dùng hiện tại. (Requires Authentication)
+
+    Headers:
+
+        Authorization: Bearer <JWT_TOKEN>
+
+    Path Parameters:
+
+        recipeId (Long): ID của công thức cần xóa khỏi lịch sử
+
+    Response Body:
+
+```json
+{
+  "message": "Recipe removed from view history successfully"
+}
+```
+
+    Responses:
+
+        200 OK: Xóa công thức khỏi lịch sử thành công.
+
+        401 Unauthorized: Người dùng chưa đăng nhập.
+
+### 6.22 Thêm bình luận cho công thức
 
     Method: POST
 
@@ -1193,7 +1461,7 @@ Base Path: /api/recipes
 
         401 Unauthorized: Người dùng chưa đăng nhập.
 
-### 6.20 Lấy danh sách bình luận
+### 6.23 Lấy danh sách bình luận
 
     Method: GET
 
@@ -1239,7 +1507,7 @@ Base Path: /api/recipes
 
         404 Not Found: Không tìm thấy công thức.
 
-### 6.21 Cập nhật bình luận
+### 6.24 Cập nhật bình luận
 
     Method: PUT
 
@@ -1274,7 +1542,7 @@ Base Path: /api/recipes
 
         403 Forbidden: Không có quyền sửa bình luận này.
 
-### 6.22 Xóa bình luận
+### 6.25 Xóa bình luận
 
     Method: DELETE
 
@@ -1299,7 +1567,7 @@ Base Path: /api/recipes
 
         403 Forbidden: Không có quyền xóa bình luận này.
 
-### 6.23 Đánh giá công thức
+### 6.26 Đánh giá công thức
 
     Method: POST
 
@@ -1351,7 +1619,7 @@ Base Path: /api/recipes
 
         401 Unauthorized: Người dùng chưa đăng nhập.
 
-### 6.24 Lấy đánh giá của tôi
+### 6.27 Lấy đánh giá của tôi
 
     Method: GET
 
@@ -1389,7 +1657,7 @@ Base Path: /api/recipes
 
         401 Unauthorized: Người dùng chưa đăng nhập.
 
-### 6.25 Xóa đánh giá
+### 6.28 Xóa đánh giá
 
     Method: DELETE
 
@@ -1413,7 +1681,7 @@ Base Path: /api/recipes
 
         401 Unauthorized: Người dùng chưa đăng nhập.
 
-### 6.26 Lấy thống kê đánh giá
+### 6.29 Lấy thống kê đánh giá
 
     Method: GET
 
@@ -1447,7 +1715,7 @@ Base Path: /api/recipes
 
         404 Not Found: Không tìm thấy công thức.
 
-### 6.27 Lấy tất cả đánh giá
+### 6.30 Lấy tất cả đánh giá
 
     Method: GET
 
@@ -1492,14 +1760,656 @@ Base Path: /api/recipes
 
         404 Not Found: Không tìm thấy công thức.
 
-## 7. Search History API
+## 7. Notification API
+
+Endpoint quản lý thông báo cho người dùng.
+
+Controller: NotificationController
+Base Path: /api/notifications
+
+### 7.1 Lấy tất cả thông báo
+
+    Method: GET
+
+    Endpoint: /api/notifications
+
+    Mô tả: Lấy danh sách tất cả thông báo của người dùng hiện tại, sắp xếp theo thời gian mới nhất. (Requires Authentication)
+
+    Headers:
+
+        Authorization: Bearer <JWT_TOKEN>
+
+    Response Body:
+
+```json
+[
+  {
+    "id": 1,
+    "userId": 5,
+    "type": "LIKE",
+    "actorId": 8,
+    "actorName": "Nguyễn Văn A",
+    "actorAvatar": "https://example.com/avatar.jpg",
+    "recipeId": 10,
+    "recipeTitle": "Phở Bò Hà Nội",
+    "recipeImage": "https://example.com/pho.jpg",
+    "commentId": null,
+    "message": "Nguyễn Văn A đã thích công thức \"Phở Bò Hà Nội\" của bạn",
+    "isRead": false,
+    "createdAt": "2025-10-30T10:30:00"
+  },
+  {
+    "id": 2,
+    "type": "COMMENT",
+    "actorName": "Trần Thị B",
+    "message": "Trần Thị B đã bình luận về công thức \"Phở Bò Hà Nội\" của bạn",
+    "isRead": true,
+    "createdAt": "2025-10-30T09:15:00"
+  }
+]
+```
+
+    Responses:
+
+        200 OK: Trả về danh sách thông báo.
+
+        401 Unauthorized: Người dùng chưa đăng nhập.
+
+### 7.2 Lấy thông báo chưa đọc
+
+    Method: GET
+
+    Endpoint: /api/notifications/unread
+
+    Mô tả: Lấy danh sách các thông báo chưa đọc của người dùng hiện tại. (Requires Authentication)
+
+    Headers:
+
+        Authorization: Bearer <JWT_TOKEN>
+
+    Response Body: Giống như 7.1 nhưng chỉ trả về thông báo có isRead = false.
+
+    Responses:
+
+        200 OK: Trả về danh sách thông báo chưa đọc.
+
+        401 Unauthorized: Người dùng chưa đăng nhập.
+
+### 7.3 Đếm số thông báo chưa đọc
+
+    Method: GET
+
+    Endpoint: /api/notifications/unread/count
+
+    Mô tả: Lấy số lượng thông báo chưa đọc của người dùng hiện tại. (Requires Authentication)
+
+    Headers:
+
+        Authorization: Bearer <JWT_TOKEN>
+
+    Response Body:
+
+```json
+{
+  "count": 5
+}
+```
+
+    Responses:
+
+        200 OK: Trả về số lượng thông báo chưa đọc.
+
+        401 Unauthorized: Người dùng chưa đăng nhập.
+
+### 7.4 Đánh dấu thông báo đã đọc
+
+    Method: PUT
+
+    Endpoint: /api/notifications/{id}/read
+
+    Mô tả: Đánh dấu một thông báo cụ thể là đã đọc. (Requires Authentication)
+
+    Headers:
+
+        Authorization: Bearer <JWT_TOKEN>
+
+    Parameters:
+
+        id (path variable, Long): ID của thông báo.
+
+    Responses:
+
+        200 OK: "Đã đánh dấu thông báo là đã đọc"
+
+        404 Not Found: "Không tìm thấy thông báo"
+
+        401 Unauthorized: Người dùng chưa đăng nhập.
+
+### 7.5 Đánh dấu tất cả đã đọc
+
+    Method: PUT
+
+    Endpoint: /api/notifications/read-all
+
+    Mô tả: Đánh dấu tất cả thông báo chưa đọc là đã đọc. (Requires Authentication)
+
+    Headers:
+
+        Authorization: Bearer <JWT_TOKEN>
+
+    Response Body:
+
+```json
+{
+  "message": "Đã đánh dấu tất cả thông báo là đã đọc",
+  "count": 5
+}
+```
+
+    Responses:
+
+        200 OK: Đánh dấu thành công, trả về số lượng thông báo đã được đánh dấu.
+
+        401 Unauthorized: Người dùng chưa đăng nhập.
+
+### 7.6 Xóa thông báo
+
+    Method: DELETE
+
+    Endpoint: /api/notifications/{id}
+
+    Mô tả: Xóa một thông báo cụ thể. (Requires Authentication)
+
+    Headers:
+
+        Authorization: Bearer <JWT_TOKEN>
+
+    Parameters:
+
+        id (path variable, Long): ID của thông báo cần xóa.
+
+    Responses:
+
+        200 OK: "Đã xóa thông báo"
+
+        401 Unauthorized: Người dùng chưa đăng nhập.
+
+### 7.7 Xóa tất cả thông báo
+
+    Method: DELETE
+
+    Endpoint: /api/notifications
+
+    Mô tả: Xóa tất cả thông báo của người dùng hiện tại. (Requires Authentication)
+
+    Headers:
+
+        Authorization: Bearer <JWT_TOKEN>
+
+    Responses:
+
+        200 OK: "Đã xóa tất cả thông báo"
+
+        401 Unauthorized: Người dùng chưa đăng nhập.
+
+## 8. AI Chat API
+
+Endpoint sử dụng AI để trả lời câu hỏi về công thức nấu ăn.
+
+Controller: AIController
+Base Path: /api/ai
+
+### 8.1 Chat với AI về công thức nấu ăn
+
+    Method: POST
+
+    Endpoint: /api/ai/chat
+
+    Mô tả: Hỏi AI về cách làm món ăn, nguyên liệu, hoặc bất kỳ câu hỏi nào liên quan đến công thức nấu ăn. AI sẽ tìm kiếm trong database công thức và trả lời dựa trên dữ liệu thực tế. (Public - không cần xác thực)
+
+    Headers:
+
+        Content-Type: application/json
+
+    Request Body:
+
+```json
+{
+  "question": "Cách làm phở bò?"
+}
+```
+
+    Validation Rules:
+
+        question: Bắt buộc, không được để trống
+
+    Response Body:
+
+```json
+{
+  "answer": "Cách làm phở bò:\n\nBước 1: Chuẩn bị nguyên liệu\n- Xương bò: 1kg\n- Thịt bò: 500g\n- Bánh phở: 500g\n- Hành tây: 2 củ\n- Gừng: 50g\n\nBước 2: Ninh nước dùng\nRửa sạch xương bò, chần qua nước sôi. Nướng hành tây và gừng. Cho xương vào nồi, đổ đầy nước, thêm hành gừng đã nướng. Ninh nhỏ lửa 3-4 tiếng.\n\nBước 3: Chuẩn bị thịt\nLuộc thịt bò trong nước dùng đến khi chín. Vớt ra, để nguội rồi thái lát mỏng.\n\nBước 4: Trình bày\nChần bánh phở. Xếp bánh phở vào tô, cho thịt bò lên trên, chan nước dùng nóng. Ăn kèm hành lá, ngò gai, chanh và ớt.",
+  "sources": [
+    {
+      "title": "Phở Bò Hà Nội",
+      "id": 2927
+    },
+    {
+      "title": "Phở Bò Nam Định",
+      "id": 2703
+    }
+  ]
+}
+```
+
+    Responses:
+
+        200 OK: AI trả lời thành công.
+
+            answer: Câu trả lời chi tiết từ AI
+            sources: Danh sách công thức tham khảo (title và id)
+
+        400 Bad Request: Câu hỏi không hợp lệ (trống hoặc null).
+
+```json
+{
+  "error": "Question is required"
+}
+```
+
+        500 Internal Server Error: Lỗi khi gọi AI service.
+
+```json
+{
+  "error": "Failed to get AI response"
+}
+```
+
+### 8.2 Ví dụ sử dụng
+
+Example 1: Hỏi cách làm món cụ thể
+
+```bash
+curl -X POST http://localhost:8080/api/ai/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question": "Cách làm gà rán giòn?"}'
+```
+
+Example 2: Hỏi về nguyên liệu
+
+```bash
+curl -X POST http://localhost:8080/api/ai/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question": "Món nào làm từ bột mì?"}'
+```
+
+Example 3: Hỏi về các bước nấu ăn
+
+```bash
+curl -X POST http://localhost:8080/api/ai/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question": "Các bước làm bánh bông lan?"}'
+```
+
+### 8.3 Lưu ý quan trọng
+
+    Response Time: AI mất khoảng 15-20 giây để xử lý và trả lời. Client app nên hiển thị loading indicator.
+
+    Context: AI chỉ trả lời dựa trên database công thức có sẵn (~4000+ công thức). Nếu không tìm thấy công thức phù hợp, AI sẽ thông báo.
+
+    Language: AI hỗ trợ tiếng Việt. Câu hỏi nên rõ ràng và cụ thể.
+
+    Sources: Luôn kiểm tra sources để biết AI tham khảo công thức nào. Có thể dùng recipeId để lấy chi tiết công thức đầy đủ qua Recipe API.
+
+### 8.4 Kiến trúc AI System
+
+```
+Client App → Spring Boot (8080) → Python AI Service (8001) → Ollama LLM
+                                 → ChromaDB Vector Database
+```
+
+    Spring Boot: API Gateway, xác thực và routing
+    Python AI Service: FastAPI server với RAG (Retrieval-Augmented Generation)
+    ChromaDB: Vector database lưu trữ embeddings của công thức
+    Ollama: Local LLM (llama3.2:3b) để generate câu trả lời
+    Embedding Model: mxbai-embed-large để tạo vector embeddings
+
+### 8.5 Technology Stack
+
+    Backend: Spring Boot 3.x
+    AI Service: Python FastAPI, LangChain
+    Vector DB: ChromaDB
+    LLM: Ollama (llama3.2:3b - 3 billion parameters)
+    Embeddings: mxbai-embed-large (669MB)
+
+## 9. User Follow API
+
+Endpoint quản lý chức năng theo dõi (follow) người dùng.
+
+Controller: UserFollowController
+Base Path: /api/users
+
+### 8.1 Follow một người dùng
+
+    Method: POST
+
+    Endpoint: /api/users/{userId}/follow
+
+    Mô tả: Người dùng hiện tại theo dõi người dùng khác. (Requires Authentication)
+
+    Headers:
+
+        Authorization: Bearer <JWT_TOKEN>
+
+    Path Parameters:
+
+        userId (Long): ID của người dùng muốn theo dõi.
+
+    Responses:
+
+        200 OK: Theo dõi thành công.
+
+```json
+{
+  "message": "Successfully followed user"
+}
+```
+
+        400 Bad Request: 
+            - Cannot follow yourself
+            - Already following this user
+            - User not found
+
+```json
+{
+  "error": "Cannot follow yourself"
+}
+```
+
+### 8.2 Unfollow một người dùng
+
+    Method: DELETE
+
+    Endpoint: /api/users/{userId}/follow
+
+    Mô tả: Hủy theo dõi một người dùng. (Requires Authentication)
+
+    Headers:
+
+        Authorization: Bearer <JWT_TOKEN>
+
+    Path Parameters:
+
+        userId (Long): ID của người dùng muốn hủy theo dõi.
+
+    Responses:
+
+        200 OK: Hủy theo dõi thành công.
+
+```json
+{
+  "message": "Successfully unfollowed user"
+}
+```
+
+        400 Bad Request: Not following this user.
+
+```json
+{
+  "error": "Not following this user"
+}
+```
+
+### 9.1 Follow một người dùng
+
+    Method: POST
+
+    Endpoint: /api/users/{userId}/follow
+
+    Mô tả: Lấy danh sách những người mà user đang theo dõi. (Public)
+
+    Path Parameters:
+
+        userId (Long): ID của người dùng.
+
+    Responses:
+
+        200 OK: Trả về danh sách user.
+
+```json
+[
+  {
+    "id": 2,
+    "email": "user2@example.com",
+    "fullName": "Nguyen Van B",
+    "avatarUrl": "https://example.com/avatar2.jpg",
+    "bio": "Food lover",
+    "hometown": "Hanoi",
+    "provider": "local",
+    "followersCount": 50,
+    "followingCount": 30
+  },
+  {
+    "id": 3,
+    "email": "user3@example.com",
+    "fullName": "Tran Thi C",
+    "avatarUrl": null,
+    "bio": null,
+    "hometown": "HCM",
+    "provider": "google",
+    "followersCount": 120,
+    "followingCount": 85
+  }
+]
+```
+
+### 9.2 Unfollow một người dùng
+
+    Method: DELETE
+
+    Endpoint: /api/users/{userId}/follow
+
+    Mô tả: Hủy theo dõi một người dùng. (Requires Authentication)
+
+    Headers:
+
+        Authorization: Bearer <JWT_TOKEN>
+
+    Path Parameters:
+
+        userId (Long): ID của người dùng muốn hủy theo dõi.
+
+    Responses:
+
+        200 OK: Hủy theo dõi thành công.
+
+```json
+{
+  "message": "Successfully unfollowed user"
+}
+```
+
+        400 Bad Request: Not following this user.
+
+```json
+{
+  "error": "Not following this user"
+}
+```
+
+### 9.3 Lấy danh sách người đang theo dõi
+
+    Method: GET
+
+    Endpoint: /api/users/{userId}/following
+
+    Mô tả: Lấy danh sách những người mà user đang theo dõi. (Public)
+
+    Path Parameters:
+
+        userId (Long): ID của người dùng.
+
+    Responses:
+
+        200 OK: Trả về danh sách user.
+
+```json
+[
+  {
+    "id": 2,
+    "email": "user2@example.com",
+    "fullName": "Nguyen Van B",
+    "avatarUrl": "https://example.com/avatar2.jpg",
+    "bio": "Food lover",
+    "hometown": "Hanoi",
+    "provider": "local",
+    "followersCount": 50,
+    "followingCount": 30
+  },
+  {
+    "id": 3,
+    "email": "user3@example.com",
+    "fullName": "Tran Thi C",
+    "avatarUrl": null,
+    "bio": null,
+    "hometown": "HCM",
+    "provider": "google",
+    "followersCount": 120,
+    "followingCount": 85
+  }
+]
+```
+
+### 9.4 Lấy danh sách người theo dõi (followers)
+
+    Method: GET
+
+    Endpoint: /api/users/{userId}/followers
+
+    Mô tả: Lấy danh sách những người đang theo dõi user. (Public)
+
+    Path Parameters:
+
+        userId (Long): ID của người dùng.
+
+    Responses:
+
+        200 OK: Trả về danh sách user.
+
+```json
+[
+  {
+    "id": 4,
+    "email": "user4@example.com",
+    "fullName": "Le Van D",
+    "avatarUrl": "https://example.com/avatar4.jpg",
+    "bio": "Chef",
+    "hometown": "Da Nang",
+    "provider": "local",
+    "followersCount": 200,
+    "followingCount": 150
+  }
+]
+```
+
+### 9.5 Kiểm tra xem có đang follow không
+
+    Method: GET
+
+    Endpoint: /api/users/{userId}/is-following
+
+    Mô tả: Kiểm tra xem người dùng hiện tại có đang follow user này không. (Requires Authentication)
+
+    Headers:
+
+        Authorization: Bearer <JWT_TOKEN>
+
+    Path Parameters:
+
+        userId (Long): ID của người dùng cần kiểm tra.
+
+    Responses:
+
+        200 OK:
+
+```json
+{
+  "isFollowing": true
+}
+```
+
+### 9.6 Lấy thống kê follow
+
+    Method: GET
+
+    Endpoint: /api/users/{userId}/follow-stats
+
+    Mô tả: Lấy số lượng followers và following của một user. (Public)
+
+    Path Parameters:
+
+        userId (Long): ID của người dùng.
+
+    Responses:
+
+        200 OK:
+
+```json
+{
+  "followersCount": 150,
+  "followingCount": 80
+}
+```
+
+### 8.7 Lấy feed từ người mình follow
+
+    Method: GET
+
+    Endpoint: /api/recipes/following-feed
+
+    Mô tả: Lấy danh sách công thức từ những người mà user đang follow, sắp xếp theo thời gian đăng mới nhất. (Requires Authentication)
+
+    Headers:
+
+        Authorization: Bearer <JWT_TOKEN>
+
+    Responses:
+
+        200 OK: Trả về danh sách recipes từ những người đang follow.
+
+```json
+[
+  {
+    "id": 101,
+    "title": "Phở Bò Hà Nội",
+    "description": "Món phở truyền thống",
+    "imageUrl": "https://example.com/pho.jpg",
+    "userId": 2,
+    "userName": "Nguyen Van B",
+    "userAvatar": "https://example.com/avatar2.jpg",
+    "cookingTime": 120,
+    "servings": 4,
+    "difficulty": "medium",
+    "category": "Vietnamese",
+    "averageRating": 4.5,
+    "totalRatings": 10,
+    "totalLikes": 25,
+    "totalBookmarks": 15,
+    "totalComments": 8,
+    "isLikedByCurrentUser": true,
+    "isBookmarkedByCurrentUser": false,
+    "createdAt": "2024-01-15T10:30:00"
+  }
+]
+```
+
+## 9. Search History API
 
 Endpoint quản lý lịch sử tìm kiếm của người dùng.
 
 Controller: SearchHistoryController
 Base Path: /api/search-history
 
-### 7.1 Lấy lịch sử tìm kiếm
+### 9.1 Lấy lịch sử tìm kiếm
 
     Method: GET
 
@@ -1570,7 +2480,7 @@ Base Path: /api/search-history
 
         401 Unauthorized: Người dùng chưa đăng nhập.
 
-### 7.2 Lưu lịch sử tìm kiếm
+### 9.2 Lưu lịch sử tìm kiếm
 
     Method: POST
 
@@ -1609,7 +2519,7 @@ Base Path: /api/search-history
 
         401 Unauthorized: Người dùng chưa đăng nhập.
 
-### 7.3 Xóa toàn bộ lịch sử tìm kiếm
+### 9.3 Xóa toàn bộ lịch sử tìm kiếm
 
     Method: DELETE
 
@@ -1627,7 +2537,7 @@ Base Path: /api/search-history
 
         401 Unauthorized: Người dùng chưa đăng nhập.
 
-### 7.4 Xóa một query cụ thể
+### 9.4 Xóa một query cụ thể
 
     Method: DELETE
 
@@ -1653,7 +2563,7 @@ Base Path: /api/search-history
 
         401 Unauthorized: Người dùng chưa đăng nhập.
 
-### 7.5 Thống kê lịch sử tìm kiếm
+### 9.5 Thống kê lịch sử tìm kiếm
 
     Method: GET
 
@@ -1687,9 +2597,119 @@ Base Path: /api/search-history
 
         401 Unauthorized: Người dùng chưa đăng nhập.
 
-## 8. Database Schema
+### 9.6 Lấy từ khóa tìm kiếm thịnh hành
 
-### 8.1 Bảng recipes
+    Method: GET
+
+    Endpoint: /api/search-history/trending
+
+    Mô tả: Lấy danh sách các từ khóa được tìm kiếm nhiều nhất trên toàn hệ thống. Có thể lọc theo thời gian (30 ngày gần nhất mặc định) hoặc lấy tất cả. (Public - Không cần Authentication)
+
+    Query Parameters:
+
+        limit (Integer, optional): Số lượng kết quả tối đa (mặc định: 10).
+        days (Integer, optional): Lấy từ khóa trong N ngày gần nhất. 0 = tất cả thời gian (mặc định: 30).
+
+    Examples: 
+        /api/search-history/trending
+        /api/search-history/trending?limit=20
+        /api/search-history/trending?days=7&limit=15
+        /api/search-history/trending?days=0&limit=50  (all time)
+
+    Response Body:
+
+```json
+{
+  "period": "30 ngày gần nhất",
+  "total": 10,
+  "trending": [
+    {
+      "keyword": "phở bò",
+      "searchCount": 156
+    },
+    {
+      "keyword": "cơm chiên",
+      "searchCount": 142
+    },
+    {
+      "keyword": "bún chả",
+      "searchCount": 98
+    },
+    {
+      "keyword": "bánh mì",
+      "searchCount": 87
+    },
+    {
+      "keyword": "gỏi cuốn",
+      "searchCount": 76
+    },
+    {
+      "keyword": "canh chua",
+      "searchCount": 65
+    },
+    {
+      "keyword": "bún bò huế",
+      "searchCount": 54
+    },
+    {
+      "keyword": "bánh xèo",
+      "searchCount": 43
+    },
+    {
+      "keyword": "thịt kho tàu",
+      "searchCount": 39
+    },
+    {
+      "keyword": "gà rán",
+      "searchCount": 32
+    }
+  ]
+}
+```
+
+    Response Body (days=0 - all time):
+
+```json
+{
+  "period": "Tất cả thời gian",
+  "total": 10,
+  "trending": [
+    {
+      "keyword": "phở bò",
+      "searchCount": 1245
+    },
+    {
+      "keyword": "cơm chiên",
+      "searchCount": 1108
+    }
+  ]
+}
+```
+
+    Responses:
+
+        200 OK: Trả về danh sách từ khóa thịnh hành.
+
+        500 Internal Server Error: Lỗi khi truy vấn dữ liệu.
+
+## 10. Database Schema
+
+### 10.1 Bảng users
+
+    id: BIGINT (Primary Key, Auto Increment)
+    email: VARCHAR(255) NOT NULL UNIQUE
+    password: VARCHAR(255) NOT NULL
+    full_name: VARCHAR(255) NOT NULL
+    avatar_url: VARCHAR(500)
+    bio: TEXT
+    hometown: VARCHAR(255)
+    provider: VARCHAR(50) DEFAULT 'local'
+    followers_count: INT DEFAULT 0
+    following_count: INT DEFAULT 0
+    created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+
+### 10.2 Bảng recipes
 
     id: BIGINT (Primary Key, Auto Increment)
     title: VARCHAR(255) NOT NULL
@@ -1705,7 +2725,7 @@ Base Path: /api/search-history
     created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     updated_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 
-### 6.2 Bảng ingredients
+### 10.3 Bảng ingredients
 
     id: BIGINT (Primary Key, Auto Increment)
     recipe_id: BIGINT NOT NULL (Foreign Key -> recipes.id)
@@ -1713,21 +2733,21 @@ Base Path: /api/search-history
     quantity: VARCHAR(50)
     unit: VARCHAR(50)
 
-### 6.3 Bảng recipe_steps
+### 10.4 Bảng recipe_steps
 
     id: BIGINT (Primary Key, Auto Increment)
     recipe_id: BIGINT NOT NULL (Foreign Key -> recipes.id)
     step_number: INT NOT NULL
     title: TEXT NOT NULL
 
-### 6.4 Bảng step_images
+### 10.5 Bảng step_images
 
     id: BIGINT (Primary Key, Auto Increment)
     step_id: BIGINT NOT NULL (Foreign Key -> recipe_steps.id)
     image_url: VARCHAR(500) NOT NULL
     order_number: INT
 
-### 6.5 Bảng recipe_likes
+### 10.6 Bảng recipe_likes
 
     id: BIGINT (Primary Key, Auto Increment)
     user_id: BIGINT NOT NULL (Foreign Key -> users.id)
@@ -1735,7 +2755,7 @@ Base Path: /api/search-history
     created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     UNIQUE KEY: unique_user_recipe_like (user_id, recipe_id)
 
-### 6.6 Bảng recipe_bookmarks
+### 10.7 Bảng recipe_bookmarks
 
     id: BIGINT (Primary Key, Auto Increment)
     user_id: BIGINT NOT NULL (Foreign Key -> users.id)
@@ -1743,7 +2763,7 @@ Base Path: /api/search-history
     created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     UNIQUE KEY: unique_user_recipe_bookmark (user_id, recipe_id)
 
-### 6.7 Bảng recipe_comments
+### 10.8 Bảng recipe_comments
 
     id: BIGINT (Primary Key, Auto Increment)
     user_id: BIGINT NOT NULL (Foreign Key -> users.id)
@@ -1753,7 +2773,7 @@ Base Path: /api/search-history
     created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     updated_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 
-### 6.8 Bảng recipe_ratings
+### 10.9 Bảng recipe_ratings
 
     id: BIGINT (Primary Key, Auto Increment)
     user_id: BIGINT NOT NULL (Foreign Key -> users.id)
@@ -1763,7 +2783,24 @@ Base Path: /api/search-history
     updated_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     UNIQUE KEY: unique_user_recipe_rating (user_id, recipe_id)
 
-### 8.9 Bảng search_history
+### 10.10 Bảng notifications
+
+    id: BIGINT (Primary Key, Auto Increment)
+    user_id: BIGINT NOT NULL (Foreign Key -> users.id)
+    type: VARCHAR(50) NOT NULL (LIKE, COMMENT, RATING, REPLY, BOOKMARK)
+    actor_id: BIGINT NOT NULL (Foreign Key -> users.id, người thực hiện hành động)
+    recipe_id: BIGINT NULL (Foreign Key -> recipes.id)
+    comment_id: BIGINT NULL (Foreign Key -> recipe_comments.id)
+    message: VARCHAR(500) NOT NULL
+    is_read: BOOLEAN NOT NULL DEFAULT FALSE
+    created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    INDEX: idx_user_id (user_id)
+    INDEX: idx_user_read (user_id, is_read)
+    INDEX: idx_created_at (created_at)
+    INDEX: idx_type (type)
+    INDEX: idx_user_created (user_id, created_at DESC)
+
+### 10.11 Bảng search_history
 
     id: BIGINT (Primary Key, Auto Increment)
     user_id: BIGINT NOT NULL (Foreign Key -> users.id)
@@ -1773,9 +2810,33 @@ Base Path: /api/search-history
     INDEX: idx_searched_at (searched_at)
     INDEX: idx_user_searched (user_id, searched_at DESC)
 
-## 9. Notes
+### 10.12 Bảng user_follows
 
-### 9.1 Authentication
+    id: BIGINT (Primary Key, Auto Increment)
+    follower_id: BIGINT NOT NULL (Foreign Key -> users.id) - Người theo dõi
+    following_id: BIGINT NOT NULL (Foreign Key -> users.id) - Người được theo dõi
+    created_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    UNIQUE KEY: uk_user_follows_unique (follower_id, following_id)
+    CHECK: chk_user_follows_no_self (follower_id != following_id)
+    INDEX: idx_user_follows_follower (follower_id)
+    INDEX: idx_user_follows_following (following_id)
+    INDEX: idx_user_follows_created_at (created_at)
+
+### 10.13 Bảng recipe_view_history
+
+    id: BIGINT (Primary Key, Auto Increment)
+    user_id: BIGINT NOT NULL (Foreign Key -> users.id)
+    recipe_id: BIGINT NOT NULL (Foreign Key -> recipes.id)
+    viewed_at: TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    INDEX: idx_recipe_view_history_user (user_id)
+    INDEX: idx_recipe_view_history_recipe (recipe_id)
+    INDEX: idx_recipe_view_history_viewed_at (viewed_at)
+    INDEX: idx_recipe_view_history_user_recipe (user_id, recipe_id)
+    INDEX: idx_recipe_view_history_user_viewed (user_id, viewed_at DESC)
+
+## 11. Notes
+
+### 11.1 Authentication
 
     Public Endpoints: Các endpoint đánh dấu là "Public" có thể truy cập mà không cần JWT token.
     
@@ -1783,7 +2844,7 @@ Base Path: /api/search-history
     
         Authorization: Bearer <your_jwt_token>
 
-### 9.2 JWT Token
+### 11.2 JWT Token
 
     Token có thời hạn 10 giờ kể từ khi đăng nhập.
     
@@ -1791,7 +2852,7 @@ Base Path: /api/search-history
     
     Khi token hết hạn, cần đăng nhập lại để lấy token mới.
 
-### 9.3 Cascade Delete
+### 11.3 Cascade Delete
 
     Khi xóa recipe, tất cả ingredients, steps, step_images, recipe_likes, recipe_bookmarks, recipe_comments và recipe_ratings liên quan sẽ tự động bị xóa.
     
@@ -1802,8 +2863,12 @@ Base Path: /api/search-history
     Khi xóa user, tất cả search_history của user đó sẽ tự động bị xóa (CASCADE DELETE).
     
     Khi xóa comment, tất cả replies (comments con) sẽ tự động bị xóa (cascade delete).
+    
+    Khi xóa user, tất cả notifications liên quan (cả nhận và gửi) sẽ tự động bị xóa (CASCADE DELETE).
+    
+    Khi xóa recipe hoặc comment, tất cả notifications liên quan sẽ tự động bị xóa (CASCADE DELETE).
 
-### 9.4 Data Relationships
+### 11.4 Data Relationships
 
     1 User có nhiều Recipes (One-to-Many)
     
@@ -1816,6 +2881,10 @@ Base Path: /api/search-history
     1 User có nhiều Recipe Ratings (One-to-Many)
     
     1 User có nhiều Search History entries (One-to-Many)
+    
+    1 User nhận nhiều Notifications (One-to-Many)
+    
+    1 User (actor) tạo nhiều Notifications (One-to-Many)
     
     1 Recipe có nhiều Ingredients (One-to-Many)
     
@@ -1832,8 +2901,12 @@ Base Path: /api/search-history
     1 Step có nhiều Images (One-to-Many)
     
     1 Comment có nhiều Replies/Comments con (One-to-Many, self-referencing)
+    
+    1 Recipe có nhiều Notifications (One-to-Many)
+    
+    1 Comment có nhiều Notifications (One-to-Many)
 
-### 9.5 Recipe Response Fields
+### 11.5 Recipe Response Fields
 
     likesCount: Tổng số lượt like của công thức.
     
@@ -1853,7 +2926,7 @@ Base Path: /api/search-history
     
     Các endpoint public (không cần authentication) vẫn trả về thông tin like, bookmark và rating, nhưng isLikedByCurrentUser, isBookmarkedByCurrentUser và userRating sẽ luôn là false/null.
 
-### 9.6 Rating System
+### 11.6 Rating System
 
     Rating phải từ 1 đến 5 sao.
     
@@ -1863,7 +2936,7 @@ Base Path: /api/search-history
     
     Rating distribution cho biết số lượng đánh giá cho mỗi mức sao (1-5).
 
-### 9.7 Comment System
+### 11.7 Comment System
 
     Comments hỗ trợ nested replies (bình luận có thể trả lời bình luận khác).
     
@@ -1875,7 +2948,41 @@ Base Path: /api/search-history
     
     Chỉ người tạo bình luận mới có quyền sửa/xóa bình luận đó.
 
-### 9.8 Search History System
+### 11.8 Notification System
+
+    Thông báo tự động được tạo khi:
+        - Có người like công thức của bạn
+        - Có người comment công thức của bạn
+        - Có người bookmark/lưu công thức của bạn
+        - Có người rate công thức của bạn
+        - Có người reply comment của bạn (tính năng này cần tích hợp thêm vào CommentService)
+    
+    Không tạo thông báo nếu:
+        - User tự thực hiện hành động trên công thức/comment của chính mình
+        - Đã có thông báo chưa đọc giống hệt (để tránh spam)
+    
+    Notification types:
+        - LIKE: Thích công thức
+        - COMMENT: Bình luận công thức
+        - RATING: Đánh giá công thức
+        - REPLY: Trả lời bình luận
+        - BOOKMARK: Lưu công thức
+    
+    Thông báo bao gồm thông tin:
+        - Actor (người thực hiện): name, avatar
+        - Recipe (công thức liên quan): title, image
+        - Message: Nội dung mô tả thông báo
+        - isRead: Trạng thái đã đọc/chưa đọc
+        - createdAt: Thời gian tạo
+    
+    API cho phép:
+        - Lấy tất cả thông báo
+        - Lấy chỉ thông báo chưa đọc
+        - Đếm số thông báo chưa đọc
+        - Đánh dấu đã đọc (1 hoặc tất cả)
+        - Xóa thông báo (1 hoặc tất cả)
+
+### 11.9 Search History System
 
     Lịch sử tìm kiếm tự động được lưu khi user gọi API /api/recipes/search?title=xxx
     
@@ -1890,3 +2997,37 @@ Base Path: /api/search-history
     User có thể xóa toàn bộ lịch sử hoặc xóa từng query cụ thể.
     
     Khi xóa user, toàn bộ lịch sử tìm kiếm của user đó sẽ tự động bị xóa (CASCADE DELETE).
+
+### 11.10 User Follow System
+
+    Người dùng có thể follow và unfollow người dùng khác.
+    
+    Không thể tự follow chính mình (CHECK constraint).
+    
+    Một user chỉ có thể follow người khác một lần duy nhất (UNIQUE constraint trên follower_id + following_id).
+    
+    Khi follow một người, hệ thống tự động tạo notification cho người được follow.
+    
+    Following Feed (/api/recipes/following-feed) trả về các công thức từ những người mà user đang follow, sắp xếp theo thời gian mới nhất.
+    
+    Số lượng followers/following được tính động thông qua các service methods.
+    
+    Khi xóa user, tất cả follow relationships liên quan sẽ tự động bị xóa (CASCADE DELETE).
+
+### 11.11 Recipe View History System
+
+    Lịch sử xem công thức tự động được lưu khi user gọi API GET /api/recipes/{id}
+    
+    Chỉ lưu lịch sử nếu user đã đăng nhập (có JWT token).
+    
+    Mỗi lần xem recipe sẽ tạo một entry mới, cập nhật viewedAt timestamp.
+    
+    API /api/recipes/recently-viewed trả về danh sách công thức đã xem gần đây (distinct recipes, most recent view of each).
+    
+    Mặc định trả về 20 công thức gần nhất, có thể tùy chỉnh với parameter limit.
+    
+    User có thể xóa toàn bộ lịch sử xem hoặc xóa từng công thức cụ thể khỏi lịch sử.
+    
+    Lịch sử xem giúp user dễ dàng tìm lại các công thức đã xem trước đó.
+    
+    Khi xóa user hoặc recipe, các entry liên quan sẽ tự động bị xóa (CASCADE DELETE).

@@ -37,6 +37,17 @@ class RecipeRepository {
     return await ApiService.searchRecipes(title, token: AuthService.currentToken);
   }
 
+  static Future<ApiResponse<List<Recipe>>> filterByIngredients({
+    List<String>? includeIngredients,
+    List<String>? excludeIngredients,
+  }) async {
+    return await ApiService.filterByIngredients(
+      includeIngredients: includeIngredients,
+      excludeIngredients: excludeIngredients,
+      token: AuthService.currentToken,
+    );
+  }
+
   static Future<ApiResponse<Recipe>> createRecipe(Map<String, dynamic> data) async {
     final token = AuthService.currentToken;
     if (token == null) {

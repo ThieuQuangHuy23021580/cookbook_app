@@ -8,6 +8,8 @@ import '../../models/comment_rating_model.dart';
 import '../../providers/recipe_provider.dart';
 import '../../providers/comment_provider.dart';
 import '../../providers/rating_provider.dart';
+import '../../repositories/recipe_repository.dart';
+import '../../constants/app_constants.dart';
 import '../profile/other_user_profile_screen.dart';
 
 class PostDetailScreen extends StatefulWidget {
@@ -21,6 +23,9 @@ class PostDetailScreen extends StatefulWidget {
 class _PostDetailScreenState extends State<PostDetailScreen> {
   bool _isBookmarked = false;
   bool _isBookmarking = false;
+  bool _isLiked = false;
+  bool _isLiking = false;
+  int _likesCount = 0;
   bool _isLoadingRecipe = false;
   Recipe? _recipeDetail;
   final TextEditingController _commentController = TextEditingController();
@@ -33,15 +38,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   void initState() {
     super.initState();
     // Load comments and ratings when screen initializes
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final recipeId = int.tryParse(widget.post.id);
       if (recipeId != null) {
         context.read<CommentProvider>().loadComments(recipeId);
         context.read<RatingProvider>().loadAllRatingData(recipeId);
         // Load bookmark status
         _loadBookmarkStatus();
-        // Load full recipe detail
-        _loadRecipeDetail(recipeId);
+        // Load like status (only isLiked, likesCount will be loaded from recipe detail)
+        _loadLikeStatus();
+        // Load full recipe detail (will update likesCount) - đảm bảo load sau cùng để update likesCount
+        await _loadRecipeDetail(recipeId);
       }
     });
   }
@@ -58,6 +65,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       if (mounted) {
         setState(() {
           _recipeDetail = recipe;
+          // Update likesCount từ recipe detail (nếu có)
+          if (recipe != null) {
+            _likesCount = recipe.likesCount;
+            print('✅ [POST DETAIL] Updated likesCount from recipe detail: ${_likesCount}');
+          } else {
+            print('⚠️ [POST DETAIL] Recipe detail is null, likesCount remains: $_likesCount');
+          }
           _isLoadingRecipe = false;
         });
       }
@@ -84,6 +98,41 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
     final recipeProvider = context.read<RecipeProvider>();
     _isBookmarked = recipeProvider.bookmarkedRecipeIds.contains(recipeId);
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _loadLikeStatus() async {
+    final recipeId = int.tryParse(widget.post.id);
+    if (recipeId == null) {
+      return;
+    }
+
+    final recipeProvider = context.read<RecipeProvider>();
+    _isLiked = recipeProvider.likedRecipeIds.contains(recipeId);
+    
+    // LikesCount sẽ được load từ _loadRecipeDetail()
+    // Chỉ load từ provider nếu có sẵn (tùy chọn)
+    try {
+      // Thử tìm trong recipes list
+      try {
+        final recipe = recipeProvider.recipes.firstWhere((r) => r.id == recipeId);
+        _likesCount = recipe.likesCount;
+      } catch (e) {
+        // Nếu không tìm thấy trong recipes, thử searchResults
+        try {
+          final recipe = recipeProvider.searchResults.firstWhere((r) => r.id == recipeId);
+          _likesCount = recipe.likesCount;
+        } catch (e2) {
+          // Nếu không tìm thấy, để _loadRecipeDetail load sau
+          // Không set _likesCount = 0 ở đây vì sẽ được load từ recipe detail
+        }
+      }
+    } catch (e) {
+      // Không set _likesCount = 0 ở đây vì sẽ được load từ recipe detail
+    }
+    
     if (mounted) {
       setState(() {});
     }
@@ -134,6 +183,74 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       if (mounted) {
         setState(() {
           _isBookmarking = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _toggleLike() async {
+    final recipeId = int.tryParse(widget.post.id);
+    if (recipeId == null) return;
+
+    setState(() {
+      _isLiking = true;
+    });
+
+    try {
+      // Gọi trực tiếp API để lấy LikeResponse với likesCount mới nhất
+      final apiResponse = await RecipeRepository.toggleLikeRecipe(recipeId);
+      
+      if (apiResponse.success && apiResponse.data != null) {
+        // Update like status và likesCount từ API response
+        _isLiked = apiResponse.data!.liked;
+        _likesCount = apiResponse.data!.likesCount;
+        
+        // Update provider để sync với state
+        final recipeProvider = context.read<RecipeProvider>();
+        await recipeProvider.loadLikedRecipeIds();
+      } else {
+        // Fallback: dùng provider method nếu API trả về lỗi
+        final recipeProvider = context.read<RecipeProvider>();
+        await recipeProvider.toggleLikeRecipe(recipeId);
+        _isLiked = recipeProvider.likedRecipeIds.contains(recipeId);
+        
+        // Load lại recipe detail để lấy likesCount
+        final updatedRecipe = await recipeProvider.getRecipeById(recipeId);
+        if (updatedRecipe != null) {
+          _likesCount = updatedRecipe.likesCount;
+        }
+      }
+      
+      if (mounted) {
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_isLiked ? 'Đã thích công thức' : 'Đã bỏ thích công thức'),
+            backgroundColor: _isLiked ? Colors.red : Colors.grey,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLiking = false;
         });
       }
     }
@@ -313,7 +430,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   radius: 20,
                   backgroundColor: const Color(0xFFF1F5F9),
                   backgroundImage: comment.userAvatar != null 
-                      ? NetworkImage(comment.userAvatar!)
+                      ? NetworkImage(ApiConfig.fixImageUrl(comment.userAvatar!))
                       : null,
                   child: comment.userAvatar == null
                       ? const Icon(Icons.person, color: Color(0xFF64748B))
@@ -594,6 +711,32 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 ),
               ),
               actions: [
+                // Like button
+                Container(
+                  margin: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withOpacity(0.3)),
+                  ),
+                  child: IconButton(
+                    icon: _isLiking 
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Icon(
+                            _isLiked ? Icons.favorite : Icons.favorite_border, 
+                            color: _isLiked ? Colors.red[300] : Colors.white,
+                          ),
+                    onPressed: _isLiking ? null : _toggleLike,
+                  ),
+                ),
+                // Bookmark button
                 Container(
                   margin: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
@@ -725,10 +868,15 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       ),
                     ],
                   ),
-                  child: const CircleAvatar(
+                  child: CircleAvatar(
                     radius: 24,
-                    backgroundColor: Color(0xFFF1F5F9),
-                    child: Icon(Icons.person, color: Color(0xFF64748B)),
+                    backgroundColor: const Color(0xFFF1F5F9),
+                    backgroundImage: _recipeDetail?.userAvatar != null && _recipeDetail!.userAvatar!.isNotEmpty
+                        ? NetworkImage(ApiConfig.fixImageUrl(_recipeDetail!.userAvatar!))
+                        : null,
+                    child: _recipeDetail?.userAvatar == null || _recipeDetail!.userAvatar!.isEmpty
+                        ? const Icon(Icons.person, color: Color(0xFF64748B))
+                        : null,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -751,65 +899,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           fontSize: 14,
                           color: Color(0xFF6B7280),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.bookmark, size: 16, color: Color(0xFF64748B)),
-                      const SizedBox(width: 4),
-                      Consumer<RecipeProvider>(
-                        builder: (context, recipeProvider, child) {
-                          final recipeId = int.tryParse(widget.post.id);
-                          if (recipeId == null) {
-                            return Text(
-                              '${widget.post.savedCount}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF64748B),
-                              ),
-                            );
-                          }
-                          
-                          // Find the recipe in the current list to get updated count
-                          final recipe = recipeProvider.recipes.firstWhere(
-                            (r) => r.id == recipeId,
-                            orElse: () => recipeProvider.searchResults.firstWhere(
-                              (r) => r.id == recipeId,
-                              orElse: () => Recipe(
-                                id: recipeId,
-                                title: widget.post.title,
-                                imageUrl: widget.post.imageUrl,
-                                servings: 4,
-                                cookingTime: 30,
-                                userId: 0,
-                                userName: widget.post.author,
-                                ingredients: [],
-                                steps: [],
-                                bookmarksCount: widget.post.savedCount,
-                              ),
-                            ),
-                          );
-                          
-                          return Text(
-                            '${recipe.bookmarksCount}',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF64748B),
-                            ),
-                          );
-                        },
                       ),
                     ],
                   ),
@@ -887,6 +976,158 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 letterSpacing: 0.3,
                 height: 1.3,
               ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Like count and Bookmark count - Modern design
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.3)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  spreadRadius: 0,
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.8),
+                  spreadRadius: 0,
+                  blurRadius: 4,
+                  offset: const Offset(-2, -2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                // Like count
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: _isLiked 
+                          ? Colors.red.shade50.withOpacity(0.5)
+                          : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: _isLiked
+                            ? Colors.red.shade200.withOpacity(0.6)
+                            : const Color(0xFFE2E8F0),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _isLiked ? Icons.favorite : Icons.favorite_border,
+                          size: 20,
+                          color: _isLiked ? Colors.red.shade600 : const Color(0xFF64748B),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '$_likesCount',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: _isLiked ? Colors.red.shade700 : const Color(0xFF1F2937),
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Bookmark count
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFE2E8F0),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.bookmark,
+                          size: 20,
+                          color: Color(0xFF64748B),
+                        ),
+                        const SizedBox(width: 8),
+                        Consumer<RecipeProvider>(
+                          builder: (context, recipeProvider, child) {
+                            final recipeId = int.tryParse(widget.post.id);
+                            if (recipeId == null) {
+                              return Text(
+                                '${widget.post.savedCount}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF1F2937),
+                                  letterSpacing: 0.3,
+                                ),
+                              );
+                            }
+                            
+                            // Find the recipe in the current list to get updated count
+                            final recipe = recipeProvider.recipes.firstWhere(
+                              (r) => r.id == recipeId,
+                              orElse: () => recipeProvider.searchResults.firstWhere(
+                                (r) => r.id == recipeId,
+                                orElse: () => Recipe(
+                                  id: recipeId,
+                                  title: widget.post.title,
+                                  imageUrl: widget.post.imageUrl,
+                                  servings: 4,
+                                  cookingTime: 30,
+                                  userId: 0,
+                                  userName: widget.post.author,
+                                  ingredients: [],
+                                  steps: [],
+                                  bookmarksCount: widget.post.savedCount,
+                                ),
+                              ),
+                            );
+                            
+                            return Text(
+                              '${recipe.bookmarksCount}',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1F2937),
+                                letterSpacing: 0.3,
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 20),
@@ -1596,7 +1837,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 radius: 20,
                 backgroundColor: const Color(0xFFF1F5F9),
                 backgroundImage: comment.userAvatar != null 
-                    ? NetworkImage(comment.userAvatar!)
+                    ? NetworkImage(ApiConfig.fixImageUrl(comment.userAvatar!))
                     : null,
                 child: comment.userAvatar == null
                     ? const Icon(Icons.person, color: Color(0xFF64748B))
@@ -1716,7 +1957,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       radius: 16,
                       backgroundColor: const Color(0xFFE2E8F0),
                       backgroundImage: reply.userAvatar != null 
-                          ? NetworkImage(reply.userAvatar!)
+                          ? NetworkImage(ApiConfig.fixImageUrl(reply.userAvatar!))
                           : null,
                       child: reply.userAvatar == null
                           ? const Icon(Icons.person, color: Color(0xFF64748B), size: 18)

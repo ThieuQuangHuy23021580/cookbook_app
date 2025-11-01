@@ -21,6 +21,8 @@ class UserProfileScreen extends StatefulWidget {
 class _UserProfileScreenState extends State<UserProfileScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  bool _isSelectionMode = false;
+  Set<int> _selectedRecipeIds = {};
 
   @override
   void initState() {
@@ -56,8 +58,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
-  Future<void> _showDeleteConfirmDialog(Recipe recipe) async {
-    return showDialog(
+  Future<void> _deleteSelectedRecipes() async {
+    if (_selectedRecipeIds.isEmpty) return;
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
@@ -78,10 +83,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
-                'Xóa bài viết?',
-                style: TextStyle(
+                'Xóa ${_selectedRecipeIds.length} bài viết?',
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF1F2937),
@@ -90,57 +95,36 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Bạn có chắc chắn muốn xóa bài viết "${recipe.title}"?',
-              style: const TextStyle(
-                fontSize: 16,
-                color: Color(0xFF6B7280),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Hành động này không thể hoàn tác.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.red,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+        content: Text(
+          'Bạn có chắc chắn muốn xóa ${_selectedRecipeIds.length} bài viết đã chọn? Hành động này không thể hoàn tác.',
+          style: const TextStyle(
+            fontSize: 16,
+            color: Color(0xFF64748B),
+          ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text(
               'Hủy',
               style: TextStyle(
-                color: Color(0xFF6B7280),
-                fontSize: 16,
+                color: Color(0xFF64748B),
                 fontWeight: FontWeight.w600,
               ),
             ),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _deleteRecipe(recipe);
-            },
+            onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
             child: const Text(
               'Xóa',
               style: TextStyle(
-                fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -148,6 +132,111 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         ],
       ),
     );
+
+    if (confirmed != true) return;
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => WillPopScope(
+        onWillPop: () async => false,
+        child: Center(
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Đang xóa ${_selectedRecipeIds.length} bài viết...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final recipeProvider = context.read<RecipeProvider>();
+      final recipeIds = _selectedRecipeIds.toList();
+      int successCount = 0;
+      int failCount = 0;
+
+      // Delete recipes one by one
+      for (final recipeId in recipeIds) {
+        final response = await recipeProvider.deleteRecipe(recipeId);
+        if (response.success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      }
+
+      if (!mounted) return;
+      
+      // Close loading dialog
+      Navigator.pop(context);
+
+      // Clear selection
+      setState(() {
+        _selectedRecipeIds.clear();
+        _isSelectionMode = false;
+      });
+
+      // Show result
+      if (successCount > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              failCount > 0
+                  ? 'Đã xóa $successCount bài viết. $failCount bài viết xóa thất bại.'
+                  : 'Đã xóa $successCount bài viết thành công!',
+            ),
+            backgroundColor: failCount > 0 ? Colors.orange : Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Không thể xóa bài viết. Vui lòng thử lại.'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+
+      // Reload data
+      context.read<RecipeProvider>().loadMyRecipes();
+      context.read<AuthProvider>().loadUserStats();
+    } catch (e) {
+      if (!mounted) return;
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _deleteRecipe(Recipe recipe) async {
@@ -389,8 +478,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       print('🔍 [AVATAR UPLOAD] File URL: ${uploadResponse.data?.fileUrl}');
 
       if (uploadResponse.success && uploadResponse.data?.fileUrl != null) {
-        final newAvatarUrl = uploadResponse.data!.fileUrl!;
-        print('🔍 [AVATAR UPLOAD] New avatar URL: $newAvatarUrl');
+        final rawAvatarUrl = uploadResponse.data!.fileUrl!;
+        // Fix URL nếu là localhost
+        final newAvatarUrl = ApiConfig.fixImageUrl(rawAvatarUrl);
+        print('🔍 [AVATAR UPLOAD] Raw avatar URL from server: $rawAvatarUrl');
+        print('🔍 [AVATAR UPLOAD] Fixed avatar URL: $newAvatarUrl');
         
         // Update user profile with new avatar URL
         final updatedData = <String, dynamic>{
@@ -713,41 +805,34 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Profile Header with Glassmorphism
+                // Profile Header - Modern & Elegant Design
                 Container(
                   margin: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        const Color(0xFFEF3A16).withOpacity(0.9),
-                        const Color(0xFFFF5A00).withOpacity(0.8),
-                      ],
-                    ),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.2),
-                      width: 1.5,
+                      color: const Color(0xFFE5E7EB),
+                      width: 1,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withOpacity(0.04),
                         blurRadius: 20,
-                        offset: const Offset(0, 8),
+                        offset: const Offset(0, 4),
                       ),
                       BoxShadow(
-                        color: Colors.white.withOpacity(0.2),
-                        blurRadius: 4,
+                        color: Colors.white.withOpacity(0.8),
+                        blurRadius: 8,
                         offset: const Offset(-2, -2),
                       ),
                     ],
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
                     child: Column(
                       children: [
-                        // Avatar with 3D effect and edit button
+                        // Avatar with subtle shadow
                         Stack(
                           children: [
                             Container(
@@ -755,14 +840,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 15,
+                                    color: const Color(0xFF64748B).withOpacity(0.15),
+                                    blurRadius: 20,
                                     offset: const Offset(0, 8),
-                                  ),
-                                  BoxShadow(
-                                    color: Colors.white.withOpacity(0.3),
-                                    blurRadius: 4,
-                                    offset: const Offset(-2, -2),
                                   ),
                                 ],
                               ),
@@ -774,19 +854,22 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                   print('🔍 [AVATAR DISPLAY] User avatar URL: ${user?.avatar}');
                                   print('🔍 [AVATAR DISPLAY] Has avatar: $hasAvatar');
                                   
-                                  // Check if URL contains localhost
+                                  // Fix URL nếu cần (đảm bảo không chứa localhost)
+                                  final avatarUrl = hasAvatar 
+                                      ? ApiConfig.fixImageUrl(user!.avatar!)
+                                      : null;
+                                  
                                   if (hasAvatar && user!.avatar!.contains('localhost')) {
                                     print('⚠️ [AVATAR DISPLAY] WARNING: URL contains localhost!');
-                                    print('⚠️ [AVATAR DISPLAY] Localhost on phone != localhost on computer');
-                                    print('⚠️ [AVATAR DISPLAY] Image will fail to load!');
+                                    print('⚠️ [AVATAR DISPLAY] Fixed URL: $avatarUrl');
                                   }
                                   
                                   return CircleAvatar(
                                     key: ValueKey(user?.avatar ?? 'no_avatar_${DateTime.now().millisecondsSinceEpoch}'),
                                     radius: 50,
-                                    backgroundColor: Colors.white,
-                                    foregroundImage: hasAvatar
-                                        ? NetworkImage(user!.avatar!)
+                                    backgroundColor: const Color(0xFFF1F5F9),
+                                    foregroundImage: avatarUrl != null
+                                        ? NetworkImage(avatarUrl)
                                         : null,
                                     onForegroundImageError: hasAvatar ? (exception, stackTrace) {
                                       print('❌ [AVATAR DISPLAY] Failed to load image: $exception');
@@ -797,21 +880,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                         ? const Icon(
                                             Icons.person,
                                             size: 50,
-                                            color: Color(0xFFEF3A16),
-                                            shadows: [
-                                              Shadow(
-                                                color: Colors.black26,
-                                                offset: Offset(1, 1),
-                                                blurRadius: 2,
-                                              ),
-                                            ],
+                                            color: Color(0xFF64748B),
                                           )
                                         : null,
                                   );
                                 },
                               ),
                             ),
-                            // Edit button
+                            // Edit button - subtle design
                             Positioned(
                               right: 0,
                               bottom: 0,
@@ -820,23 +896,30 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFEF3A16),
+                                    gradient: const LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Color(0xFF0EA5E9),
+                                        Color(0xFF3B82F6),
+                                      ],
+                                    ),
                                     shape: BoxShape.circle,
                                     border: Border.all(
                                       color: Colors.white,
-                                      width: 2,
+                                      width: 2.5,
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
-                                        blurRadius: 8,
+                                        color: const Color(0xFF0EA5E9).withOpacity(0.3),
+                                        blurRadius: 12,
                                         offset: const Offset(0, 4),
                                       ),
                                     ],
                                   ),
                                   child: const Icon(
                                     Icons.camera_alt,
-                                    size: 18,
+                                    size: 16,
                                     color: Colors.white,
                                   ),
                                 ),
@@ -844,36 +927,30 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 20),
                         Consumer<AuthProvider>(
                           builder: (context, authProvider, child) {
                             return Text(
                               authProvider.currentUser?.fullName ?? 'Tên người dùng',
                               style: const TextStyle(
-                                color: Colors.white,
+                                color: Color(0xFF1F2937),
                                 fontSize: 24,
                                 fontWeight: FontWeight.w700,
-                                letterSpacing: -0.5,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.black26,
-                                    offset: Offset(1, 1),
-                                    blurRadius: 2,
-                                  ),
-                                ],
+                                letterSpacing: -0.3,
                               ),
                             );
                           },
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 8),
                         Consumer<AuthProvider>(
                           builder: (context, authProvider, child) {
                             return Text(
                               authProvider.currentUser?.email ?? 'user@example.com',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
-                                fontSize: 16,
+                              style: const TextStyle(
+                                color: Color(0xFF6B7280),
+                                fontSize: 15,
                                 fontWeight: FontWeight.w500,
+                                letterSpacing: 0.2,
                               ),
                             );
                           },
@@ -908,8 +985,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(20),
-                    child: Consumer<AuthProvider>(
-                      builder: (context, authProvider, child) {
+                    child: Consumer2<AuthProvider, RecipeProvider>(
+                      builder: (context, authProvider, recipeProvider, child) {
                         if (authProvider.isLoadingProfile) {
                           return const Center(
                             child: Padding(
@@ -922,16 +999,32 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         }
                         
                         final user = authProvider.currentUser;
+                        // Use actual count from myRecipes if stats is null or 0
+                        final actualRecipesCount = recipeProvider.myRecipes.length;
+                        final recipesCount = (user?.recipesCount ?? 0) > 0 
+                            ? user!.recipesCount 
+                            : actualRecipesCount;
+                        
+                        // Calculate total likes from user's recipes
+                        final totalLikesFromRecipes = recipeProvider.myRecipes.fold<int>(
+                          0,
+                          (sum, recipe) => sum + recipe.likesCount,
+                        );
+                        // Use stats from API if available, otherwise use calculated total
+                        final likesReceived = (user?.likesReceived ?? 0) > 0
+                            ? user!.likesReceived
+                            : totalLikesFromRecipes;
+                        
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             _StatTile(
                               label: 'Bài đã đăng', 
-                              value: user?.recipesCount.toString() ?? '0'
+                              value: recipesCount.toString()
                             ),
                             _StatTile(
                               label: 'Lượt thích', 
-                              value: user?.likesReceived.toString() ?? '0'
+                              value: likesReceived.toString()
                             ),
                             _StatTile(
                               label: 'Người theo dõi', 
@@ -1046,14 +1139,41 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Bài viết của tôi',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 18,
-                            color: Color(0xFF1F2937),
-                            letterSpacing: -0.3,
-                          ),
+                        // Title and selection mode toggle
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _isSelectionMode && _selectedRecipeIds.isNotEmpty
+                                    ? 'Đã chọn ${_selectedRecipeIds.length} bài viết'
+                                    : 'Bài viết của tôi',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 18,
+                                  color: Color(0xFF1F2937),
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                            ),
+                            // Selection mode toggle button
+                            IconButton(
+                              icon: Icon(
+                                _isSelectionMode ? Icons.close : Icons.checklist,
+                                color: _isSelectionMode 
+                                    ? Colors.red 
+                                    : const Color(0xFF64748B),
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _isSelectionMode = !_isSelectionMode;
+                                  if (!_isSelectionMode) {
+                                    _selectedRecipeIds.clear();
+                                  }
+                                });
+                              },
+                              tooltip: _isSelectionMode ? 'Thoát chế độ chọn' : 'Chọn nhiều bài viết',
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 16),
                         // Search my posts with Neumorphism
@@ -1088,9 +1208,28 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 Icons.search,
                                 color: const Color(0xFF64748B).withOpacity(0.7),
                               ),
+                              suffixIcon: _searchQuery.isNotEmpty
+                                  ? IconButton(
+                                      icon: Icon(
+                                        Icons.clear,
+                                        color: const Color(0xFF64748B).withOpacity(0.7),
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          _searchController.clear();
+                                          _searchQuery = '';
+                                        });
+                                      },
+                                    )
+                                  : null,
                               border: InputBorder.none,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                             ),
+                            onChanged: (q) {
+                              setState(() {
+                                _searchQuery = q;
+                              });
+                            },
                             onSubmitted: (q) {
                               setState(() {
                                 _searchQuery = q;
@@ -1099,6 +1238,60 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
+                        // Delete selected button (shown when in selection mode with selected items)
+                        if (_isSelectionMode && _selectedRecipeIds.isNotEmpty)
+                          Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.only(top: 8),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Colors.red.shade400,
+                                  Colors.red.shade600,
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.red.withOpacity(0.3),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: _deleteSelectedRecipes,
+                                borderRadius: BorderRadius.circular(16),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.delete_outline,
+                                        color: Colors.white,
+                                        size: 22,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Xóa ${_selectedRecipeIds.length} bài viết',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -1246,23 +1439,43 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildRecipeCard(Recipe recipe) {
+    final isSelected = _selectedRecipeIds.contains(recipe.id);
+    
     return GestureDetector(
       onTap: () {
-        // Convert Recipe to Post for PostDetailScreen
-        final post = Post(
-          id: recipe.id.toString(),
-          title: recipe.title,
-          author: recipe.userName ?? 'Unknown',
-          minutesAgo: recipe.createdAt != null 
-              ? DateTime.now().difference(recipe.createdAt!).inMinutes
-              : 0,
-          savedCount: recipe.bookmarksCount,
-          imageUrl: recipe.imageUrl ?? '',
-          ingredients: recipe.ingredients.map((ing) => ing.name).toList(),
-          steps: recipe.steps.map((step) => step.description ?? step.title).toList(),
-          createdAt: recipe.createdAt,
-        );
-        Navigator.push(context, MaterialPageRoute(builder: (_) => PostDetailScreen(post: post)));
+        if (_isSelectionMode) {
+          // Toggle selection
+          setState(() {
+            if (isSelected) {
+              _selectedRecipeIds.remove(recipe.id);
+            } else {
+              _selectedRecipeIds.add(recipe.id);
+            }
+          });
+        } else {
+          // Navigate to post detail
+          final post = Post(
+            id: recipe.id.toString(),
+            title: recipe.title,
+            author: recipe.userName ?? 'Unknown',
+            minutesAgo: recipe.createdAt != null 
+                ? DateTime.now().difference(recipe.createdAt!).inMinutes
+                : 0,
+            savedCount: recipe.bookmarksCount,
+            imageUrl: recipe.imageUrl ?? '',
+            ingredients: recipe.ingredients.map((ing) => ing.name).toList(),
+            steps: recipe.steps.map((step) => step.description ?? step.title).toList(),
+            createdAt: recipe.createdAt,
+          );
+          Navigator.push(context, MaterialPageRoute(builder: (_) => PostDetailScreen(post: post)))
+              .then((_) {
+            if (!mounted) return;
+            Future.delayed(const Duration(milliseconds: 300), () {
+              if (!mounted) return;
+              context.read<RecipeProvider>().loadRecentlyViewedRecipes(limit: 9);
+            });
+          });
+        }
       },
       child: Container(
         decoration: BoxDecoration(
@@ -1289,6 +1502,33 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
+              // Checkbox (shown only in selection mode)
+              if (_isSelectionMode) ...[
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected 
+                        ? Colors.red.shade600
+                        : Colors.transparent,
+                    border: Border.all(
+                      color: isSelected 
+                          ? Colors.red.shade600
+                          : const Color(0xFF64748B),
+                      width: 2,
+                    ),
+                  ),
+                  child: isSelected
+                      ? const Icon(
+                          Icons.check,
+                          color: Colors.white,
+                          size: 16,
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 12),
+              ],
               // Thumbnail with shadow
               Container(
                 decoration: BoxDecoration(
@@ -1384,36 +1624,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   ],
                 ),
               ),
-              // Delete button
-              GestureDetector(
-                onTap: () => _showDeleteConfirmDialog(recipe),
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: Colors.red[50],
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.red.withOpacity(0.1),
-                        blurRadius: 4,
-                        offset: const Offset(2, 2),
-                      ),
-                      BoxShadow(
-                        color: Colors.white.withOpacity(0.8),
-                        blurRadius: 4,
-                        offset: const Offset(-2, -2),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.delete_outline,
-                    color: Colors.red,
-                    size: 20,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
               // Chevron icon
               SizedBox(
                 width: 32,

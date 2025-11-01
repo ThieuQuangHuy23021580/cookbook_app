@@ -1,3 +1,5 @@
+import '../constants/app_constants.dart';
+
 class User {
   // Basic info
   final int id;
@@ -51,29 +53,9 @@ class User {
     );
   }
   
-  /// Helper để fix localhost URL
+  /// Helper để fix localhost URL - sử dụng ApiConfig.fixImageUrl()
   static String _fixImageUrl(String url) {
-    if (url.isEmpty) return url;
-    
-    // Nếu URL đã đúng (không chứa localhost), return luôn
-    if (!url.contains('localhost') && !url.contains('127.0.0.1')) {
-      return url;
-    }
-    
-    print('⚠️ [USER MODEL] Detected localhost URL: $url');
-    
-    // Replace localhost:8080 với ngrok domain
-    // Giả sử backend URL là: https://gearldine-subventral-overcuriously.ngrok-free.dev
-    const ngrokDomain = 'https://gearldine-subventral-overcuriously.ngrok-free.dev';
-    
-    // Extract path từ localhost URL
-    final uri = Uri.parse(url);
-    final path = uri.path; // /uploads/avatars/xxx.jpg
-    
-    final fixedUrl = '$ngrokDomain$path';
-    print('✅ [USER MODEL] Fixed URL: $fixedUrl');
-    
-    return fixedUrl;
+    return ApiConfig.fixImageUrl(url);
   }
 
   Map<String, dynamic> toJson() {

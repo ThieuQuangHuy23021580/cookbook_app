@@ -10,7 +10,9 @@ import '../../providers/search_history_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../widgets/filter_bottom_sheet.dart';
 import '../../services/background_fetch_service.dart';
+import '../../services/api_service.dart';
 import 'notifications_screen.dart';
+import 'chat_screen.dart';
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -26,6 +28,10 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
   
   // Search state
   String _currentSearchQuery = '';
+  
+  // Thời gian cập nhật thực tế
+  Timer? _updateTimeTimer;
+  String _currentTime = '';
 
   // Danh sách từ dừng (stop words) để loại bỏ khi phân tích
   static const List<String> _stopWords = [
@@ -132,6 +138,18 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     
+    // Khởi tạo thời gian ngay lập tức
+    _updateCurrentTime();
+    
+    // Cập nhật thời gian mỗi phút
+    _updateTimeTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _updateCurrentTime();
+        });
+      }
+    });
+    
     // Load data when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<RecipeProvider>().loadRecipes();
@@ -140,10 +158,72 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
       context.read<RecipeProvider>().loadBookmarkedRecipeIds();
       context.read<SearchHistoryProvider>().loadSearchHistory(limit: 10);
       context.read<NotificationProvider>().loadUnreadCount();
+      // Fetch backend trending keywords (non-blocking). Fallback to local logic in UI
+      _loadBackendTrendingKeywords();
       
       // Start adaptive background polling with isolate
       _startBackgroundPolling();
     });
+  }
+  
+  /// Cập nhật thời gian hiện tại
+  void _updateCurrentTime() {
+    final now = DateTime.now();
+    _currentTime = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+  }
+
+  List<String> _backendTrendingKeywords = [];
+  bool _isLoadingTrending = false;
+  String? _trendingError;
+
+  Future<void> _loadBackendTrendingKeywords() async {
+    print('🔍 [TRENDING] _loadBackendTrendingKeywords() called');
+    if (!mounted) {
+      print('⚠️ [TRENDING] Not mounted, skipping');
+      return;
+    }
+    if (_isLoadingTrending) {
+      print('⚠️ [TRENDING] Already loading, skipping');
+      return;
+    }
+    
+    print('✅ [TRENDING] Starting to load trending keywords from backend...');
+    setState(() { _isLoadingTrending = true; _trendingError = null; });
+    
+    try {
+      final token = AuthService.currentToken;
+      print('🔑 [TRENDING] Token: ${token != null ? "Present (${token.substring(0, 20)}...)" : "NULL"}');
+      
+      print('📤 [TRENDING] Calling ApiService.getTrendingKeywords(days: 7, limit: 6)...');
+      final res = await ApiService.getTrendingKeywords(token: token, days: 7, limit: 6);
+      
+      if (!mounted) {
+        print('⚠️ [TRENDING] Not mounted after API call, skipping update');
+        return;
+      }
+      
+      print('📥 [TRENDING] API Response: success=${res.success}, data=${res.data?.length ?? 0} items, message=${res.message}');
+      
+      if (res.success && res.data != null && res.data!.isNotEmpty) {
+        print('✅ [TRENDING] Successfully loaded ${res.data!.length} trending keywords: ${res.data}');
+        setState(() { _backendTrendingKeywords = res.data!; });
+      } else if (!res.success) {
+        print('❌ [TRENDING] API call failed: ${res.message}');
+        setState(() { _trendingError = res.message; });
+      } else {
+        print('⚠️ [TRENDING] API call succeeded but no data returned');
+      }
+    } catch (e, stackTrace) {
+      print('❌ [TRENDING] Exception occurred: $e');
+      print('❌ [TRENDING] Stack trace: $stackTrace');
+      if (!mounted) return;
+      setState(() { _trendingError = e.toString(); });
+    } finally {
+      if (mounted) {
+        setState(() { _isLoadingTrending = false; });
+        print('🏁 [TRENDING] Loading finished');
+      }
+    }
   }
   
   /// Start adaptive background polling using isolate (non-blocking)
@@ -206,6 +286,7 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _backgroundPolling?.stop();
+    _updateTimeTimer?.cancel();
     _recentScrollController.dispose();
     super.dispose();
   }
@@ -386,7 +467,7 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
           _sectionHeader('Từ khóa thịnh hành'),
           const SizedBox(height: 4),
           Text(
-            "Cập nhật 04:25",
+            "Cập nhật $_currentTime",
             style: const TextStyle(
               fontSize: 13,
               color: Color(0xFF6B7280),
@@ -406,6 +487,92 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
           _buildRecentSearchSection(),
           const SizedBox(height: 15),
             ],
+          ),
+          // Chat bubble button - positioned at bottom left, same height as FAB
+          Positioned(
+            left: 16,
+            bottom: 16,
+            child: SafeArea(
+              child: Tooltip(
+                message: 'Chat với trợ lý AI!',
+                preferBelow: false,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                margin: const EdgeInsets.only(bottom: 12),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
+                ),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF0EA5E9),
+                      Color(0xFF3B82F6),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                waitDuration: const Duration(milliseconds: 500),
+                showDuration: const Duration(seconds: 2),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ChatScreen(),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFF0EA5E9), // Sky blue - sáng
+                          Color(0xFF3B82F6), // Blue-500 - sáng
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF0EA5E9).withOpacity(0.5),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                        BoxShadow(
+                          color: const Color(0xFF3B82F6).withOpacity(0.6),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.3),
+                          blurRadius: 4,
+                          offset: const Offset(-2, -2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.chat_bubble_outline,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -778,8 +945,8 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
   Widget _popularGrid() {
     return Consumer<RecipeProvider>(
       builder: (context, recipeProvider, child) {
-        // Lấy trending keywords từ recipes
-        final trendingKeywords = _getTrendingKeywords(recipeProvider.recipes);
+        // Tạm thời chỉ dùng dữ liệu backend; không dùng fallback local
+        final trendingKeywords = _backendTrendingKeywords;
         
         return GridView.builder(
           shrinkWrap: true,
@@ -1198,32 +1365,31 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
   }
 
   void _showFilterBottomSheet() {
+    // Save context before showing bottom sheet
+    final navigatorContext = context;
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => FilterBottomSheet(
         initialQuery: _currentSearchQuery,
-        onApplyFilter: (includeQuery, excludeQuery) {
-          // Filter functionality can be implemented here
+        onApplyFilter: (titleQuery, includeIngredients, excludeIngredients) {
+          print('🚀 [FEED] Filter applied, navigating to SearchResultsScreen');
+          print('   Title: $titleQuery');
+          print('   Include: $includeIngredients');
+          print('   Exclude: $excludeIngredients');
           
-          // Combine search query with filters
-          String finalQuery = _currentSearchQuery;
-          if (includeQuery.isNotEmpty) {
-            finalQuery += ' $includeQuery';
-          }
-          if (excludeQuery.isNotEmpty) {
-            finalQuery += ' -$excludeQuery';
-          }
+          // Navigate to search results with filters using saved context
+          if (!navigatorContext.mounted) return;
           
-          // Navigate to search results with filters
           Navigator.push(
-            context, 
+            navigatorContext, 
             MaterialPageRoute(
               builder: (_) => SearchResultsScreen(
-                initialQuery: finalQuery,
-                includeFilter: includeQuery,
-                excludeFilter: excludeQuery,
+                initialQuery: titleQuery ?? '',
+                includeIngredients: includeIngredients,
+                excludeIngredients: excludeIngredients,
               ),
             ),
           );

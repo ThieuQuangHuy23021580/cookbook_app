@@ -2,18 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../models/post_model.dart';
+import '../../models/recipe_model.dart';
 import '../../providers/recipe_provider.dart';
 import 'post_detail_screen.dart';
 
 class SearchResultsScreen extends StatefulWidget {
   final String initialQuery;
-  final String? includeFilter;
-  final String? excludeFilter;
+  final List<String>? includeIngredients;
+  final List<String>? excludeIngredients;
   const SearchResultsScreen({
     super.key, 
     required this.initialQuery,
-    this.includeFilter,
-    this.excludeFilter,
+    this.includeIngredients,
+    this.excludeIngredients,
   });
 
   @override
@@ -24,16 +25,83 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
   late TabController _tabController;
   int _pageNewest = 1;
   int _pagePopular = 1;
+  List<Recipe> _filteredResults = [];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     
+    print('🔍 [SEARCH RESULTS] Initialized with:');
+    print('   initialQuery: "${widget.initialQuery}"');
+    print('   includeIngredients: ${widget.includeIngredients}');
+    print('   excludeIngredients: ${widget.excludeIngredients}');
+    
     // Search for recipes when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<RecipeProvider>().searchRecipes(widget.initialQuery);
+      _performSearch();
     });
+  }
+
+  Future<void> _performSearch() async {
+    final recipeProvider = context.read<RecipeProvider>();
+    
+    // If has ingredient filters, use filter API
+    if (widget.includeIngredients != null || widget.excludeIngredients != null) {
+      print('🔍 [SEARCH] Using ingredient filter API');
+      print('   Include: ${widget.includeIngredients}');
+      print('   Exclude: ${widget.excludeIngredients}');
+      
+      await recipeProvider.filterByIngredients(
+        includeIngredients: widget.includeIngredients,
+        excludeIngredients: widget.excludeIngredients,
+      );
+      
+      if (!mounted) return;
+      
+      // Get results from provider
+      final allResults = recipeProvider.searchResults;
+      print('✅ [SEARCH] Got ${allResults.length} results from filter API');
+      
+      // If also has title query, filter results by title on client-side
+      if (widget.initialQuery.isNotEmpty) {
+        final filteredResults = allResults.where((recipe) {
+          return recipe.title.toLowerCase().contains(widget.initialQuery.toLowerCase());
+        }).toList();
+        print('📝 [SEARCH] Filtered by title "${widget.initialQuery}": ${filteredResults.length} results');
+        if (mounted) {
+          setState(() {
+            _filteredResults = filteredResults;
+          });
+        }
+      } else {
+        // Only ingredient filter, no title search
+        if (mounted) {
+          setState(() {
+            _filteredResults = allResults;
+          });
+        }
+      }
+    } else if (widget.initialQuery.isNotEmpty) {
+      // Only title search, no ingredient filter
+      print('🔍 [SEARCH] Using title search API: "${widget.initialQuery}"');
+      await recipeProvider.searchRecipes(widget.initialQuery);
+      if (mounted) {
+        // For title-only search, use provider results directly
+        // Don't set _filteredResults so it uses recipeProvider.searchResults
+        setState(() {
+          _filteredResults = [];
+        });
+      }
+    } else {
+      // No search query and no filters - show empty
+      print('⚠️ [SEARCH] No search query and no filters');
+      if (mounted) {
+        setState(() {
+          _filteredResults = [];
+        });
+      }
+    }
   }
 
   @override
@@ -134,13 +202,28 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                       const SizedBox(width: 16),
                       // Search Query Display
                       Expanded(
-                        child: Text(
-                          'Kết quả cho "${widget.initialQuery}"',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1E293B),
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.initialQuery.isNotEmpty 
+                                  ? 'Kết quả cho "${widget.initialQuery}"'
+                                  : 'Kết quả tìm kiếm',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1E293B),
+                              ),
+                            ),
+                            if (widget.includeIngredients != null || widget.excludeIngredients != null)
+                              Text(
+                                _buildFilterDescription(),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ],
@@ -196,6 +279,22 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
   Widget _buildTabContent(bool isNewest) {
     return Consumer<RecipeProvider>(
       builder: (context, recipeProvider, child) {
+        // Use filtered results if we have ingredient filters (with or without title query)
+        // Otherwise use provider search results (for title-only search)
+        final hasIngredientFilters = (widget.includeIngredients != null && widget.includeIngredients!.isNotEmpty) 
+            || (widget.excludeIngredients != null && widget.excludeIngredients!.isNotEmpty);
+        final resultsToUse = hasIngredientFilters 
+            ? _filteredResults 
+            : (widget.initialQuery.isNotEmpty 
+                ? recipeProvider.searchResults 
+                : []);
+        
+        // Debug log
+        print('📊 [BUILD TAB] hasIngredientFilters: $hasIngredientFilters');
+        print('   _filteredResults.length: ${_filteredResults.length}');
+        print('   recipeProvider.searchResults.length: ${recipeProvider.searchResults.length}');
+        print('   resultsToUse.length: ${resultsToUse.length}');
+        
         if (recipeProvider.isSearching) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -222,7 +321,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () {
-                    recipeProvider.searchRecipes(widget.initialQuery);
+                    _performSearch();
                   },
                   child: const Text('Thử lại'),
                 ),
@@ -231,7 +330,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
           );
         }
         
-        if (recipeProvider.searchResults.isEmpty) {
+        if (resultsToUse.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -264,7 +363,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
         }
         
         return _pagedList(
-          recipes: recipeProvider.searchResults,
+          recipes: resultsToUse,
           isNewest: isNewest,
           page: isNewest ? _pageNewest : _pagePopular,
           onPrev: () {
@@ -294,8 +393,14 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
     // Sort recipes based on tab
     final sortedRecipes = List<dynamic>.from(recipes);
     if (isNewest) {
-      sortedRecipes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      // Sắp xếp theo thời gian tạo (mới nhất trước)
+      sortedRecipes.sort((a, b) {
+        final aDate = a.createdAt ?? DateTime(1970);
+        final bDate = b.createdAt ?? DateTime(1970);
+        return bDate.compareTo(aDate); // Giảm dần: mới nhất trước
+      });
     } else {
+      // Sắp xếp theo số lượt thích (phổ biến - nhiều like trước)
       sortedRecipes.sort((a, b) => b.likesCount.compareTo(a.likesCount));
     }
     
@@ -429,7 +534,13 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
           MaterialPageRoute(
             builder: (context) => PostDetailScreen(post: post),
           ),
-        );
+        ).then((_) {
+          if (!mounted) return;
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (!mounted) return;
+            context.read<RecipeProvider>().loadRecentlyViewedRecipes(limit: 9);
+          });
+        });
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
@@ -623,5 +734,16 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
         ),
       ),
     );
+  }
+
+  String _buildFilterDescription() {
+    final parts = <String>[];
+    if (widget.includeIngredients != null && widget.includeIngredients!.isNotEmpty) {
+      parts.add('Có: ${widget.includeIngredients!.join(", ")}');
+    }
+    if (widget.excludeIngredients != null && widget.excludeIngredients!.isNotEmpty) {
+      parts.add('Không có: ${widget.excludeIngredients!.join(", ")}');
+    }
+    return parts.join(' | ');
   }
 }

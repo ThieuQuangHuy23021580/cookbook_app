@@ -100,7 +100,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                                 radius: 50,
                                 backgroundColor: Colors.white,
                                 backgroundImage: _user!.avatar != null && _user!.avatar!.isNotEmpty
-                                    ? NetworkImage(_user!.avatar!)
+                                    ? NetworkImage(ApiConfig.fixImageUrl(_user!.avatar!))
                                     : null,
                                 child: _user!.avatar == null || _user!.avatar!.isEmpty
                                     ? const Icon(

@@ -104,6 +104,31 @@ class RecipeProvider with ChangeNotifier {
     }
   }
 
+  // Filter recipes by ingredients
+  Future<void> filterByIngredients({
+    List<String>? includeIngredients,
+    List<String>? excludeIngredients,
+  }) async {
+    _setSearching(true);
+    _clearSearchError();
+    
+    try {
+      final response = await RecipeRepository.filterByIngredients(
+        includeIngredients: includeIngredients,
+        excludeIngredients: excludeIngredients,
+      );
+      if (response.success) {
+        _searchResults = response.data ?? [];
+      } else {
+        _setSearchError(response.message ?? 'Không thể lọc công thức');
+      }
+    } catch (e) {
+      _setSearchError('Lỗi lọc công thức: $e');
+    } finally {
+      _setSearching(false);
+    }
+  }
+
   // Load my recipes
   Future<void> loadMyRecipes() async {
     _setLoadingMyRecipes(true);

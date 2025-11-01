@@ -266,28 +266,16 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Load user stats (mock data for now)
+  // Load user stats - calls loadUserProfile() which fetches user with stats from API
   Future<void> loadUserStats() async {
     if (!_isLoggedIn) return;
     
     try {
-      // Mock stats - replace with real API call when available
-      final mockStats = UserStats(
-        recipesCount: 15,
-        likesReceived: 120,
-        bookmarksReceived: 45,
-        commentsCount: 80,
-        ratingsGiven: 25,
-        averageRating: 4.2,
-        followersCount: 150,
-        followingCount: 75,
-      );
-      
-      // Update current user with stats
-      if (_currentUser != null) {
-        _currentUser = _currentUser!.copyWith(stats: mockStats);
-        notifyListeners();
-      }
+      // Load user profile which includes stats if backend returns them
+      // The stats are included in the User object returned by /api/users/me
+      await loadUserProfile();
+      // Note: If backend doesn't return stats in /api/users/me, 
+      // we may need a separate API endpoint like /api/users/me/stats
     } catch (e) {
       print('Error loading user stats: $e');
     }

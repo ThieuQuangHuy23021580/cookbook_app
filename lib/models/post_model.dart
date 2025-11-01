@@ -34,7 +34,9 @@ class Post {
     }
     
     final now = DateTime.now();
-    final difference = now.difference(createdAt!);
+    // Giảm 14 tiếng so với thời gian thực
+    final adjustedCreatedAt = createdAt!.add(const Duration(hours: 14));
+    final difference = now.difference(adjustedCreatedAt);
     
     final minutes = difference.inMinutes;
     final hours = difference.inHours;

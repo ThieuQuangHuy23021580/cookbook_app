@@ -8,6 +8,7 @@ export 'feed/feed_screen.dart';
 export 'feed/post_detail_screen.dart';
 export 'feed/new_post_screen.dart';
 export 'feed/search_results_screen.dart';
+export 'feed/chat_screen.dart';
 
 export 'profile/user_profile_screen.dart';
 

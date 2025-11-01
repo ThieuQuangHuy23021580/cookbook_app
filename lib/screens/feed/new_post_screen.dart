@@ -1693,6 +1693,10 @@ class _NewPostScreenState extends State<NewPostScreen> {
         context.read<RecipeProvider>().loadMyRecipes().then((_) {
           print('✅ [NEW POST] My recipes reloaded');
         });
+        // Reload user stats to update recipes count
+        context.read<AuthProvider>().loadUserStats().then((_) {
+          print('✅ [NEW POST] User stats reloaded');
+        });
       } else {
         print('');
         print('❌ ==========================================');

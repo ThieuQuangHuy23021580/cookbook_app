@@ -298,7 +298,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
           MaterialPageRoute(
             builder: (context) => PostDetailScreen(post: post),
           ),
-        );
+        ).then((_) {
+          if (!mounted) return;
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (!mounted) return;
+            context.read<RecipeProvider>().loadRecentlyViewedRecipes(limit: 9);
+          });
+        });
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),

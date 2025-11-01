@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class FilterBottomSheet extends StatefulWidget {
   final String initialQuery;
-  final Function(String includeQuery, String excludeQuery) onApplyFilter;
+  final Function(String? titleQuery, List<String>? includeIngredients, List<String>? excludeIngredients) onApplyFilter;
   
   const FilterBottomSheet({
     super.key,
@@ -214,11 +214,62 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                   flex: 2,
                   child: GestureDetector(
                     onTap: () {
-                      widget.onApplyFilter(
-                        _includeController.text.trim(),
-                        _excludeController.text.trim(),
-                      );
+                      // Parse include ingredients (split by comma)
+                      List<String>? includeIngredients;
+                      final includeText = _includeController.text.trim();
+                      if (includeText.isNotEmpty) {
+                        includeIngredients = includeText
+                            .split(',')
+                            .map((e) => e.trim())
+                            .where((e) => e.isNotEmpty)
+                            .toList();
+                      }
+
+                      // Parse exclude ingredients (split by comma)
+                      List<String>? excludeIngredients;
+                      final excludeText = _excludeController.text.trim();
+                      if (excludeText.isNotEmpty) {
+                        excludeIngredients = excludeText
+                            .split(',')
+                            .map((e) => e.trim())
+                            .where((e) => e.isNotEmpty)
+                            .toList();
+                      }
+
+                      final hasTitleQuery = widget.initialQuery.trim().isNotEmpty;
+                      final hasIncludeFilters = includeIngredients != null && includeIngredients.isNotEmpty;
+                      final hasExcludeFilters = excludeIngredients != null && excludeIngredients.isNotEmpty;
+                      final hasAnyFilter = hasTitleQuery || hasIncludeFilters || hasExcludeFilters;
+
+                      if (!hasAnyFilter) {
+                        // Show error if no filter is applied
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Vui lòng nhập từ khóa hoặc nguyên liệu để tìm kiếm'),
+                            backgroundColor: Colors.orange,
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                        return;
+                      }
+
+                      print('🔍 [FILTER] Applying filter:');
+                      print('   Title: ${widget.initialQuery.trim().isNotEmpty ? widget.initialQuery.trim() : "None"}');
+                      print('   Include: $includeIngredients');
+                      print('   Exclude: $excludeIngredients');
+
+                      // Close bottom sheet first, then call callback
                       Navigator.pop(context);
+                      
+                      // Call callback after closing bottom sheet
+                      // Use Future.microtask to ensure Navigator.pop completes first
+                      Future.microtask(() {
+                        widget.onApplyFilter(
+                          widget.initialQuery.trim().isNotEmpty ? widget.initialQuery.trim() : null,
+                          includeIngredients?.isNotEmpty == true ? includeIngredients : null,
+                          excludeIngredients?.isNotEmpty == true ? excludeIngredients : null,
+                        );
+                      });
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 16),
