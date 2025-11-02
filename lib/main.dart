@@ -8,6 +8,7 @@ import 'providers/comment_provider.dart';
 import 'providers/rating_provider.dart';
 import 'providers/search_history_provider.dart';
 import 'providers/notification_provider.dart';
+import 'providers/theme_provider.dart';
 import 'screens/splash_screen.dart';
 
 void main() async {
@@ -36,6 +37,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => RecipeProvider()),
         ChangeNotifierProvider(create: (_) => CommentProvider()),
@@ -43,19 +45,49 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SearchHistoryProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          fontFamily: 'Montserrat',
-          primarySwatch: Colors.orange,
-          primaryColor: const Color(0xFFEF3A16),
-        ),
-        home: const SplashScreen(),
-        routes: {
-          '/welcome': (context) => const WelcomePage(),
-          '/login': (context) => const LoginPage(),
-          '/register': (context) => const RegisterPage(),
-          '/main': (context) => const MainScreen(),
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              fontFamily: 'Montserrat',
+              primarySwatch: Colors.orange,
+              primaryColor: const Color(0xFFEF3A16),
+              scaffoldBackgroundColor: const Color(0xFFFAFAFA),
+              brightness: Brightness.light,
+              appBarTheme: const AppBarTheme(
+                backgroundColor: Color(0xFFEF3A16),
+                foregroundColor: Colors.white,
+                elevation: 0,
+              ),
+            ),
+            darkTheme: ThemeData(
+              fontFamily: 'Montserrat',
+              primarySwatch: Colors.orange,
+              primaryColor: const Color(0xFFEF3A16),
+              scaffoldBackgroundColor: const Color(0xFF000000), // Pure black for professional look
+              brightness: Brightness.dark,
+              appBarTheme: const AppBarTheme(
+                backgroundColor: Color(0xFF0A0A0A), // Very dark gray
+                foregroundColor: Colors.white,
+                elevation: 0,
+              ),
+              cardColor: const Color(0xFF0F0F0F), // Very dark for cards
+              dividerColor: Colors.white.withOpacity(0.08),
+              dialogBackgroundColor: const Color(0xFF0F0F0F),
+              bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+                backgroundColor: Color(0xFF0A0A0A),
+              ),
+            ),
+            themeMode: themeProvider.themeMode,
+            home: const SplashScreen(),
+            routes: {
+              '/welcome': (context) => const WelcomePage(),
+              '/login': (context) => const LoginPage(),
+              '/register': (context) => const RegisterPage(),
+              '/main': (context) => const MainScreen(),
+            },
+          );
         },
       ),
     );

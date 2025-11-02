@@ -32,6 +32,9 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
   // Thời gian cập nhật thực tế
   Timer? _updateTimeTimer;
   String _currentTime = '';
+  
+  // Toolbar state
+  bool _isToolbarExpanded = false;
 
   // Danh sách từ dừng (stop words) để loại bỏ khi phân tích
   static const List<String> _stopWords = [
@@ -313,8 +316,10 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
       ),
     );
     
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(72),
         child: Container(
@@ -397,7 +402,11 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
                   },
                 ),
                 PopupMenuButton<String>(
-                  icon: const CircleAvatar(radius: 16, backgroundColor: Colors.white, child: Icon(Icons.person, size: 18, color: Color(0xFFEF3A16))),
+                  icon: CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Colors.white,
+                    child: Icon(Icons.person, size: 18, color: const Color(0xFFEF3A16)),
+                  ),
                   onSelected: (value) async {
                     if (value == 'profile') {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const UserProfileScreen()));
@@ -434,11 +443,17 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFFFAFAFA),
-                  const Color(0xFFF8FAFC),
-                  const Color(0xFFF1F5F9),
-                ],
+                colors: isDark
+                    ? [
+                        const Color(0xFF000000), // Pure black
+                        const Color(0xFF0A0A0A), // Very dark gray
+                        const Color(0xFF0F0F0F), // Slightly lighter dark gray
+                      ]
+                    : [
+                        const Color(0xFFFAFAFA),
+                        const Color(0xFFF8FAFC),
+                        const Color(0xFFF1F5F9),
+                      ],
               ),
             ),
           ),
@@ -453,7 +468,9 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
                 width: 6 + (index % 3) * 2,
                 height: 6 + (index % 3) * 2,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFF6B35).withOpacity(0.1),
+                  color: isDark
+                      ? const Color(0xFFEF3A16).withOpacity(0.15)
+                      : const Color(0xFFFF6B35).withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -468,9 +485,9 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
           const SizedBox(height: 4),
           Text(
             "Cập nhật $_currentTime",
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: Color(0xFF6B7280),
+              color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -488,163 +505,234 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
           const SizedBox(height: 15),
             ],
           ),
-          // Chat bubble button - positioned at bottom left, same height as FAB
+          // Floating Toolbar - góc phải trên cùng
           Positioned(
-            left: 16,
-            bottom: 16,
+            right: 0,
+            top: 0,
             child: SafeArea(
-              child: Tooltip(
-                message: 'Chat với trợ lý AI!',
-                preferBelow: false,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                margin: const EdgeInsets.only(bottom: 12),
-                textStyle: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.3,
-                ),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF0EA5E9),
-                      Color(0xFF3B82F6),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                waitDuration: const Duration(milliseconds: 500),
-                showDuration: const Duration(seconds: 2),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ChatScreen(),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Color(0xFF0EA5E9), // Sky blue - sáng
-                          Color(0xFF3B82F6), // Blue-500 - sáng
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(28),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF0EA5E9).withOpacity(0.5),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
-                        ),
-                        BoxShadow(
-                          color: const Color(0xFF3B82F6).withOpacity(0.6),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                        BoxShadow(
-                          color: Colors.white.withOpacity(0.3),
-                          blurRadius: 4,
-                          offset: const Offset(-2, -2),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.chat_bubble_outline,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                  ),
-                ),
+              child: Container(
+                alignment: Alignment.topRight,
+                padding: const EdgeInsets.only(right: 16, top: 16),
+                child: _buildFloatingToolbar(isDark),
               ),
             ),
           ),
         ],
       ),
-      //Floating-UpPost Button - 3D Effect
-      floatingActionButton: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            // Outer glow
-            BoxShadow(
-              color: const Color(0xFFEF3A16).withOpacity(0.4),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-            // 3D shadow
-            BoxShadow(
-              color: const Color(0xFFEF3A16).withOpacity(0.6),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-            // Inner highlight
-            BoxShadow(
-              color: Colors.white.withOpacity(0.3),
-              blurRadius: 4,
-              offset: const Offset(-2, -2),
-            ),
-          ],
-        ),
-        child: FloatingActionButton(
-          backgroundColor: const Color(0xFFEF3A16),
-          elevation: 0,
-          onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const NewPostScreen()));
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFFFF6B35),
-                  const Color(0xFFEF3A16),
+    );
+  }
+
+  Widget _buildFloatingToolbar(bool isDark) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        // Main toggle button
+        GestureDetector(
+            onTap: () {
+              setState(() {
+                _isToolbarExpanded = !_isToolbarExpanded;
+              });
+            },
+            child: Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isDark
+                      ? [
+                          const Color(0xFF0F0F0F),
+                          const Color(0xFF1A1A1A),
+                        ]
+                      : [
+                          Colors.white,
+                          Colors.grey[100]!,
+                        ],
+                ),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.15)
+                      : Colors.grey[300]!,
+                  width: isDark ? 2.0 : 1.0,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark
+                        ? Colors.black.withOpacity(0.5)
+                        : Colors.black.withOpacity(0.1),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                  if (isDark)
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.05),
+                      spreadRadius: 2,
+                      blurRadius: 8,
+                      offset: const Offset(0, 0),
+                    ),
                 ],
               ),
-            ),
-            child: const Icon(
-              Icons.add, 
-              color: Colors.white, 
-              size: 28,
-              shadows: [
-                Shadow(
-                  color: Colors.black26,
-                  offset: Offset(1, 1),
-                  blurRadius: 2,
+              child: AnimatedRotation(
+                duration: const Duration(milliseconds: 300),
+                turns: _isToolbarExpanded ? 0.125 : 0,
+                child: Icon(
+                  Icons.menu,
+                  color: isDark ? Colors.white : Colors.grey[800],
+                  size: 24,
                 ),
-              ],
-            ),
+              ),
           ),
         ),
-      ),
+        // Expanded buttons
+        if (_isToolbarExpanded) ...[
+          const SizedBox(height: 12),
+          // AI Chat button
+          Tooltip(
+              message: 'Chat với trợ lý AI!',
+              preferBelow: false,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              textStyle: TextStyle(
+                fontSize: 14,
+                color: isDark ? Colors.white : Colors.black,
+                fontWeight: FontWeight.w600,
+              ),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF0EA5E9),
+                    Color(0xFF3B82F6),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              waitDuration: const Duration(milliseconds: 300),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ChatScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFF0EA5E9),
+                        Color(0xFF3B82F6),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF0EA5E9).withOpacity(0.5),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                      BoxShadow(
+                        color: const Color(0xFF3B82F6).withOpacity(0.6),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.chat_bubble_outline,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                ),
+              ),
+          ),
+          const SizedBox(height: 12),
+          // New Post button
+          GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const NewPostScreen(),
+                  ),
+                );
+              },
+              child: Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFFFF6B35),
+                      Color(0xFFEF3A16),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFEF3A16).withOpacity(0.5),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                    BoxShadow(
+                      color: const Color(0xFFEF3A16).withOpacity(0.6),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.3),
+                      blurRadius: 4,
+                      offset: const Offset(-2, -2),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.add,
+                  color: Colors.white,
+                  size: 28,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black26,
+                      offset: Offset(1, 1),
+                      blurRadius: 2,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+      ],
     );
   }
 
   Widget _sectionHeader(String title) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Text(
       title, 
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.w700,
         letterSpacing: -0.5,
-        color: Color(0xFF1A1A1A),
+        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
       ),
     );
   }
@@ -809,15 +897,20 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
 
   // Build individual search history item
   Widget _buildSearchHistoryItem(String keyword, int index) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF0F0F0F) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFF1F5F9),
+          width: isDark ? 2.0 : 1.0,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.02),
             blurRadius: 4,
             offset: const Offset(0, 1),
           ),
@@ -828,17 +921,17 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
+            color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: const Icon(Icons.history, color: Color(0xFF64748B), size: 18),
+          child: Icon(Icons.history, color: isDark ? Colors.grey[400] : const Color(0xFF64748B), size: 18),
         ),
         title: Text(
           keyword,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w500,
-            color: Color(0xFF1F2937),
+            color: isDark ? Colors.white : const Color(0xFF1F2937),
           ),
         ),
         trailing: Row(
@@ -846,7 +939,7 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
           children: [
             // Delete button
             IconButton(
-              icon: const Icon(Icons.close, size: 18, color: Color(0xFF94A3B8)),
+              icon: Icon(Icons.close, size: 18, color: isDark ? Colors.grey[400] : const Color(0xFF94A3B8)),
               onPressed: () => _deleteSearchQuery(keyword),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -856,10 +949,10 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
+                color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Icon(Icons.north_east, size: 14, color: Color(0xFF64748B)),
+              child: Icon(Icons.north_east, size: 14, color: isDark ? Colors.grey[400] : const Color(0xFF64748B)),
             ),
           ],
         ),
@@ -1111,6 +1204,7 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
     return Consumer<RecipeProvider>(
       builder: (context, recipeProvider, child) {
         final recipes = recipeProvider.recentlyViewedRecipes;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         
         if (recipeProvider.isLoadingRecentlyViewed) {
           return const SizedBox(
@@ -1120,12 +1214,12 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
         }
         
         if (recipes.isEmpty) {
-          return const SizedBox(
+          return SizedBox(
             height: 160,
             child: Center(
               child: Text(
                 'Chưa xem công thức nào',
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey),
               ),
             ),
           );
@@ -1168,25 +1262,40 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
             curve: Curves.easeInOut,
             width: 120,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
+              color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.9),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: Colors.white.withOpacity(0.3),
-                width: 1.5,
+                color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+                width: isDark ? 2.0 : 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.1),
                   spreadRadius: 0,
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.8),
-                  spreadRadius: 0,
-                  blurRadius: 4,
-                  offset: const Offset(-2, -2),
-                ),
+                if (isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.05),
+                    spreadRadius: 3,
+                    blurRadius: 15,
+                    offset: const Offset(0, 0),
+                  ),
+                if (isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.08),
+                    spreadRadius: 1,
+                    blurRadius: 8,
+                    offset: const Offset(0, 0),
+                  ),
+                if (!isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.8),
+                    spreadRadius: 0,
+                    blurRadius: 4,
+                    offset: const Offset(-2, -2),
+                  ),
               ],
             ),
             child: Column(
@@ -1207,24 +1316,24 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
                             width: double.infinity,
                             errorBuilder: (context, error, stackTrace) {
                               return Container(
-                                color: const Color(0xFFF1F5F9),
-                                child: const Center(
+                                color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
+                                child: Center(
                                   child: Icon(
                                     Icons.restaurant,
                                     size: 40,
-                                    color: Color(0xFF94A3B8),
+                                    color: isDark ? Colors.grey[700] : const Color(0xFF94A3B8),
                                   ),
                                 ),
                               );
                             },
                           )
                         : Container(
-                            color: const Color(0xFFF1F5F9),
-                            child: const Center(
+                            color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
+                            child: Center(
                               child: Icon(
                                 Icons.restaurant,
                                 size: 40,
-                                color: Color(0xFF94A3B8),
+                                color: isDark ? Colors.grey[700] : const Color(0xFF94A3B8),
                               ),
                             ),
                           ),
@@ -1242,9 +1351,9 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
                         // Tên người đăng
                         Text(
                           '@${recipes[i].userName ?? 'Unknown'}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 9,
-                            color: Color(0xFF6B7280),
+                            color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
                             fontWeight: FontWeight.w500,
                             letterSpacing: 0.1,
                           ),
@@ -1254,9 +1363,9 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
                         // Tên món ăn
                         Text(
                           recipes[i].title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10,
-                            color: Color(0xFF1F2937),
+                            color: isDark ? Colors.white : const Color(0xFF1F2937),
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.1,
                           ),
@@ -1279,6 +1388,8 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildScrollButtons() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -1289,9 +1400,13 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
+              color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(28),
-              boxShadow: [
+              border: isDark ? Border.all(
+                color: Colors.white.withOpacity(0.15),
+                width: 2.0,
+              ) : null,
+              boxShadow: isDark ? [] : [
                 // Outer shadow (dark)
                 BoxShadow(
                   color: const Color(0xFF64748B).withOpacity(0.3),
@@ -1306,10 +1421,10 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
                 ),
               ],
             ),
-            child: const Icon(
+            child: Icon(
               Icons.arrow_back_ios,
               size: 16,
-              color: Color(0xFF475569),
+              color: isDark ? Colors.white : const Color(0xFF475569),
             ),
           ),
         ),
@@ -1321,9 +1436,13 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
+              color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(28),
-              boxShadow: [
+              border: isDark ? Border.all(
+                color: Colors.white.withOpacity(0.15),
+                width: 2.0,
+              ) : null,
+              boxShadow: isDark ? [] : [
                 // Outer shadow (dark)
                 BoxShadow(
                   color: const Color(0xFF64748B).withOpacity(0.3),
@@ -1338,10 +1457,10 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
                 ),
               ],
             ),
-            child: const Icon(
+            child: Icon(
               Icons.arrow_forward_ios,
               size: 16,
-              color: Color(0xFF475569),
+              color: isDark ? Colors.white : const Color(0xFF475569),
             ),
           ),
         ),

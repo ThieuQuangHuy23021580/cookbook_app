@@ -158,18 +158,20 @@ class _NewPostScreenState extends State<NewPostScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     // Set system UI overlay style to prevent status bar issues
     SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
+      SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.light,
         systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarIconBrightness: Brightness.dark,
+        systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       ),
     );
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: Container(
@@ -236,11 +238,17 @@ class _NewPostScreenState extends State<NewPostScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFFFAFAFA),
-                  const Color(0xFFF8FAFC),
-                  const Color(0xFFF1F5F9),
-                ],
+                colors: isDark
+                    ? [
+                        const Color(0xFF000000), // Pure black
+                        const Color(0xFF0A0A0A), // Very dark gray
+                        const Color(0xFF0F0F0F), // Slightly lighter dark gray
+                      ]
+                    : [
+                        const Color(0xFFFAFAFA),
+                        const Color(0xFFF8FAFC),
+                        const Color(0xFFF1F5F9),
+                      ],
               ),
             ),
           ),
@@ -255,7 +263,9 @@ class _NewPostScreenState extends State<NewPostScreen> {
                 width: 6 + (index % 3) * 2,
                 height: 6 + (index % 3) * 2,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFF6B35).withOpacity(0.1),
+                  color: isDark
+                      ? const Color(0xFFEF3A16).withOpacity(0.15)
+                      : const Color(0xFFFF6B35).withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -292,12 +302,12 @@ class _NewPostScreenState extends State<NewPostScreen> {
                   
                   // Ingredients section
                   // _buildSectionHeader('Nguyên liệu (tối thiểu 3)'),
-                  const Text(
+                  Text(
                       'Nguyên liệu',
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
-                        color: Color(0xFF1F2937),
+                        color: isDark ? Colors.white : const Color(0xFF1F2937),
                         letterSpacing: -0.3,
                       ),
                   ),
@@ -316,12 +326,12 @@ class _NewPostScreenState extends State<NewPostScreen> {
                   const SizedBox(height: 20),
                   
                   // Steps section
-                  const Text(
+                  Text(
                       'Các bước thực hiện',
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
-                        color: Color(0xFF1F2937),
+                        color: isDark ? Colors.white : const Color(0xFF1F2937),
                         letterSpacing: -0.3,
                       ),
                   ),
@@ -353,25 +363,43 @@ class _NewPostScreenState extends State<NewPostScreen> {
   }
 
   Widget _imagePickerSection() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
+        color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.8),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white.withOpacity(0.3),
-          width: 1.5,
+          color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+          width: isDark ? 2.0 : 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.05),
+            spreadRadius: 0,
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
-          BoxShadow(
-            color: Colors.white.withOpacity(0.8),
-            blurRadius: 4,
-            offset: const Offset(-2, -2),
-          ),
+          if (isDark)
+            BoxShadow(
+              color: Colors.white.withOpacity(0.05),
+              spreadRadius: 3,
+              blurRadius: 15,
+              offset: const Offset(0, 0),
+            ),
+          if (isDark)
+            BoxShadow(
+              color: Colors.white.withOpacity(0.08),
+              spreadRadius: 1,
+              blurRadius: 8,
+              offset: const Offset(0, 0),
+            ),
+          if (!isDark)
+            BoxShadow(
+              color: Colors.white.withOpacity(0.8),
+              blurRadius: 4,
+              offset: const Offset(-2, -2),
+            ),
         ],
       ),
       child: Padding(
@@ -382,12 +410,12 @@ class _NewPostScreenState extends State<NewPostScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Hình ảnh',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 16,
-                    color: Color(0xFF1F2937),
+                    color: isDark ? Colors.white : const Color(0xFF1F2937),
                     letterSpacing: -0.3,
                   ),
                 ),
@@ -403,14 +431,20 @@ class _NewPostScreenState extends State<NewPostScreen> {
               Container(
                 height: 120,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
+                  color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: const Color(0xFFE2E8F0),
-                    width: 2,
+                    color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFE2E8F0),
+                    width: isDark ? 2.0 : 2,
                     style: BorderStyle.solid,
                   ),
-                  boxShadow: [
+                  boxShadow: isDark ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.5),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ] : [
                     BoxShadow(
                       color: const Color(0xFF64748B).withOpacity(0.1),
                       blurRadius: 8,
@@ -423,20 +457,20 @@ class _NewPostScreenState extends State<NewPostScreen> {
                     ),
                   ],
                 ),
-                child: const Center(
+                child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
                         Icons.image_outlined,
-                        color: Color(0xFF64748B),
+                        color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
                         size: 48,
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Text(
                         'Chưa có ảnh',
                         style: TextStyle(
-                          color: Color(0xFF64748B),
+                          color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
@@ -462,17 +496,32 @@ class _NewPostScreenState extends State<NewPostScreen> {
   }
 
   Widget _buildImageCard(int index) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       width: 140,
       height: 110,
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
+        color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFFE2E8F0),
-          width: 2,
+          color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFE2E8F0),
+          width: isDark ? 2.0 : 2,
         ),
-        boxShadow: [
+        boxShadow: isDark ? [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            spreadRadius: 0,
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: Colors.white.withOpacity(0.05),
+            spreadRadius: 3,
+            blurRadius: 15,
+            offset: const Offset(0, 0),
+          ),
+        ] : [
           BoxShadow(
             color: const Color(0xFF64748B).withOpacity(0.1),
             blurRadius: 8,
@@ -535,22 +584,28 @@ class _NewPostScreenState extends State<NewPostScreen> {
   }
 
   Widget _buildSectionHeader(String title) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFEF3A16).withOpacity(0.1),
+        color: isDark 
+            ? const Color(0xFF0F0F0F).withOpacity(0.8)
+            : const Color(0xFFEF3A16).withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xFFEF3A16).withOpacity(0.2),
-          width: 1,
+          color: isDark
+              ? Colors.white.withOpacity(0.15)
+              : const Color(0xFFEF3A16).withOpacity(0.2),
+          width: isDark ? 2.0 : 1.0,
         ),
       ),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontWeight: FontWeight.w700,
           fontSize: 16,
-          color: Color(0xFFEF3A16),
+          color: isDark ? Colors.white : const Color(0xFFEF3A16),
           letterSpacing: -0.3,
         ),
       ),
@@ -563,11 +618,30 @@ class _NewPostScreenState extends State<NewPostScreen> {
     int maxLines = 1,
     String? Function(String?)? validator,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
+        color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
+        border: isDark ? Border.all(
+          color: Colors.white.withOpacity(0.15),
+          width: 2.0,
+        ) : null,
+        boxShadow: isDark ? [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            spreadRadius: 0,
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: Colors.white.withOpacity(0.05),
+            spreadRadius: 3,
+            blurRadius: 15,
+            offset: const Offset(0, 0),
+          ),
+        ] : [
           BoxShadow(
             color: const Color(0xFF64748B).withOpacity(0.2),
             blurRadius: 8,
@@ -586,8 +660,8 @@ class _NewPostScreenState extends State<NewPostScreen> {
         validator: validator,
         decoration: InputDecoration(
           labelText: labelText,
-          labelStyle: const TextStyle(
-            color: Color(0xFF64748B),
+          labelStyle: TextStyle(
+            color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
             fontWeight: FontWeight.w500,
           ),
           border: InputBorder.none,
@@ -595,8 +669,8 @@ class _NewPostScreenState extends State<NewPostScreen> {
           filled: true,
           fillColor: Colors.transparent,
         ),
-        style: const TextStyle(
-          color: Color(0xFF1F2937),
+        style: TextStyle(
+          color: isDark ? Colors.white : const Color(0xFF1F2937),
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -697,14 +771,33 @@ class _NewPostScreenState extends State<NewPostScreen> {
     required IconData icon,
     required VoidCallback onPressed,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return GestureDetector(
       onTap: onPressed,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
+          color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [
+          border: isDark ? Border.all(
+            color: Colors.white.withOpacity(0.15),
+            width: 2.0,
+          ) : null,
+          boxShadow: isDark ? [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              spreadRadius: 0,
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+            BoxShadow(
+              color: Colors.white.withOpacity(0.05),
+              spreadRadius: 3,
+              blurRadius: 15,
+              offset: const Offset(0, 0),
+            ),
+          ] : [
             BoxShadow(
               color: const Color(0xFF64748B).withOpacity(0.2),
               blurRadius: 8,
@@ -722,14 +815,14 @@ class _NewPostScreenState extends State<NewPostScreen> {
           children: [
             Icon(
               icon,
-              color: const Color(0xFF357ABD),
+              color: isDark ? Colors.grey[400] : const Color(0xFF357ABD),
               size: 18,
             ),
             const SizedBox(width: 8),
             Text(
               text,
-              style: const TextStyle(
-                color: Color(0xFF357ABD),
+              style: TextStyle(
+                color: isDark ? Colors.grey[400] : const Color(0xFF357ABD),
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
               ),
@@ -935,16 +1028,37 @@ class _NewPostScreenState extends State<NewPostScreen> {
     required TextEditingController unitController,
     VoidCallback? onRemove,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
+        color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.8),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white.withOpacity(0.3),
-          width: 1.5,
+          color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+          width: isDark ? 2.0 : 1.5,
         ),
-        boxShadow: [
+        boxShadow: isDark ? [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            spreadRadius: 0,
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: Colors.white.withOpacity(0.05),
+            spreadRadius: 3,
+            blurRadius: 15,
+            offset: const Offset(0, 0),
+          ),
+          BoxShadow(
+            color: Colors.white.withOpacity(0.08),
+            spreadRadius: 1,
+            blurRadius: 8,
+            offset: const Offset(0, 0),
+          ),
+        ] : [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
             blurRadius: 15,
@@ -1007,16 +1121,31 @@ class _NewPostScreenState extends State<NewPostScreen> {
             // Row 1: Tên nguyên liệu
             TextFormField(
               controller: nameController,
+              style: TextStyle(
+                color: isDark ? Colors.white : const Color(0xFF1F2937),
+              ),
               decoration: InputDecoration(
                 labelText: 'Tên nguyên liệu',
+                labelStyle: TextStyle(
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                ),
                 hintText: 'Ví dụ: Thịt bò, Cà chua...',
+                hintStyle: TextStyle(
+                  color: isDark ? Colors.grey[500] : Colors.grey[400],
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
+                  borderSide: BorderSide(
+                    color: isDark ? Colors.white.withOpacity(0.15) : Colors.grey[300]!,
+                    width: isDark ? 2.0 : 1.0,
+                  ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
+                  borderSide: BorderSide(
+                    color: isDark ? Colors.white.withOpacity(0.15) : Colors.grey[300]!,
+                    width: isDark ? 2.0 : 1.0,
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -1024,7 +1153,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 filled: true,
-                fillColor: Colors.grey[50],
+                fillColor: isDark ? const Color(0xFF0F0F0F) : Colors.grey[50],
               ),
               validator: (v) => (v == null || v.trim().isEmpty) ? 'Bắt buộc' : null,
             ),
@@ -1038,9 +1167,19 @@ class _NewPostScreenState extends State<NewPostScreen> {
                   flex: 2,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
+                      color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
+                      border: isDark ? Border.all(
+                        color: Colors.white.withOpacity(0.15),
+                        width: 2.0,
+                      ) : null,
+                      boxShadow: isDark ? [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.5),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ] : [
                         BoxShadow(
                           color: const Color(0xFF64748B).withOpacity(0.1),
                           blurRadius: 4,
@@ -1081,13 +1220,16 @@ class _NewPostScreenState extends State<NewPostScreen> {
                             controller: quantityController,
                             textAlign: TextAlign.center,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               hintText: '1',
+                              hintStyle: TextStyle(
+                                color: isDark ? Colors.grey[500] : Colors.grey[400],
+                              ),
                               border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(vertical: 12),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 12),
                             ),
-                            style: const TextStyle(
-                              color: Color(0xFF1F2937),
+                            style: TextStyle(
+                              color: isDark ? Colors.white : const Color(0xFF1F2937),
                               fontWeight: FontWeight.w500,
                             ),
                             onChanged: (value) {
@@ -1124,16 +1266,31 @@ class _NewPostScreenState extends State<NewPostScreen> {
                 Expanded(
                   child: TextFormField(
                     controller: unitController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF1F2937),
+                    ),
                     decoration: InputDecoration(
                       labelText: 'Đơn vị',
+                      labelStyle: TextStyle(
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
                       hintText: 'cái, kg, ml...',
+                      hintStyle: TextStyle(
+                        color: isDark ? Colors.grey[500] : Colors.grey[400],
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
+                        borderSide: BorderSide(
+                          color: isDark ? Colors.white.withOpacity(0.15) : Colors.grey[300]!,
+                          width: isDark ? 2.0 : 1.0,
+                        ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
+                        borderSide: BorderSide(
+                          color: isDark ? Colors.white.withOpacity(0.15) : Colors.grey[300]!,
+                          width: isDark ? 2.0 : 1.0,
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -1141,7 +1298,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
                       ),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       filled: true,
-                      fillColor: Colors.grey[50],
+                      fillColor: isDark ? const Color(0xFF0F0F0F) : Colors.grey[50],
                     ),
                   ),
                 ),
@@ -1161,17 +1318,38 @@ class _NewPostScreenState extends State<NewPostScreen> {
     VoidCallback? onAddImage,
     Function(int)? onRemoveImage,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
+        color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.8),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white.withOpacity(0.3),
-          width: 1.5,
+          color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+          width: isDark ? 2.0 : 1.5,
         ),
-        boxShadow: [
+        boxShadow: isDark ? [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            spreadRadius: 0,
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: Colors.white.withOpacity(0.05),
+            spreadRadius: 3,
+            blurRadius: 15,
+            offset: const Offset(0, 0),
+          ),
+          BoxShadow(
+            color: Colors.white.withOpacity(0.08),
+            spreadRadius: 1,
+            blurRadius: 8,
+            offset: const Offset(0, 0),
+          ),
+        ] : [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
             blurRadius: 15,
@@ -1232,16 +1410,31 @@ class _NewPostScreenState extends State<NewPostScreen> {
           // Mô tả chi tiết
           TextFormField(
             controller: titleController,
+            style: TextStyle(
+              color: isDark ? Colors.white : const Color(0xFF1F2937),
+            ),
             decoration: InputDecoration(
               labelText: 'Mô tả chi tiết',
+              labelStyle: TextStyle(
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
+              ),
               hintText: 'Ví dụ: Rửa sạch rau củ, thái nhỏ vừa ăn...',
+              hintStyle: TextStyle(
+                color: isDark ? Colors.grey[500] : Colors.grey[400],
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[300]!),
+                borderSide: BorderSide(
+                  color: isDark ? Colors.white.withOpacity(0.15) : Colors.grey[300]!,
+                  width: isDark ? 2.0 : 1.0,
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[300]!),
+                borderSide: BorderSide(
+                  color: isDark ? Colors.white.withOpacity(0.15) : Colors.grey[300]!,
+                  width: isDark ? 2.0 : 1.0,
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -1249,7 +1442,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
               ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               filled: true,
-              fillColor: Colors.grey[50],
+              fillColor: isDark ? const Color(0xFF0F0F0F) : Colors.grey[50],
             ),
             maxLines: 4,
             validator: (v) => (v == null || v.trim().isEmpty) ? 'Bắt buộc' : null,
@@ -1264,7 +1457,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey[700],
+                  color: isDark ? Colors.grey[400] : Colors.grey[700],
                 ),
               ),
               const Spacer(),
@@ -1311,9 +1504,12 @@ class _NewPostScreenState extends State<NewPostScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[50],
+                color: isDark ? const Color(0xFF0F0F0F) : Colors.grey[50],
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[200]!),
+                border: Border.all(
+                  color: isDark ? Colors.white.withOpacity(0.15) : Colors.grey[200]!,
+                  width: isDark ? 2.0 : 1.0,
+                ),
               ),
               child: GridView.builder(
                 shrinkWrap: true,

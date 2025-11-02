@@ -147,68 +147,165 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Set system UI overlay style
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Theme.of(context).brightness == Brightness.dark 
+            ? Brightness.light 
+            : Brightness.dark,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Theme.of(context).brightness == Brightness.dark 
+            ? Brightness.light 
+            : Brightness.dark,
+      ),
+    );
+    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF1A1A1A)),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFFEF3A16),
-                    Color(0xFFFF6B35),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(72),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFFEF3A16).withOpacity(0.9),
+                const Color(0xFFFF5A00).withOpacity(0.8),
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            child: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: Container(
+                margin: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withOpacity(0.3)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
                   ],
                 ),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Icon(Icons.smart_toy, color: Colors.white, size: 24),
-            ),
-            const SizedBox(width: 12),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Trợ lý ẩm thực',
-                  style: TextStyle(
-                    color: Color(0xFF1A1A1A),
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
                 ),
-                Text(
-                  'Đang hoạt động',
-                  style: TextStyle(
-                    color: Color(0xFF10B981),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
+              ),
+              title: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFFEF3A16),
+                          Color(0xFFFF6B35),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(Icons.smart_toy, color: Colors.white, size: 24),
                   ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Trợ lý ẩm thực',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Text(
+                        'Đang hoạt động',
+                        style: TextStyle(
+                          color: Color(0xFF10B981),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.more_vert, color: Colors.white),
+                  onPressed: () {
+                    // Show options menu
+                  },
                 ),
               ],
             ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: Color(0xFF1A1A1A)),
-            onPressed: () {
-              // Show options menu
-            },
           ),
-        ],
+        ),
       ),
-      body: Column(
+      body: Stack(
+        children: [
+          // Dynamic background with particles
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [
+                        const Color(0xFF000000), // Pure black
+                        const Color(0xFF0A0A0A), // Very dark gray
+                        const Color(0xFF0F0F0F), // Slightly lighter dark gray
+                      ]
+                    : [
+                        const Color(0xFFFAFAFA),
+                        const Color(0xFFF8FAFC),
+                        const Color(0xFFF1F5F9),
+                      ],
+              ),
+            ),
+          ),
+          // Floating particles background
+          ...List.generate(15, (index) => 
+            Positioned(
+              top: (index * 50.0) % MediaQuery.of(context).size.height,
+              left: (index * 70.0) % MediaQuery.of(context).size.width,
+              child: AnimatedContainer(
+                duration: Duration(milliseconds: 3000 + (index * 200)),
+                curve: Curves.easeInOut,
+                width: 6 + (index % 3) * 2,
+                height: 6 + (index % 3) * 2,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFFEF3A16).withOpacity(0.15)
+                      : const Color(0xFFFF6B35).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ),
+          // Main content
+          Column(
         children: [
           // Messages list
           Expanded(
@@ -228,13 +325,26 @@ class _ChatScreenState extends State<ChatScreen> {
           // Input area
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.9),
+              border: isDark ? Border(
+                top: BorderSide(
+                  color: Colors.white.withOpacity(0.15),
+                  width: 2.0,
+                ),
+              ) : null,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.05),
                   blurRadius: 10,
                   offset: const Offset(0, -2),
                 ),
+                if (isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.05),
+                    spreadRadius: 2,
+                    blurRadius: 15,
+                    offset: const Offset(0, 0),
+                  ),
               ],
             ),
             child: SafeArea(
@@ -245,33 +355,40 @@ class _ChatScreenState extends State<ChatScreen> {
                     Expanded(
                       child: Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF5F5F5),
+                          color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF5F5F5),
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color: const Color(0xFFE5E5E5),
-                            width: 1,
+                            color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFE5E5E5),
+                            width: isDark ? 2.0 : 1.0,
                           ),
+                          boxShadow: isDark ? [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ] : null,
                         ),
                         child: TextField(
                           controller: _messageController,
                           maxLines: null,
                           textInputAction: TextInputAction.send,
                           onSubmitted: (_) => _sendMessage(),
-                          decoration: const InputDecoration(
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                          ),
+                          decoration: InputDecoration(
                             hintText: 'Nhập tin nhắn...',
                             hintStyle: TextStyle(
-                              color: Color(0xFF9CA3AF),
+                              color: isDark ? Colors.grey[500] : const Color(0xFF9CA3AF),
                               fontSize: 15,
                             ),
                             border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
+                            contentPadding: const EdgeInsets.symmetric(
                               horizontal: 20,
                               vertical: 12,
                             ),
-                          ),
-                          style: const TextStyle(
-                            fontSize: 15,
-                            color: Color(0xFF1A1A1A),
                           ),
                         ),
                       ),
@@ -326,6 +443,8 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
           ),
+            ],
+          ),
         ],
       ),
     );
@@ -333,6 +452,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildMessageBubble(Message message) {
     final isUser = message.isUser;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -354,6 +474,13 @@ class _ChatScreenState extends State<ChatScreen> {
                   ],
                 ),
                 borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFEF3A16).withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: const Icon(Icons.smart_toy, color: Colors.white, size: 18),
             ),
@@ -366,19 +493,46 @@ class _ChatScreenState extends State<ChatScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: isUser ? const Color(0xFFEF3A16) : const Color(0xFFF5F5F5),
+                    color: isUser 
+                        ? const Color(0xFFEF3A16) 
+                        : (isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : const Color(0xFFF5F5F5)),
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(18),
                       topRight: const Radius.circular(18),
                       bottomLeft: Radius.circular(isUser ? 18 : 4),
                       bottomRight: Radius.circular(isUser ? 4 : 18),
                     ),
+                    border: !isUser && isDark ? Border.all(
+                      color: Colors.white.withOpacity(0.15),
+                      width: 2.0,
+                    ) : null,
+                    boxShadow: !isUser && isDark ? [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.05),
+                        spreadRadius: 2,
+                        blurRadius: 12,
+                        offset: const Offset(0, 0),
+                      ),
+                    ] : (isUser ? [
+                      BoxShadow(
+                        color: const Color(0xFFEF3A16).withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ] : []),
                   ),
                   child: Text(
                     message.text,
                     style: TextStyle(
                       fontSize: 15,
-                      color: isUser ? Colors.white : const Color(0xFF1A1A1A),
+                      color: isUser 
+                          ? Colors.white 
+                          : (isDark ? Colors.white : const Color(0xFF1A1A1A)),
                       height: 1.5,
                     ),
                   ),
@@ -479,12 +633,21 @@ class _ChatScreenState extends State<ChatScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEF3A16).withOpacity(0.1),
+                              color: isDark 
+                                  ? const Color(0xFFEF3A16).withOpacity(0.2) 
+                                  : const Color(0xFFEF3A16).withOpacity(0.1),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: const Color(0xFFEF3A16).withOpacity(0.3),
-                                width: 1,
+                                color: const Color(0xFFEF3A16).withOpacity(isDark ? 0.5 : 0.3),
+                                width: isDark ? 2.0 : 1.0,
                               ),
+                              boxShadow: isDark ? [
+                                BoxShadow(
+                                  color: const Color(0xFFEF3A16).withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ] : null,
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -498,9 +661,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                 Flexible(
                                   child: Text(
                                     source.title,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
-                                      color: Color(0xFFEF3A16),
+                                      color: isDark ? const Color(0xFFFF6B35) : const Color(0xFFEF3A16),
                                       fontWeight: FontWeight.w500,
                                     ),
                                     maxLines: 1,
@@ -524,10 +687,25 @@ class _ChatScreenState extends State<ChatScreen> {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: const Color(0xFFE5E5E5),
+                color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFE5E5E5),
                 borderRadius: BorderRadius.circular(16),
+                border: isDark ? Border.all(
+                  color: Colors.white.withOpacity(0.15),
+                  width: 2.0,
+                ) : null,
+                boxShadow: isDark ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ] : null,
               ),
-              child: const Icon(Icons.person, color: Color(0xFF1A1A1A), size: 18),
+              child: Icon(
+                Icons.person, 
+                color: isDark ? Colors.white : const Color(0xFF1A1A1A), 
+                size: 18,
+              ),
             ),
           ],
         ],
@@ -536,6 +714,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildLoadingIndicator() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -555,6 +735,13 @@ class _ChatScreenState extends State<ChatScreen> {
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFEF3A16).withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: const Icon(Icons.smart_toy, color: Colors.white, size: 18),
           ),
@@ -562,15 +749,32 @@ class _ChatScreenState extends State<ChatScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
+              color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : const Color(0xFFF5F5F5),
               borderRadius: BorderRadius.only(
                 topLeft: const Radius.circular(18),
                 topRight: const Radius.circular(18),
                 bottomLeft: const Radius.circular(4),
                 bottomRight: const Radius.circular(18),
               ),
+              border: isDark ? Border.all(
+                color: Colors.white.withOpacity(0.15),
+                width: 2.0,
+              ) : null,
+              boxShadow: isDark ? [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.05),
+                  spreadRadius: 2,
+                  blurRadius: 12,
+                  offset: const Offset(0, 0),
+                ),
+              ] : null,
             ),
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 SizedBox(
@@ -578,15 +782,17 @@ class _ChatScreenState extends State<ChatScreen> {
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFEF3A16)),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      isDark ? const Color(0xFFFF6B35) : const Color(0xFFEF3A16),
+                    ),
                   ),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
                   'Đang suy nghĩ...',
                   style: TextStyle(
                     fontSize: 15,
-                    color: Color(0xFF9CA3AF),
+                    color: isDark ? Colors.grey[400] : const Color(0xFF9CA3AF),
                   ),
                 ),
               ],

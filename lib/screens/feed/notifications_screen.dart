@@ -18,6 +18,7 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> with SingleTickerProviderStateMixin {
   Timer? _refreshTimer;
   late TabController _tabController;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -28,8 +29,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
       context.read<NotificationProvider>().loadNotifications();
     });
     
-    // Auto-refresh every 30 seconds
-    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+    // Auto-refresh every 3 minutes
+    _refreshTimer = Timer.periodic(const Duration(minutes: 3), (_) {
       if (mounted) {
         context.read<NotificationProvider>().loadNotifications();
         context.read<NotificationProvider>().loadUnreadCount();
@@ -41,13 +42,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
   void dispose() {
     _refreshTimer?.cancel();
     _tabController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: Container(
@@ -114,11 +118,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFFFAFAFA),
-                  const Color(0xFFF8FAFC),
-                  const Color(0xFFF1F5F9),
-                ],
+                colors: isDark
+                    ? [
+                        const Color(0xFF000000), // Pure black
+                        const Color(0xFF0A0A0A), // Very dark gray
+                        const Color(0xFF0F0F0F), // Slightly lighter dark gray
+                      ]
+                    : [
+                        const Color(0xFFFAFAFA),
+                        const Color(0xFFF8FAFC),
+                        const Color(0xFFF1F5F9),
+                      ],
               ),
             ),
           ),
@@ -133,7 +143,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
                 width: 6 + (index % 3) * 2,
                 height: 6 + (index % 3) * 2,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFF6B35).withOpacity(0.1),
+                  color: isDark
+                      ? const Color(0xFFEF3A16).withOpacity(0.15)
+                      : const Color(0xFFFF6B35).withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -177,9 +189,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
-                  children: const [
-                    _NotificationsTab(index: 0), // Tất cả
-                    _NotificationsTab(index: 1), // Chưa đọc
+                  children: [
+                    _NotificationsTab(index: 0, scrollController: _scrollController), // Tất cả
+                    _NotificationsTab(index: 1, scrollController: _scrollController), // Chưa đọc
                   ],
                 ),
               ),
@@ -195,7 +207,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
 /// Widget cho tab notifications
 class _NotificationsTab extends StatelessWidget {
   final int index;
-  const _NotificationsTab({required this.index});
+  final ScrollController? scrollController;
+  const _NotificationsTab({required this.index, this.scrollController});
 
   @override
   Widget build(BuildContext context) {
@@ -240,12 +253,12 @@ class _NotificationsTab extends StatelessWidget {
             ? notificationProvider.notifications
             : notificationProvider.notifications.where((n) => !n.isRead).toList();
 
-        return _buildNotificationsList(context, notifications);
+        return _buildNotificationsList(context, notifications, scrollController);
       },
     );
   }
 
-  Widget _buildNotificationsList(BuildContext context, List<AppNotification> notifications) {
+  Widget _buildNotificationsList(BuildContext context, List<AppNotification> notifications, ScrollController? scrollController) {
     if (notifications.isEmpty) {
       return const Center(
         child: Column(
@@ -263,9 +276,16 @@ class _NotificationsTab extends StatelessWidget {
     }
 
     return RefreshIndicator(
-      onRefresh: () => context.read<NotificationProvider>().loadNotifications(),
+      onRefresh: () async {
+        await context.read<NotificationProvider>().loadNotifications();
+        context.read<NotificationProvider>().loadUnreadCount();
+      },
       color: const Color(0xFFEF3A16),
+      backgroundColor: Colors.white,
+      strokeWidth: 2.5,
       child: ListView.separated(
+        controller: scrollController,
+        physics: const AlwaysScrollableScrollPhysics(), // Always allow scroll to enable pull-to-refresh
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: notifications.length,
         separatorBuilder: (_, __) => const SizedBox(height: 8),
@@ -332,15 +352,32 @@ class _NotificationItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       decoration: BoxDecoration(
-        color: Colors.transparent,
+        color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.95) : Colors.transparent,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF0EA5E9).withOpacity(0.3),
-          width: 1,
+          color: isDark 
+              ? const Color(0xFF0EA5E9).withOpacity(0.8) 
+              : const Color(0xFF0EA5E9).withOpacity(0.3),
+          width: isDark ? 2.0 : 1.0,
         ),
-        boxShadow: [
+        boxShadow: isDark ? [
+          BoxShadow(
+            color: const Color(0xFF0EA5E9).withOpacity(0.4),
+            blurRadius: 15,
+            spreadRadius: 2,
+            offset: const Offset(0, 3),
+          ),
+          BoxShadow(
+            color: const Color(0xFF0EA5E9).withOpacity(0.2),
+            blurRadius: 30,
+            spreadRadius: 1,
+            offset: const Offset(0, 0),
+          ),
+        ] : [
           BoxShadow(
             color: const Color(0xFF0EA5E9).withOpacity(0.15),
             blurRadius: 10,
@@ -458,37 +495,57 @@ class _NotificationItemWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Icon with gradient background
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF0EA5E9),
-                        Color(0xFF3B82F6),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: const Color(0xFF0EA5E9).withOpacity(0.6),
-                      width: 1.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF0EA5E9).withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+                Builder(
+                  builder: (context) {
+                    final isDark = Theme.of(context).brightness == Brightness.dark;
+                    return Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color(0xFF0EA5E9),
+                            Color(0xFF3B82F6),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isDark 
+                              ? const Color(0xFF0EA5E9).withOpacity(1.0) 
+                              : const Color(0xFF0EA5E9).withOpacity(0.6),
+                          width: isDark ? 2.5 : 1.5,
+                        ),
+                        boxShadow: isDark ? [
+                          BoxShadow(
+                            color: const Color(0xFF0EA5E9).withOpacity(0.6),
+                            blurRadius: 12,
+                            spreadRadius: 2,
+                            offset: const Offset(0, 2),
+                          ),
+                          BoxShadow(
+                            color: const Color(0xFF3B82F6).withOpacity(0.4),
+                            blurRadius: 8,
+                            spreadRadius: 1,
+                            offset: const Offset(0, 0),
+                          ),
+                        ] : [
+                          BoxShadow(
+                            color: const Color(0xFF0EA5E9).withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      notification.getIconEmoji(),
-                      style: const TextStyle(fontSize: 24),
-                    ),
-                  ),
+                      child: Center(
+                        child: Text(
+                          notification.getIconEmoji(),
+                          style: const TextStyle(fontSize: 24),
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(width: 16),
                 // Content
@@ -497,62 +554,97 @@ class _NotificationItemWidget extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Message
-                      Text(
-                        notification.message,
-                        style: TextStyle(
-                          fontWeight: notification.isRead 
-                              ? FontWeight.w500 
-                              : FontWeight.bold,
-                          fontSize: 14,
-                          color: const Color(0xFF1F2937),
-                          height: 1.4,
-                        ),
+                      Builder(
+                        builder: (context) {
+                          final isDark = Theme.of(context).brightness == Brightness.dark;
+                          return Text(
+                            notification.message,
+                            style: TextStyle(
+                              fontWeight: notification.isRead 
+                                  ? FontWeight.w500 
+                                  : FontWeight.bold,
+                              fontSize: 14,
+                              color: isDark 
+                                  ? (notification.isRead ? Colors.white.withOpacity(0.9) : Colors.white) 
+                                  : const Color(0xFF1F2937),
+                              height: 1.4,
+                              shadows: isDark && !notification.isRead ? [
+                                const Shadow(
+                                  color: Color(0xFF0EA5E9),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 0),
+                                ),
+                              ] : null,
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 6),
                       // Time with icon
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.access_time,
-                            size: 14,
-                            color: Colors.grey[600],
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _formatTime(notification.createdAt),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                      Builder(
+                        builder: (context) {
+                          final isDark = Theme.of(context).brightness == Brightness.dark;
+                          return Row(
+                            children: [
+                              Icon(
+                                Icons.access_time,
+                                size: 14,
+                                color: isDark ? Colors.white.withOpacity(0.7) : Colors.grey[600],
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _formatTime(notification.createdAt),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark ? Colors.white.withOpacity(0.8) : Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),
                 ),
                 // Unread indicator
                 if (!notification.isRead)
-                  Container(
-                    width: 10,
-                    height: 10,
-                    margin: const EdgeInsets.only(top: 4),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFF0EA5E9),
-                          Color(0xFF3B82F6),
-                        ],
-                      ),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF0EA5E9).withOpacity(0.5),
-                          blurRadius: 4,
-                          spreadRadius: 1,
+                  Builder(
+                    builder: (context) {
+                      final isDark = Theme.of(context).brightness == Brightness.dark;
+                      return Container(
+                        width: 10,
+                        height: 10,
+                        margin: const EdgeInsets.only(top: 4),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFF0EA5E9),
+                              Color(0xFF3B82F6),
+                            ],
+                          ),
+                          shape: BoxShape.circle,
+                          boxShadow: isDark ? [
+                            BoxShadow(
+                              color: const Color(0xFF0EA5E9).withOpacity(0.8),
+                              blurRadius: 8,
+                              spreadRadius: 2,
+                            ),
+                            BoxShadow(
+                              color: const Color(0xFF3B82F6).withOpacity(0.6),
+                              blurRadius: 4,
+                              spreadRadius: 1,
+                            ),
+                          ] : [
+                            BoxShadow(
+                              color: const Color(0xFF0EA5E9).withOpacity(0.5),
+                              blurRadius: 4,
+                              spreadRadius: 1,
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
               ],
             ),

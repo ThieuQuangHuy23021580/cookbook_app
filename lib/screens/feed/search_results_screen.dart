@@ -112,32 +112,62 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
 
   @override
   Widget build(BuildContext context) {
-    // Set system UI overlay style to prevent status bar issues
+    // Set system UI overlay style
     SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
+      SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
+        statusBarIconBrightness: Theme.of(context).brightness == Brightness.dark 
+            ? Brightness.light 
+            : Brightness.dark,
         systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarIconBrightness: Brightness.dark,
+        systemNavigationBarIconBrightness: Theme.of(context).brightness == Brightness.dark 
+            ? Brightness.light 
+            : Brightness.dark,
       ),
     );
+    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // Animated Background
+          // Dynamic background with particles
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFFF8FAFC),
-                  Color(0xFFE2E8F0),
-                  Color(0xFFF1F5F9),
-                ],
-                stops: [0.0, 0.5, 1.0],
+                colors: isDark
+                    ? [
+                        const Color(0xFF000000), // Pure black
+                        const Color(0xFF0A0A0A), // Very dark gray
+                        const Color(0xFF0F0F0F), // Slightly lighter dark gray
+                      ]
+                    : [
+                        const Color(0xFFFAFAFA),
+                        const Color(0xFFF8FAFC),
+                        const Color(0xFFF1F5F9),
+                      ],
+              ),
+            ),
+          ),
+          // Floating particles background
+          ...List.generate(15, (index) => 
+            Positioned(
+              top: (index * 50.0) % MediaQuery.of(context).size.height,
+              left: (index * 70.0) % MediaQuery.of(context).size.width,
+              child: AnimatedContainer(
+                duration: Duration(milliseconds: 3000 + (index * 200)),
+                curve: Curves.easeInOut,
+                width: 6 + (index % 3) * 2,
+                height: 6 + (index % 3) * 2,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFFEF3A16).withOpacity(0.15)
+                      : const Color(0xFFFF6B35).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
           ),
@@ -154,19 +184,19 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        Colors.white.withOpacity(0.9),
-                        Colors.white.withOpacity(0.8),
+                        const Color(0xFFEF3A16).withOpacity(0.9),
+                        const Color(0xFFFF5A00).withOpacity(0.8),
                       ],
                     ),
                     border: Border(
                       bottom: BorderSide(
-                        color: Colors.white.withOpacity(0.3),
+                        color: Colors.white.withOpacity(0.2),
                         width: 1,
                       ),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withOpacity(0.1),
                         blurRadius: 20,
                         offset: const Offset(0, 5),
                       ),
@@ -177,14 +207,14 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                       // Back Button
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: Colors.white.withOpacity(0.3),
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: Colors.black.withOpacity(0.1),
                               blurRadius: 10,
                               offset: const Offset(0, 2),
                             ),
@@ -194,7 +224,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                           onPressed: () => Navigator.pop(context),
                           icon: const Icon(
                             Icons.arrow_back_ios,
-                            color: Color(0xFF1E293B),
+                            color: Colors.white,
                             size: 20,
                           ),
                         ),
@@ -212,15 +242,15 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF1E293B),
+                                color: Colors.white,
                               ),
                             ),
                             if (widget.includeIngredients != null || widget.excludeIngredients != null)
                               Text(
                                 _buildFilterDescription(),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: Color(0xFF64748B),
+                                  color: Colors.white.withOpacity(0.8),
                                 ),
                               ),
                           ],
@@ -233,20 +263,27 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                 // Tab Bar
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.8),
+                    color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.8),
                     border: Border(
                       bottom: BorderSide(
-                        color: Colors.white.withOpacity(0.3),
-                        width: 1,
+                        color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+                        width: isDark ? 2.0 : 1.0,
                       ),
                     ),
+                    boxShadow: isDark ? [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ] : null,
                   ),
                   child: TabBar(
                     controller: _tabController,
                     indicatorColor: const Color(0xFFEF3A16),
                     indicatorWeight: 3,
                     labelColor: const Color(0xFFEF3A16),
-                    unselectedLabelColor: const Color(0xFF64748B),
+                    unselectedLabelColor: isDark ? Colors.grey[400] : const Color(0xFF64748B),
                     labelStyle: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -295,8 +332,16 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
         print('   recipeProvider.searchResults.length: ${recipeProvider.searchResults.length}');
         print('   resultsToUse.length: ${resultsToUse.length}');
         
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        
         if (recipeProvider.isSearching) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(
+                isDark ? const Color(0xFFFF6B35) : const Color(0xFFEF3A16),
+              ),
+            ),
+          );
         }
         
         if (recipeProvider.searchError != null) {
@@ -307,14 +352,14 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                 Icon(
                   Icons.error_outline,
                   size: 64,
-                  color: Colors.grey[400],
+                  color: isDark ? Colors.grey[400] : Colors.grey[400],
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'Có lỗi xảy ra: ${recipeProvider.searchError}',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Colors.grey[600],
+                    color: isDark ? Colors.grey[300] : Colors.grey[600],
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -323,6 +368,9 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                   onPressed: () {
                     _performSearch();
                   },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEF3A16),
+                  ),
                   child: const Text('Thử lại'),
                 ),
               ],
@@ -338,7 +386,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                 Icon(
                   Icons.search_off,
                   size: 64,
-                  color: Colors.grey[400],
+                  color: isDark ? Colors.grey[500] : Colors.grey[400],
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -346,7 +394,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey[600],
+                    color: isDark ? Colors.grey[300] : Colors.grey[600],
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -354,7 +402,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                   'Hãy thử từ khóa khác',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[500],
+                    color: isDark ? Colors.grey[400] : Colors.grey[500],
                   ),
                 ),
               ],
@@ -390,6 +438,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
   }
 
   Widget _pagedList({required List<dynamic> recipes, required bool isNewest, required int page, required VoidCallback onPrev, required VoidCallback onNext}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     // Sort recipes based on tab
     final sortedRecipes = List<dynamic>.from(recipes);
     if (isNewest) {
@@ -427,13 +476,20 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.8),
+            color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.8),
             border: Border(
               top: BorderSide(
-                color: Colors.white.withOpacity(0.3),
-                width: 1,
+                color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+                width: isDark ? 2.0 : 1.0,
               ),
             ),
+            boxShadow: isDark ? [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, -2),
+              ),
+            ] : null,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -446,7 +502,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                   icon: const Icon(Icons.arrow_back_ios, size: 16),
                   label: const Text('Trước'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: page > 1 ? const Color(0xFFEF3A16) : Colors.grey[300],
+                    backgroundColor: page > 1 ? const Color(0xFFEF3A16) : (isDark ? Colors.grey[700] : Colors.grey[300]),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -460,17 +516,25 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
+                  color: isDark ? const Color(0xFF0F0F0F) : Colors.white.withOpacity(0.9),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.3),
+                    color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+                    width: isDark ? 2.0 : 1.0,
                   ),
+                  boxShadow: isDark ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ] : null,
                 ),
                 child: Text(
                   'Trang $page',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
+                    color: isDark ? Colors.white : const Color(0xFF1E293B),
                   ),
                 ),
               ),
@@ -483,7 +547,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                   icon: const Icon(Icons.arrow_forward_ios, size: 16),
                   label: const Text('Sau'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: endIndex < sortedRecipes.length ? const Color(0xFFEF3A16) : Colors.grey[300],
+                    backgroundColor: endIndex < sortedRecipes.length ? const Color(0xFFEF3A16) : (isDark ? Colors.grey[700] : Colors.grey[300]),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -500,6 +564,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
   }
 
   Widget _buildRecipeCard(dynamic recipe) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return GestureDetector(
       onTap: () {
         // Convert recipe to Post format for PostDetailScreen
@@ -545,24 +611,40 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.9),
+          color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.9),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: Colors.white.withOpacity(0.3),
+            color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+            width: isDark ? 2.0 : 1.0,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.08),
               spreadRadius: 0,
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
-            BoxShadow(
-              color: Colors.white.withOpacity(0.8),
-              spreadRadius: 0,
-              blurRadius: 4,
-              offset: const Offset(-2, -2),
-            ),
+            if (isDark)
+              BoxShadow(
+                color: Colors.white.withOpacity(0.05),
+                spreadRadius: 3,
+                blurRadius: 15,
+                offset: const Offset(0, 0),
+              ),
+            if (isDark)
+              BoxShadow(
+                color: Colors.white.withOpacity(0.08),
+                spreadRadius: 1,
+                blurRadius: 8,
+                offset: const Offset(0, 0),
+              ),
+            if (!isDark)
+              BoxShadow(
+                color: Colors.white.withOpacity(0.8),
+                spreadRadius: 0,
+                blurRadius: 4,
+                offset: const Offset(-2, -2),
+              ),
           ],
         ),
         child: Material(
@@ -579,7 +661,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.1),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -597,12 +679,16 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                             width: 80,
                             height: 80,
                             decoration: BoxDecoration(
-                              color: Colors.grey[300],
+                              color: isDark ? const Color(0xFF0F0F0F) : Colors.grey[300],
                               borderRadius: BorderRadius.circular(16),
+                              border: isDark ? Border.all(
+                                color: Colors.white.withOpacity(0.15),
+                                width: 2.0,
+                              ) : null,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.image_not_supported,
-                              color: Colors.grey,
+                              color: isDark ? Colors.grey[600] : Colors.grey,
                             ),
                           );
                         },
@@ -617,10 +703,10 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                       children: [
                         Text(
                           recipe.title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF1E293B),
+                            color: isDark ? Colors.white : const Color(0xFF1E293B),
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -628,9 +714,9 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                         const SizedBox(height: 4),
                         Text(
                           'by ${recipe.userName ?? 'Unknown'}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: Color(0xFF64748B),
+                            color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -653,18 +739,18 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                             const SizedBox(width: 6),
                             Text(
                               recipe.averageRating.toStringAsFixed(1),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF1F2937),
+                                color: isDark ? Colors.white : const Color(0xFF1F2937),
                               ),
                             ),
                             const SizedBox(width: 4),
                             Text(
                               '(${recipe.ratingsCount})',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFF6B7280),
+                                color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -747,3 +833,5 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
     return parts.join(' | ');
   }
 }
+
+

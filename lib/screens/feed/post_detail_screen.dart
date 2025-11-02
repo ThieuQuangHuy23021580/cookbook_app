@@ -37,10 +37,14 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   @override
   void initState() {
     super.initState();
+    print('🚀 [POST DETAIL] Initializing PostDetailScreen for post ID: ${widget.post.id}');
+    print('📊 [POST DETAIL] Initial likesCount from Post object: ${widget.post.savedCount} (this is savedCount, not likesCount)');
+    
     // Load comments and ratings when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final recipeId = int.tryParse(widget.post.id);
       if (recipeId != null) {
+        print('🔄 [POST DETAIL] Starting data loading for recipe ID: $recipeId');
         context.read<CommentProvider>().loadComments(recipeId);
         context.read<RatingProvider>().loadAllRatingData(recipeId);
         // Load bookmark status
@@ -48,12 +52,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         // Load like status (only isLiked, likesCount will be loaded from recipe detail)
         _loadLikeStatus();
         // Load full recipe detail (will update likesCount) - đảm bảo load sau cùng để update likesCount
+        print('📖 [POST DETAIL] Loading recipe detail (will update likesCount from API)...');
         await _loadRecipeDetail(recipeId);
+        print('✅ [POST DETAIL] Data loading completed. Final likesCount: $_likesCount');
+      } else {
+        print('❌ [POST DETAIL] Invalid recipe ID: ${widget.post.id}');
       }
     });
   }
 
   Future<void> _loadRecipeDetail(int recipeId) async {
+    print('📖 [RECIPE DETAIL] Loading recipe detail for ID: $recipeId');
     setState(() {
       _isLoadingRecipe = true;
     });
@@ -67,16 +76,19 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           _recipeDetail = recipe;
           // Update likesCount từ recipe detail (nếu có)
           if (recipe != null) {
+            final oldLikesCount = _likesCount;
             _likesCount = recipe.likesCount;
-            print('✅ [POST DETAIL] Updated likesCount from recipe detail: ${_likesCount}');
+            print('✅ [RECIPE DETAIL] Updated likesCount: $oldLikesCount → $_likesCount (from API)');
+            print('📊 [RECIPE DETAIL] Recipe data - likesCount: ${recipe.likesCount}, bookmarksCount: ${recipe.bookmarksCount}, ratingsCount: ${recipe.ratingsCount}');
           } else {
-            print('⚠️ [POST DETAIL] Recipe detail is null, likesCount remains: $_likesCount');
+            print('⚠️ [RECIPE DETAIL] Recipe detail is null, likesCount remains: $_likesCount');
           }
           _isLoadingRecipe = false;
         });
       }
-    } catch (e) {
-      print('❌ Error loading recipe detail: $e');
+    } catch (e, stackTrace) {
+      print('❌ [RECIPE DETAIL] Error loading recipe detail: $e');
+      print('❌ [RECIPE DETAIL] Stack trace: $stackTrace');
       if (mounted) {
         setState(() {
           _isLoadingRecipe = false;
@@ -106,31 +118,39 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   Future<void> _loadLikeStatus() async {
     final recipeId = int.tryParse(widget.post.id);
     if (recipeId == null) {
+      print('⚠️ [LIKE STATUS] Invalid recipe ID: ${widget.post.id}');
       return;
     }
 
+    print('🔍 [LIKE STATUS] Loading like status for recipe $recipeId');
+
     final recipeProvider = context.read<RecipeProvider>();
     _isLiked = recipeProvider.likedRecipeIds.contains(recipeId);
+    print('💡 [LIKE STATUS] Is liked: $_isLiked');
     
     // LikesCount sẽ được load từ _loadRecipeDetail()
-    // Chỉ load từ provider nếu có sẵn (tùy chọn)
+    // Chỉ load từ provider nếu có sẵn (tùy chọn) để có giá trị sớm hơn
     try {
       // Thử tìm trong recipes list
       try {
         final recipe = recipeProvider.recipes.firstWhere((r) => r.id == recipeId);
         _likesCount = recipe.likesCount;
+        print('✅ [LIKE STATUS] Found in recipes list, likesCount: $_likesCount');
       } catch (e) {
         // Nếu không tìm thấy trong recipes, thử searchResults
         try {
           final recipe = recipeProvider.searchResults.firstWhere((r) => r.id == recipeId);
           _likesCount = recipe.likesCount;
+          print('✅ [LIKE STATUS] Found in searchResults, likesCount: $_likesCount');
         } catch (e2) {
           // Nếu không tìm thấy, để _loadRecipeDetail load sau
           // Không set _likesCount = 0 ở đây vì sẽ được load từ recipe detail
+          print('⚠️ [LIKE STATUS] Not found in provider lists, will load from API');
         }
       }
     } catch (e) {
       // Không set _likesCount = 0 ở đây vì sẽ được load từ recipe detail
+      print('⚠️ [LIKE STATUS] Error loading from provider: $e');
     }
     
     if (mounted) {
@@ -190,7 +210,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   Future<void> _toggleLike() async {
     final recipeId = int.tryParse(widget.post.id);
-    if (recipeId == null) return;
+    if (recipeId == null) {
+      print('⚠️ [TOGGLE LIKE] Invalid recipe ID: ${widget.post.id}');
+      return;
+    }
+
+    print('❤️ [TOGGLE LIKE] Toggling like for recipe $recipeId');
+    print('📊 [TOGGLE LIKE] Current state - isLiked: $_isLiked, likesCount: $_likesCount');
 
     setState(() {
       _isLiking = true;
@@ -198,26 +224,41 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
     try {
       // Gọi trực tiếp API để lấy LikeResponse với likesCount mới nhất
+      print('📤 [TOGGLE LIKE] Calling API: toggleLikeRecipe($recipeId)');
       final apiResponse = await RecipeRepository.toggleLikeRecipe(recipeId);
+      print('📥 [TOGGLE LIKE] API Response - success: ${apiResponse.success}, message: ${apiResponse.message}');
       
       if (apiResponse.success && apiResponse.data != null) {
         // Update like status và likesCount từ API response
+        final oldLiked = _isLiked;
+        final oldLikesCount = _likesCount;
         _isLiked = apiResponse.data!.liked;
         _likesCount = apiResponse.data!.likesCount;
+        
+        print('✅ [TOGGLE LIKE] Updated from API response:');
+        print('   isLiked: $oldLiked → $_isLiked');
+        print('   likesCount: $oldLikesCount → $_likesCount');
         
         // Update provider để sync với state
         final recipeProvider = context.read<RecipeProvider>();
         await recipeProvider.loadLikedRecipeIds();
+        print('✅ [TOGGLE LIKE] Provider likedRecipeIds updated');
       } else {
         // Fallback: dùng provider method nếu API trả về lỗi
+        print('⚠️ [TOGGLE LIKE] API response failed, using fallback method');
         final recipeProvider = context.read<RecipeProvider>();
         await recipeProvider.toggleLikeRecipe(recipeId);
         _isLiked = recipeProvider.likedRecipeIds.contains(recipeId);
         
         // Load lại recipe detail để lấy likesCount
+        print('📖 [TOGGLE LIKE] Reloading recipe detail to get updated likesCount...');
         final updatedRecipe = await recipeProvider.getRecipeById(recipeId);
         if (updatedRecipe != null) {
+          final oldLikesCount = _likesCount;
           _likesCount = updatedRecipe.likesCount;
+          print('✅ [TOGGLE LIKE] Updated likesCount from recipe detail: $oldLikesCount → $_likesCount');
+        } else {
+          print('⚠️ [TOGGLE LIKE] Failed to reload recipe detail');
         }
       }
       
@@ -234,7 +275,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           ),
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ [TOGGLE LIKE] Error: $e');
+      print('❌ [TOGGLE LIKE] Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -401,34 +444,36 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: EdgeInsets.only(
-          top: 20,
-          left: 20,
-          right: 20,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
+      builder: (dialogContext) {
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F0F0F) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: EdgeInsets.only(
+            top: 20,
+            left: 20,
+            right: 20,
+            bottom: MediaQuery.of(dialogContext).viewInsets.bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.grey[700] : Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: const Color(0xFFF1F5F9),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
                   backgroundImage: comment.userAvatar != null 
                       ? NetworkImage(ApiConfig.fixImageUrl(comment.userAvatar!))
                       : null,
@@ -443,17 +488,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     children: [
                       Text(
                         'Trả lời @${comment.userName ?? 'Unknown'}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF1F2937),
+                          color: isDark ? Colors.white : const Color(0xFF1F2937),
                         ),
                       ),
                       Text(
                         comment.comment,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                          color: Color(0xFF6B7280),
+                          color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -478,17 +523,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               },
               decoration: InputDecoration(
                 hintText: 'Viết trả lời của bạn...',
-                hintStyle: TextStyle(color: Colors.grey[400]),
+                hintStyle: TextStyle(color: isDark ? Colors.grey[500] : Colors.grey[400]),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  borderSide: BorderSide(color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFE2E8F0)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: Color(0xFFEF3A16), width: 2),
                 ),
                 filled: true,
-                fillColor: const Color(0xFFF8FAFC),
+                fillColor: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF8FAFC),
               ),
             ),
             const SizedBox(height: 20),
@@ -496,18 +541,18 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               children: [
                 Expanded(
                   child: TextButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pop(dialogContext),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
-                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+                        side: BorderSide(color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFE2E8F0)),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Hủy',
                       style: TextStyle(
-                        color: Color(0xFF64748B),
+                        color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -517,7 +562,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () async {
-                      Navigator.pop(context);
+                      Navigator.pop(dialogContext);
                       await _addReply(comment);
                     },
                     style: ElevatedButton.styleFrom(
@@ -540,7 +585,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             ),
           ],
         ),
-      ),
+        );
+      },
     );
   }
 
@@ -549,83 +595,85 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: EdgeInsets.only(
-          top: 20,
-          left: 20,
-          right: 20,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Thêm bình luận',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1F2937),
-              ),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _commentController,
-              maxLines: 4,
-              decoration: InputDecoration(
-                hintText: 'Viết bình luận của bạn...',
-                hintStyle: TextStyle(color: Colors.grey[400]),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+      builder: (dialogContext) {
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F0F0F) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: EdgeInsets.only(
+            top: 20,
+            left: 20,
+            right: 20,
+            bottom: MediaQuery.of(dialogContext).viewInsets.bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.grey[700] : Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFEF3A16), width: 2),
-                ),
-                filled: true,
-                fillColor: const Color(0xFFF8FAFC),
               ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: const BorderSide(color: Color(0xFFE2E8F0)),
+              const SizedBox(height: 20),
+              Text(
+                'Thêm bình luận',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.white : const Color(0xFF1F2937),
+                ),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: _commentController,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: 'Viết bình luận của bạn...',
+                  hintStyle: TextStyle(color: isDark ? Colors.grey[500] : Colors.grey[400]),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFE2E8F0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFEF3A16), width: 2),
+                  ),
+                  filled: true,
+                  fillColor: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF8FAFC),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFE2E8F0)),
+                        ),
                       ),
-                    ),
-                    child: const Text(
-                      'Hủy',
-                      style: TextStyle(
-                        color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w600,
+                      child: Text(
+                        'Hủy',
+                        style: TextStyle(
+                          color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
-                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () async {
-                      Navigator.pop(context);
+                      Navigator.pop(dialogContext);
                       await _addComment();
                     },
                     style: ElevatedButton.styleFrom(
@@ -648,24 +696,27 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             ),
           ],
         ),
-      ),
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     // Set system UI overlay style to prevent status bar issues
     SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
+      SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.light,
         systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarIconBrightness: Brightness.dark,
+        systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       ),
     );
     
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: Container(
@@ -804,11 +855,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFFFAFAFA),
-                  const Color(0xFFF8FAFC),
-                  const Color(0xFFF1F5F9),
-                ],
+                colors: isDark
+                    ? [
+                        const Color(0xFF000000), // Pure black
+                        const Color(0xFF0A0A0A), // Very dark gray
+                        const Color(0xFF0F0F0F), // Slightly lighter dark gray
+                      ]
+                    : [
+                        const Color(0xFFFAFAFA),
+                        const Color(0xFFF8FAFC),
+                        const Color(0xFFF1F5F9),
+                      ],
               ),
             ),
           ),
@@ -823,7 +880,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 width: 4 + (index % 2) * 2,
                 height: 4 + (index % 2) * 2,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFF6B35).withOpacity(0.06),
+                  color: isDark
+                      ? const Color(0xFFEF3A16).withOpacity(0.15)
+                      : const Color(0xFFFF6B35).withOpacity(0.06),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -837,22 +896,40 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
+              color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.9),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.3)),
+              border: Border.all(
+                color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+                width: isDark ? 2.0 : 1.0,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.08),
                   spreadRadius: 0,
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.8),
-                  spreadRadius: 0,
-                  blurRadius: 4,
-                  offset: const Offset(-2, -2),
-                ),
+                if (isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.05),
+                    spreadRadius: 3,
+                    blurRadius: 15,
+                    offset: const Offset(0, 0),
+                  ),
+                if (isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.08),
+                    spreadRadius: 1,
+                    blurRadius: 8,
+                    offset: const Offset(0, 0),
+                  ),
+                if (!isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.8),
+                    spreadRadius: 0,
+                    blurRadius: 4,
+                    offset: const Offset(-2, -2),
+                  ),
               ],
             ),
             child: Row(
@@ -870,7 +947,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   ),
                   child: CircleAvatar(
                     radius: 24,
-                    backgroundColor: const Color(0xFFF1F5F9),
+                    backgroundColor: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
                     backgroundImage: _recipeDetail?.userAvatar != null && _recipeDetail!.userAvatar!.isNotEmpty
                         ? NetworkImage(ApiConfig.fixImageUrl(_recipeDetail!.userAvatar!))
                         : null,
@@ -886,18 +963,18 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     children: [
                       Text(
                         'Người đăng: ${widget.post.author}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF1F2937),
+                          color: isDark ? Colors.white : const Color(0xFF1F2937),
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         widget.post.getFormattedTime(),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                          color: Color(0xFF6B7280),
+                          color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
                         ),
                       ),
                     ],
@@ -949,30 +1026,48 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
+              color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.9),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.3)),
+              border: Border.all(
+                color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+                width: isDark ? 2.0 : 1.0,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.08),
                   spreadRadius: 0,
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.8),
-                  spreadRadius: 0,
-                  blurRadius: 4,
-                  offset: const Offset(-2, -2),
-                ),
+                if (isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.05),
+                    spreadRadius: 3,
+                    blurRadius: 15,
+                    offset: const Offset(0, 0),
+                  ),
+                if (isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.08),
+                    spreadRadius: 1,
+                    blurRadius: 8,
+                    offset: const Offset(0, 0),
+                  ),
+                if (!isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.8),
+                    spreadRadius: 0,
+                    blurRadius: 4,
+                    offset: const Offset(-2, -2),
+                  ),
               ],
             ),
             child: Text(
               widget.post.title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF1F2937),
+                color: isDark ? Colors.white : const Color(0xFF1F2937),
                 letterSpacing: 0.3,
                 height: 1.3,
               ),
@@ -983,22 +1078,40 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
+              color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.9),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.3)),
+              border: Border.all(
+                color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+                width: isDark ? 2.0 : 1.0,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.08),
                   spreadRadius: 0,
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.8),
-                  spreadRadius: 0,
-                  blurRadius: 4,
-                  offset: const Offset(-2, -2),
-                ),
+                if (isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.05),
+                    spreadRadius: 3,
+                    blurRadius: 15,
+                    offset: const Offset(0, 0),
+                  ),
+                if (isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.08),
+                    spreadRadius: 1,
+                    blurRadius: 8,
+                    offset: const Offset(0, 0),
+                  ),
+                if (!isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.8),
+                    spreadRadius: 0,
+                    blurRadius: 4,
+                    offset: const Offset(-2, -2),
+                  ),
               ],
             ),
             child: Row(
@@ -1008,17 +1121,23 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      color: _isLiked 
-                          ? Colors.red.shade50.withOpacity(0.5)
-                          : const Color(0xFFF8FAFC),
+                      color: isDark 
+                          ? (_isLiked ? Colors.red.shade900.withOpacity(0.3) : const Color(0xFF0F0F0F))
+                          : (_isLiked ? Colors.red.shade50.withOpacity(0.5) : const Color(0xFFF8FAFC)),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: _isLiked
-                            ? Colors.red.shade200.withOpacity(0.6)
-                            : const Color(0xFFE2E8F0),
-                        width: 1.5,
+                        color: isDark
+                            ? (_isLiked ? Colors.red.shade700.withOpacity(0.6) : Colors.white.withOpacity(0.15))
+                            : (_isLiked ? Colors.red.shade200.withOpacity(0.6) : const Color(0xFFE2E8F0)),
+                        width: isDark ? 2.0 : 1.5,
                       ),
-                      boxShadow: [
+                      boxShadow: isDark ? [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.5),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ] : [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.05),
                           blurRadius: 8,
@@ -1032,7 +1151,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         Icon(
                           _isLiked ? Icons.favorite : Icons.favorite_border,
                           size: 20,
-                          color: _isLiked ? Colors.red.shade600 : const Color(0xFF64748B),
+                          color: isDark
+                              ? (_isLiked ? Colors.red.shade400 : Colors.grey[400]!)
+                              : (_isLiked ? Colors.red.shade600 : const Color(0xFF64748B)),
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -1040,7 +1161,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
-                            color: _isLiked ? Colors.red.shade700 : const Color(0xFF1F2937),
+                            color: isDark
+                                ? (_isLiked ? Colors.red.shade300 : Colors.white)
+                                : (_isLiked ? Colors.red.shade700 : const Color(0xFF1F2937)),
                             letterSpacing: 0.3,
                           ),
                         ),
@@ -1054,13 +1177,19 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
+                      color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: const Color(0xFFE2E8F0),
-                        width: 1.5,
+                        color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFE2E8F0),
+                        width: isDark ? 2.0 : 1.5,
                       ),
-                      boxShadow: [
+                      boxShadow: isDark ? [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.5),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ] : [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.05),
                           blurRadius: 8,
@@ -1071,10 +1200,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.bookmark,
                           size: 20,
-                          color: Color(0xFF64748B),
+                          color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
                         ),
                         const SizedBox(width: 8),
                         Consumer<RecipeProvider>(
@@ -1083,10 +1212,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                             if (recipeId == null) {
                               return Text(
                                 '${widget.post.savedCount}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF1F2937),
+                                  color: isDark ? Colors.white : const Color(0xFF1F2937),
                                   letterSpacing: 0.3,
                                 ),
                               );
@@ -1114,10 +1243,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                             
                             return Text(
                               '${recipe.bookmarksCount}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF1F2937),
+                                color: isDark ? Colors.white : const Color(0xFF1F2937),
                                 letterSpacing: 0.3,
                               ),
                             );
@@ -1135,33 +1264,51 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
+              color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.9),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.3)),
+              border: Border.all(
+                color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+                width: isDark ? 2.0 : 1.0,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.08),
                   spreadRadius: 0,
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.8),
-                  spreadRadius: 0,
-                  blurRadius: 4,
-                  offset: const Offset(-2, -2),
-                ),
+                if (isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.05),
+                    spreadRadius: 3,
+                    blurRadius: 15,
+                    offset: const Offset(0, 0),
+                  ),
+                if (isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.08),
+                    spreadRadius: 1,
+                    blurRadius: 8,
+                    offset: const Offset(0, 0),
+                  ),
+                if (!isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.8),
+                    spreadRadius: 0,
+                    blurRadius: 4,
+                    offset: const Offset(-2, -2),
+                  ),
               ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Nguyên liệu',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1F2937),
+                    color: isDark ? Colors.white : const Color(0xFF1F2937),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1169,9 +1316,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
+                    color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(
+                      color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFE2E8F0),
+                      width: isDark ? 2.0 : 1.0,
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -1191,9 +1341,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       Expanded(
                         child: Text(
                           ing,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
-                            color: Color(0xFF1F2937),
+                            color: isDark ? Colors.white : const Color(0xFF1F2937),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -1209,33 +1359,51 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
+              color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.9),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.3)),
+              border: Border.all(
+                color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+                width: isDark ? 2.0 : 1.0,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.08),
                   spreadRadius: 0,
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.8),
-                  spreadRadius: 0,
-                  blurRadius: 4,
-                  offset: const Offset(-2, -2),
-                ),
+                if (isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.05),
+                    spreadRadius: 3,
+                    blurRadius: 15,
+                    offset: const Offset(0, 0),
+                  ),
+                if (isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.08),
+                    spreadRadius: 1,
+                    blurRadius: 8,
+                    offset: const Offset(0, 0),
+                  ),
+                if (!isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.8),
+                    spreadRadius: 0,
+                    blurRadius: 4,
+                    offset: const Offset(-2, -2),
+                  ),
               ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Cách nấu',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1F2937),
+                    color: isDark ? Colors.white : const Color(0xFF1F2937),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1264,33 +1432,51 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
+              color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.9),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.3)),
+              border: Border.all(
+                color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+                width: isDark ? 2.0 : 1.0,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.08),
                   spreadRadius: 0,
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.8),
-                  spreadRadius: 0,
-                  blurRadius: 4,
-                  offset: const Offset(-2, -2),
-                ),
+                if (isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.05),
+                    spreadRadius: 3,
+                    blurRadius: 15,
+                    offset: const Offset(0, 0),
+                  ),
+                if (isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.08),
+                    spreadRadius: 1,
+                    blurRadius: 8,
+                    offset: const Offset(0, 0),
+                  ),
+                if (!isDark)
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.8),
+                    spreadRadius: 0,
+                    blurRadius: 4,
+                    offset: const Offset(-2, -2),
+                  ),
               ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Bình luận',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1F2937),
+                    color: isDark ? Colors.white : const Color(0xFF1F2937),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1316,14 +1502,14 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                               Icon(
                                 Icons.chat_bubble_outline,
                                 size: 48,
-                                color: Colors.grey[400],
+                                color: isDark ? Colors.grey[500] : Colors.grey[400],
                               ),
                               const SizedBox(height: 8),
                               Text(
                                 'Chưa có bình luận nào',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: Colors.grey[600],
+                                  color: isDark ? Colors.grey[400] : Colors.grey[600],
                                 ),
                               ),
                             ],
@@ -1349,13 +1535,18 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Widget _buildStepCard(RecipeStep step) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFE2E8F0),
+          width: isDark ? 2.0 : 1.0,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1400,9 +1591,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               Expanded(
                 child: Text(
                   step.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
-                    color: Color(0xFF1F2937),
+                    color: isDark ? Colors.white : const Color(0xFF1F2937),
                     fontWeight: FontWeight.w500,
                     height: 1.4,
                   ),
@@ -1448,6 +1639,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Widget _buildSingleStepImage(StepImage stepImage) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: Image.network(
@@ -1459,11 +1652,19 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           return Container(
             height: 180,
             decoration: BoxDecoration(
-              color: const Color(0xFFE2E8F0),
+              color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFE2E8F0),
               borderRadius: BorderRadius.circular(12),
+              border: isDark ? Border.all(
+                color: Colors.white.withOpacity(0.15),
+                width: 2.0,
+              ) : null,
             ),
-            child: const Center(
-              child: Icon(Icons.broken_image, size: 48, color: Color(0xFF94A3B8)),
+            child: Center(
+              child: Icon(
+                Icons.broken_image,
+                size: 48,
+                color: isDark ? Colors.grey[600] : const Color(0xFF94A3B8),
+              ),
             ),
           );
         },
@@ -1472,6 +1673,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Widget _buildStepImageThumbnail(StepImage stepImage) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: Image.network(
@@ -1484,11 +1687,19 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             width: 120,
             height: 120,
             decoration: BoxDecoration(
-              color: const Color(0xFFE2E8F0),
+              color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFE2E8F0),
               borderRadius: BorderRadius.circular(12),
+              border: isDark ? Border.all(
+                color: Colors.white.withOpacity(0.15),
+                width: 2.0,
+              ) : null,
             ),
-            child: const Center(
-              child: Icon(Icons.broken_image, size: 32, color: Color(0xFF94A3B8)),
+            child: Center(
+              child: Icon(
+                Icons.broken_image,
+                size: 32,
+                color: isDark ? Colors.grey[600] : const Color(0xFF94A3B8),
+              ),
             ),
           );
         },
@@ -1497,13 +1708,18 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Widget _buildSimpleStepCard(int index, String stepText) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFE2E8F0),
+          width: isDark ? 2.0 : 1.0,
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1544,9 +1760,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           Expanded(
             child: Text(
               stepText,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
-                color: Color(0xFF1F2937),
+                color: isDark ? Colors.white : const Color(0xFF1F2937),
                 fontWeight: FontWeight.w500,
                 height: 1.4,
               ),
@@ -1559,26 +1775,45 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   Widget _buildRatingSection() {
     final recipeId = int.tryParse(widget.post.id) ?? 0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.9),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.3)),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+          width: isDark ? 2.0 : 1.0,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.08),
             spreadRadius: 0,
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
-          BoxShadow(
-            color: Colors.white.withOpacity(0.8),
-            spreadRadius: 0,
-            blurRadius: 4,
-            offset: const Offset(-2, -2),
-          ),
+          if (isDark)
+            BoxShadow(
+              color: Colors.white.withOpacity(0.05),
+              spreadRadius: 3,
+              blurRadius: 15,
+              offset: const Offset(0, 0),
+            ),
+          if (isDark)
+            BoxShadow(
+              color: Colors.white.withOpacity(0.08),
+              spreadRadius: 1,
+              blurRadius: 8,
+              offset: const Offset(0, 0),
+            ),
+          if (!isDark)
+            BoxShadow(
+              color: Colors.white.withOpacity(0.8),
+              spreadRadius: 0,
+              blurRadius: 4,
+              offset: const Offset(-2, -2),
+            ),
         ],
       ),
       child: Consumer<RatingProvider>(
@@ -1589,12 +1824,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Đánh giá món ăn',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF1F2937),
+                  color: isDark ? Colors.white : const Color(0xFF1F2937),
                 ),
               ),
               const SizedBox(height: 16),
@@ -1645,18 +1880,18 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         children: [
                           Text(
                             '${stats.ratingsCount} đánh giá',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF1F2937),
+                              color: isDark ? Colors.white : const Color(0xFF1F2937),
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             'Dựa trên ${stats.ratingsCount} người dùng',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
-                              color: Color(0xFF6B7280),
+                              color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
                             ),
                           ),
                         ],
@@ -1670,12 +1905,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ],
               
               // User's rating
-              const Text(
+              Text(
                 'Đánh giá của bạn',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1F2937),
+                  color: isDark ? Colors.white : const Color(0xFF1F2937),
                 ),
               ),
               const SizedBox(height: 12),
@@ -1820,13 +2055,18 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
 
   Widget _buildComment(Comment comment) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(
+          color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFE2E8F0),
+          width: isDark ? 2.0 : 1.0,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1835,12 +2075,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             children: [
               CircleAvatar(
                 radius: 20,
-                backgroundColor: const Color(0xFFF1F5F9),
+                backgroundColor: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
                 backgroundImage: comment.userAvatar != null 
                     ? NetworkImage(ApiConfig.fixImageUrl(comment.userAvatar!))
                     : null,
                 child: comment.userAvatar == null
-                    ? const Icon(Icons.person, color: Color(0xFF64748B))
+                    ? Icon(Icons.person, color: isDark ? Colors.grey[400] : const Color(0xFF64748B))
                     : null,
               ),
               const SizedBox(width: 12),
@@ -1850,10 +2090,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   children: [
                     Text(
                       comment.userName ?? 'Unknown',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF1F2937),
+                        color: isDark ? Colors.white : const Color(0xFF1F2937),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -1900,6 +2140,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   Widget _buildRepliesSection(Comment comment) {
     final isExpanded = _expandedReplies[comment.id] ?? false;
     final totalReplies = comment.replies.length;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1948,19 +2189,20 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
+                  color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(12),
+                  border: isDark ? Border.all(color: Colors.white.withOpacity(0.15), width: 2.0) : null,
                 ),
                 child: Row(
                   children: [
                     CircleAvatar(
                       radius: 16,
-                      backgroundColor: const Color(0xFFE2E8F0),
+                      backgroundColor: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFE2E8F0),
                       backgroundImage: reply.userAvatar != null 
                           ? NetworkImage(ApiConfig.fixImageUrl(reply.userAvatar!))
                           : null,
                       child: reply.userAvatar == null
-                          ? const Icon(Icons.person, color: Color(0xFF64748B), size: 18)
+                          ? Icon(Icons.person, color: isDark ? Colors.grey[400] : const Color(0xFF64748B), size: 18)
                           : null,
                     ),
                     const SizedBox(width: 8),
@@ -1970,10 +2212,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         children: [
                           Text(
                             reply.userName ?? 'Unknown',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF1F2937),
+                              color: isDark ? Colors.white : const Color(0xFF1F2937),
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -1992,6 +2234,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Widget _buildCommentText(Comment comment) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     // Hiển thị text comment với @username nếu có
     if (comment.repliedToUserName != null && comment.repliedToUserName!.isNotEmpty) {
       return GestureDetector(
@@ -2014,9 +2258,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ),
               TextSpan(
                 text: comment.comment,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: Color(0xFF6B7280),
+                  color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
                 ),
               ),
             ],
@@ -2027,9 +2271,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     
     return Text(
       comment.comment,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 14,
-        color: Color(0xFF6B7280),
+        color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
       ),
     );
   }

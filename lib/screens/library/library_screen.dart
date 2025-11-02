@@ -15,7 +15,7 @@ class LibraryScreen extends StatefulWidget {
 
 class _LibraryScreenState extends State<LibraryScreen> {
   String _searchQuery = '';
-  String _sortBy = 'recent';
+  String _sortBy = 'recent'; // 'recent' = Đã xem gần nhất, 'name' = Theo tên
 
   @override
   void initState() {
@@ -38,22 +38,30 @@ class _LibraryScreenState extends State<LibraryScreen> {
       ),
     );
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           // Animated Background
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFFFAFAFA),
-                  Color(0xFFF8FAFC),
-                  Color(0xFFF1F5F9),
-                ],
-                stops: [0.0, 0.5, 1.0],
+                colors: isDark
+                    ? [
+                        const Color(0xFF000000), // Pure black
+                        const Color(0xFF0A0A0A), // Very dark gray
+                        const Color(0xFF0F0F0F), // Slightly lighter dark gray
+                      ]
+                    : [
+                        const Color(0xFFFAFAFA),
+                        const Color(0xFFF8FAFC),
+                        const Color(0xFFF1F5F9),
+                      ],
+                stops: const [0.0, 0.5, 1.0],
               ),
             ),
           ),
@@ -101,24 +109,44 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           // Sort Button
                           Container(
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: Colors.white.withOpacity(0.3),
+                                color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+                                width: isDark ? 2.0 : 1.0,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
+                                  color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.05),
                                   blurRadius: 10,
                                   offset: const Offset(0, 2),
                                 ),
+                                if (isDark)
+                                  BoxShadow(
+                                    color: Colors.white.withOpacity(0.05),
+                                    spreadRadius: 2,
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 0),
+                                  ),
+                                if (isDark)
+                                  BoxShadow(
+                                    color: Colors.white.withOpacity(0.08),
+                                    spreadRadius: 1,
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 0),
+                                  ),
                               ],
                             ),
                             child: PopupMenuButton<String>(
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.sort,
-                                color: Colors.white,
+                                color: isDark ? Colors.grey[400] : Colors.white,
                                 size: 20,
+                              ),
+                              color: isDark ? const Color(0xFF0F0F0F) : Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: isDark ? BorderSide(color: Colors.white.withOpacity(0.15), width: 2.0) : BorderSide.none,
                               ),
                               onSelected: (value) {
                                 setState(() {
@@ -126,17 +154,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                 });
                               },
                               itemBuilder: (context) => [
-                                const PopupMenuItem(
+                                PopupMenuItem(
                                   value: 'recent',
-                                  child: Text('Đã xem gần nhất'),
+                                  child: Text(
+                                    'Đã xem gần nhất',
+                                    style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                                  ),
                                 ),
-                                const PopupMenuItem(
+                                PopupMenuItem(
                                   value: 'name',
-                                  child: Text('Theo tên'),
-                                ),
-                                const PopupMenuItem(
-                                  value: 'time',
-                                  child: Text('Theo thời gian nấu'),
+                                  child: Text(
+                                    'Theo tên',
+                                    style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                                  ),
                                 ),
                               ],
                             ),
@@ -147,17 +177,32 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       // Search Bar
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
+                            color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+                            width: isDark ? 2.0 : 1.0,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.05),
                               blurRadius: 10,
                               offset: const Offset(0, 2),
                             ),
+                            if (isDark)
+                              BoxShadow(
+                                color: Colors.white.withOpacity(0.05),
+                                spreadRadius: 2,
+                                blurRadius: 12,
+                                offset: const Offset(0, 0),
+                              ),
+                            if (isDark)
+                              BoxShadow(
+                                color: Colors.white.withOpacity(0.08),
+                                spreadRadius: 1,
+                                blurRadius: 6,
+                                offset: const Offset(0, 0),
+                              ),
                           ],
                         ),
                         child: TextField(
@@ -166,16 +211,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
                               _searchQuery = value;
                             });
                           },
-                          style: const TextStyle(color: Colors.white),
+                          style: TextStyle(color: isDark ? Colors.white : Colors.white),
                           decoration: InputDecoration(
                             hintText: 'Tìm trong kho món ngon của bạn...',
                             hintStyle: TextStyle(
-                              color: Colors.white.withOpacity(0.7),
+                              color: isDark ? Colors.grey[500] : Colors.white.withOpacity(0.7),
                               fontSize: 14,
                             ),
                             prefixIcon: Icon(
                               Icons.search,
-                              color: Colors.white.withOpacity(0.7),
+                              color: isDark ? Colors.grey[400] : Colors.white.withOpacity(0.7),
                               size: 20,
                             ),
                             border: InputBorder.none,
@@ -195,8 +240,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   child: Consumer<RecipeProvider>(
                     builder: (context, recipeProvider, child) {
                       if (recipeProvider.isLoading) {
-                        return const Center(
-                          child: CircularProgressIndicator(),
+                        return Center(
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              isDark ? Colors.grey[400]! : const Color(0xFFEF3A16),
+                            ),
+                          ),
                         );
                       }
 
@@ -208,7 +257,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                               Icon(
                                 Icons.bookmark_border,
                                 size: 64,
-                                color: Colors.grey[400],
+                                color: isDark ? Colors.grey[600] : Colors.grey[400],
                               ),
                               const SizedBox(height: 16),
                               Text(
@@ -216,7 +265,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.grey[600],
+                                  color: isDark ? Colors.grey[300] : Colors.grey[600],
                                 ),
                               ),
                               const SizedBox(height: 8),
@@ -224,7 +273,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                 'Hãy lưu những công thức yêu thích',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.grey[500],
+                                  color: isDark ? Colors.grey[400] : Colors.grey[500],
                                 ),
                               ),
                             ],
@@ -240,17 +289,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           .toList();
 
                       // Sort recipes
-                      filteredRecipes.sort((a, b) {
-                        switch (_sortBy) {
-                          case 'name':
-                            return a.title.compareTo(b.title);
-                          case 'time':
-                            return (a.cookingTime ?? 0).compareTo(b.cookingTime ?? 0);
-                          case 'recent':
-                          default:
-                            return (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now());
-                        }
-                      });
+                      if (_sortBy == 'name') {
+                        // Sắp xếp theo tên (alphabetical)
+                        filteredRecipes.sort((a, b) {
+                          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+                        });
+                      } else {
+                        // Mặc định: "Đã xem gần nhất" - đảo ngược danh sách để mới nhất lên đầu
+                        // API trả về danh sách IDs theo thứ tự, nên danh sách recipes cũng theo thứ tự đó
+                        // Đảo ngược để món nào lưu sau (mới nhất) xếp lên đầu
+                        final reversedList = filteredRecipes.reversed.toList();
+                        filteredRecipes.clear();
+                        filteredRecipes.addAll(reversedList);
+                      }
 
                       return ListView.builder(
                         padding: const EdgeInsets.all(16),
@@ -272,6 +323,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   Widget _buildRecipeCard(dynamic recipe) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return GestureDetector(
       onTap: () {
         // Convert recipe to Post format for PostDetailScreen
@@ -309,7 +362,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
+          color: isDark ? const Color(0xFF0F0F0F) : null,
+          gradient: isDark ? null : LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
@@ -319,21 +373,37 @@ class _LibraryScreenState extends State<LibraryScreen> {
           ),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: Colors.grey[200]!,
+            color: isDark ? Colors.white.withOpacity(0.15) : Colors.grey[200]!,
+            width: isDark ? 2.0 : 1.0,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.05),
               spreadRadius: 0,
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
-            BoxShadow(
-              color: Colors.white.withOpacity(0.8),
-              spreadRadius: 0,
-              blurRadius: 4,
-              offset: const Offset(-2, -2),
-            ),
+            if (isDark)
+              BoxShadow(
+                color: Colors.white.withOpacity(0.05),
+                spreadRadius: 3,
+                blurRadius: 15,
+                offset: const Offset(0, 0),
+              ),
+            if (isDark)
+              BoxShadow(
+                color: Colors.white.withOpacity(0.08),
+                spreadRadius: 1,
+                blurRadius: 8,
+                offset: const Offset(0, 0),
+              ),
+            if (!isDark)
+              BoxShadow(
+                color: Colors.white.withOpacity(0.8),
+                spreadRadius: 0,
+                blurRadius: 4,
+                offset: const Offset(-2, -2),
+              ),
           ],
         ),
         child: Material(
@@ -350,10 +420,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.1),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
+                        if (isDark)
+                          BoxShadow(
+                            color: Colors.white.withOpacity(0.05),
+                            spreadRadius: 2,
+                            blurRadius: 10,
+                            offset: const Offset(0, 0),
+                          ),
                       ],
                     ),
                     child: ClipRRect(
@@ -368,12 +445,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
                             width: 80,
                             height: 80,
                             decoration: BoxDecoration(
-                              color: Colors.grey[300],
+                              color: isDark ? const Color(0xFF0F0F0F) : Colors.grey[300],
                               borderRadius: BorderRadius.circular(16),
+                              border: isDark ? Border.all(color: Colors.white.withOpacity(0.15), width: 2.0) : null,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.image_not_supported,
-                              color: Colors.grey,
+                              color: isDark ? Colors.grey[600] : Colors.grey,
                             ),
                           );
                         },
@@ -388,10 +466,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       children: [
                         Text(
                           recipe.title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF1F2937),
+                            color: isDark ? Colors.white : const Color(0xFF1F2937),
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -399,9 +477,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         const SizedBox(height: 4),
                         Text(
                           'by ${recipe.userName ?? 'Unknown'}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: Color(0xFF6B7280),
+                            color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -424,18 +502,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
                             const SizedBox(width: 6),
                             Text(
                               recipe.averageRating.toStringAsFixed(1),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF1F2937),
+                                color: isDark ? Colors.white : const Color(0xFF1F2937),
                               ),
                             ),
                             const SizedBox(width: 4),
                             Text(
                               '(${recipe.ratingsCount})',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFF6B7280),
+                                color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -460,11 +538,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                 SnackBar(
                                   content: Text(
                                     isBookmarked ? 'Đã bỏ lưu công thức' : 'Đã lưu công thức',
+                                    style: TextStyle(color: isDark ? Colors.white : Colors.black),
                                   ),
-                                  backgroundColor: isBookmarked ? Colors.orange : Colors.green,
+                                  backgroundColor: isDark ? const Color(0xFF0F0F0F) : (isBookmarked ? Colors.orange : Colors.green),
                                   behavior: SnackBarBehavior.floating,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
+                                    side: isDark ? BorderSide(color: Colors.white.withOpacity(0.15), width: 2.0) : BorderSide.none,
                                   ),
                                 ),
                               );
@@ -473,11 +553,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Lỗi: $e'),
-                                  backgroundColor: Colors.red,
+                                  content: Text(
+                                    'Lỗi: $e',
+                                    style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                                  ),
+                                  backgroundColor: isDark ? const Color(0xFF0F0F0F) : Colors.red,
                                   behavior: SnackBarBehavior.floating,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
+                                    side: isDark ? BorderSide(color: Colors.white.withOpacity(0.15), width: 2.0) : BorderSide.none,
                                   ),
                                 ),
                               );
@@ -486,7 +570,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         },
                         icon: Icon(
                           isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                          color: isBookmarked ? const Color(0xFFEF3A16) : Colors.grey[600],
+                          color: isBookmarked 
+                              ? const Color(0xFFEF3A16) 
+                              : (isDark ? Colors.grey[400] : Colors.grey[600]),
                         ),
                       );
                     },

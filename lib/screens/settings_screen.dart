@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -10,22 +12,23 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
-  bool _darkModeEnabled = false;
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     // Set system UI overlay style to prevent status bar issues
     SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
+      SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.light,
         systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarIconBrightness: Brightness.dark,
+        systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       ),
     );
-
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: Container(
@@ -92,11 +95,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFFFAFAFA),
-                  const Color(0xFFF8FAFC),
-                  const Color(0xFFF1F5F9),
-                ],
+                colors: isDark
+                    ? [
+                        const Color(0xFF000000), // Pure black
+                        const Color(0xFF0A0A0A), // Very dark gray
+                        const Color(0xFF0F0F0F), // Slightly lighter dark gray
+                      ]
+                    : [
+                        const Color(0xFFFAFAFA),
+                        const Color(0xFFF8FAFC),
+                        const Color(0xFFF1F5F9),
+                      ],
               ),
             ),
           ),
@@ -111,7 +120,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 width: 6 + (index % 3) * 2,
                 height: 6 + (index % 3) * 2,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFF6B35).withOpacity(0.1),
+                  color: isDark
+                      ? const Color(0xFFEF3A16).withOpacity(0.15)
+                      : const Color(0xFFFF6B35).withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -248,18 +259,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             subtitle: 'Tiếng Việt',
                             onTap: () {},
                           ),
-                          _buildSettingsItem(
-                            icon: Icons.dark_mode,
-                            title: 'Chế độ tối',
-                            subtitle: 'Tự động theo hệ thống',
-                            trailing: _buildNeumorphicSwitch(
-                              value: _darkModeEnabled,
-                              onChanged: (value) {
-                                setState(() {
-                                  _darkModeEnabled = value;
-                                });
-                              },
-                            ),
+                          Consumer<ThemeProvider>(
+                            builder: (context, themeProvider, child) {
+                              return _buildSettingsItem(
+                                icon: Icons.dark_mode,
+                                title: 'Chế độ tối',
+                                subtitle: themeProvider.isDarkMode ? 'Đã bật' : 'Đã tắt',
+                                trailing: _buildNeumorphicSwitch(
+                                  value: themeProvider.isDarkMode,
+                                  onChanged: (value) {
+                                    themeProvider.toggleTheme();
+                                  },
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -352,26 +365,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildSettingsSection(String title, List<Widget> children) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
+        color: isDark
+            ? const Color(0xFF0F0F0F).withOpacity(0.8)
+            : Colors.white.withOpacity(0.8),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white.withOpacity(0.3),
-          width: 1.5,
+          color: isDark
+              ? Colors.white.withOpacity(0.15)
+              : Colors.white.withOpacity(0.3),
+          width: isDark ? 2.0 : 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: isDark
+                ? Colors.black.withOpacity(0.3)
+                : Colors.black.withOpacity(0.05),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
-          BoxShadow(
-            color: Colors.white.withOpacity(0.8),
-            blurRadius: 4,
-            offset: const Offset(-2, -2),
-          ),
+          if (!isDark)
+            BoxShadow(
+              color: Colors.white.withOpacity(0.8),
+              blurRadius: 4,
+              offset: const Offset(-2, -2),
+            ),
         ],
       ),
       child: Column(
@@ -381,10 +403,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
             child: Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF1F2937),
+                color: isDark ? Colors.white : const Color(0xFF1F2937),
                 letterSpacing: -0.3,
               ),
             ),
@@ -398,30 +420,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildSettingsItem({
     required IconData icon,
     required String title,
-    required String subtitle,
+    String? subtitle,
     Widget? trailing,
     VoidCallback? onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: isDark
+            ? const Color(0xFF0F0F0F).withOpacity(0.9)
+            : Colors.white.withOpacity(0.9),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withOpacity(0.3),
-          width: 1.5,
+          color: isDark
+              ? Colors.white.withOpacity(0.15)
+              : Colors.white.withOpacity(0.3),
+          width: isDark ? 2.0 : 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: isDark
+                ? Colors.black.withOpacity(0.5)
+                : Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
-          BoxShadow(
-            color: Colors.white.withOpacity(0.8),
-            blurRadius: 4,
-            offset: const Offset(-2, -2),
-          ),
+          if (isDark)
+            BoxShadow(
+              color: Colors.white.withOpacity(0.05),
+              spreadRadius: 2,
+              blurRadius: 12,
+              offset: const Offset(0, 0),
+            ),
+          if (isDark)
+            BoxShadow(
+              color: Colors.white.withOpacity(0.08),
+              spreadRadius: 1,
+              blurRadius: 6,
+              offset: const Offset(0, 0),
+            ),
+          if (!isDark)
+            BoxShadow(
+              color: Colors.white.withOpacity(0.8),
+              blurRadius: 4,
+              offset: const Offset(-2, -2),
+            ),
         ],
       ),
       child: ListTile(
@@ -440,41 +485,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         title: Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1F2937),
+            color: isDark ? Colors.white : const Color(0xFF1F2937),
             fontSize: 15,
           ),
         ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(
-            color: Color(0xFF6B7280),
-            fontSize: 13,
-          ),
-        ),
+        subtitle: subtitle != null
+            ? Text(
+                subtitle,
+                style: TextStyle(
+                  color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
+                  fontSize: 13,
+                ),
+              )
+            : null,
         trailing: trailing ?? Container(
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
+            color: isDark
+                ? const Color(0xFF0F0F0F)
+                : const Color(0xFFF1F5F9),
             borderRadius: BorderRadius.circular(8),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF64748B).withOpacity(0.1),
+                color: isDark
+                    ? Colors.black.withOpacity(0.3)
+                    : const Color(0xFF64748B).withOpacity(0.1),
                 blurRadius: 4,
                 offset: const Offset(2, 2),
               ),
-              BoxShadow(
-                color: Colors.white.withOpacity(0.8),
-                blurRadius: 4,
-                offset: const Offset(-2, -2),
-              ),
+              if (!isDark)
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.8),
+                  blurRadius: 4,
+                  offset: const Offset(-2, -2),
+                ),
             ],
           ),
-          child: const Icon(
+          child: Icon(
             Icons.arrow_forward_ios,
             size: 14,
-            color: Color(0xFF64748B),
+            color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
           ),
         ),
         onTap: onTap,

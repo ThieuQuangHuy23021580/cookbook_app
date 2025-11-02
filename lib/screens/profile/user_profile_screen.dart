@@ -64,73 +64,95 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     // Show confirmation dialog
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.red[50],
-                borderRadius: BorderRadius.circular(12),
+      builder: (dialogContext) {
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF0F0F0F) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: isDark ? BorderSide(
+              color: Colors.white.withOpacity(0.15),
+              width: 2.0,
+            ) : BorderSide.none,
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.red.shade900.withOpacity(0.3) : Colors.red[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: isDark ? Border.all(
+                    color: Colors.white.withOpacity(0.15),
+                    width: 2.0,
+                  ) : null,
+                ),
+                child: const Icon(
+                  Icons.delete_outline,
+                  color: Colors.red,
+                  size: 24,
+                ),
               ),
-              child: const Icon(
-                Icons.delete_outline,
-                color: Colors.red,
-                size: 24,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Xóa ${_selectedRecipeIds.length} bài viết?',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : const Color(0xFF1F2937),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Bạn có chắc chắn muốn xóa ${_selectedRecipeIds.length} bài viết đã chọn? Hành động này không thể hoàn tác.',
+            style: TextStyle(
+              fontSize: 16,
+              color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              style: TextButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFE2E8F0),
+                    width: isDark ? 2.0 : 1.0,
+                  ),
+                ),
+              ),
+              child: Text(
+                'Hủy',
+                style: TextStyle(
+                  color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Xóa ${_selectedRecipeIds.length} bài viết?',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1F2937),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Xóa',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
           ],
-        ),
-        content: Text(
-          'Bạn có chắc chắn muốn xóa ${_selectedRecipeIds.length} bài viết đã chọn? Hành động này không thể hoàn tác.',
-          style: const TextStyle(
-            fontSize: 16,
-            color: Color(0xFF64748B),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text(
-              'Hủy',
-              style: TextStyle(
-                color: Color(0xFF64748B),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              'Xóa',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
 
     if (confirmed != true) return;
@@ -139,26 +161,43 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => WillPopScope(
-        onWillPop: () async => false,
-        child: Center(
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
-                  ),
-                  const SizedBox(height: 16),
-                  Text('Đang xóa ${_selectedRecipeIds.length} bài viết...'),
-                ],
+      builder: (dialogContext) {
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: Center(
+            child: Card(
+              color: isDark ? const Color(0xFF0F0F0F) : Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: isDark ? BorderSide(
+                  color: Colors.white.withOpacity(0.15),
+                  width: 2.0,
+                ) : BorderSide.none,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Đang xóa ${_selectedRecipeIds.length} bài viết...',
+                      style: TextStyle(
+                        color: isDark ? Colors.white : const Color(0xFF1F2937),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
 
     try {
@@ -248,26 +287,43 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => WillPopScope(
-        onWillPop: () async => false,
-        child: const Center(
-          child: Card(
-            child: Padding(
-              padding: EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
-                  ),
-                  SizedBox(height: 16),
-                  Text('Đang xóa bài viết...'),
-                ],
+      builder: (dialogContext) {
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: Center(
+            child: Card(
+              color: isDark ? const Color(0xFF0F0F0F) : Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: isDark ? BorderSide(
+                  color: Colors.white.withOpacity(0.15),
+                  width: 2.0,
+                ) : BorderSide.none,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Đang xóa bài viết...',
+                      style: TextStyle(
+                        color: isDark ? Colors.white : const Color(0xFF1F2937),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
 
     try {
@@ -351,61 +407,89 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       final ImageSource? source = await showModalBottomSheet<ImageSource>(
         context: context,
         backgroundColor: Colors.transparent,
-        builder: (context) => Container(
-          padding: const EdgeInsets.all(20),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 20),
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
+        builder: (bottomSheetContext) {
+          final isDark = Theme.of(bottomSheetContext).brightness == Brightness.dark;
+          
+          return Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF0F0F0F) : Colors.white,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              border: isDark ? Border(
+                top: BorderSide(
+                  color: Colors.white.withOpacity(0.15),
+                  width: 2.0,
                 ),
-              ),
-              const Text(
-                'Chọn ảnh đại diện',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1F2937),
-                ),
-              ),
-              const SizedBox(height: 20),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
+              ) : null,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEF3A16).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    color: isDark ? Colors.grey[700] : Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  child: const Icon(Icons.camera_alt, color: Color(0xFFEF3A16)),
                 ),
-                title: const Text('Chụp ảnh'),
-                onTap: () => Navigator.pop(context, ImageSource.camera),
-              ),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEF3A16).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                Text(
+                  'Chọn ảnh đại diện',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : const Color(0xFF1F2937),
                   ),
-                  child: const Icon(Icons.photo_library, color: Color(0xFFEF3A16)),
                 ),
-                title: const Text('Chọn từ thư viện'),
-                onTap: () => Navigator.pop(context, ImageSource.gallery),
-              ),
-              const SizedBox(height: 10),
-            ],
-          ),
-        ),
+                const SizedBox(height: 20),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFFEF3A16).withOpacity(0.2) : const Color(0xFFEF3A16).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: isDark ? Border.all(
+                        color: Colors.white.withOpacity(0.15),
+                        width: 2.0,
+                      ) : null,
+                    ),
+                    child: const Icon(Icons.camera_alt, color: Color(0xFFEF3A16)),
+                  ),
+                  title: Text(
+                    'Chụp ảnh',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF1F2937),
+                    ),
+                  ),
+                  onTap: () => Navigator.pop(bottomSheetContext, ImageSource.camera),
+                ),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFFEF3A16).withOpacity(0.2) : const Color(0xFFEF3A16).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: isDark ? Border.all(
+                        color: Colors.white.withOpacity(0.15),
+                        width: 2.0,
+                      ) : null,
+                    ),
+                    child: const Icon(Icons.photo_library, color: Color(0xFFEF3A16)),
+                  ),
+                  title: Text(
+                    'Chọn từ thư viện',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF1F2937),
+                    ),
+                  ),
+                  onTap: () => Navigator.pop(bottomSheetContext, ImageSource.gallery),
+                ),
+                const SizedBox(height: 10),
+              ],
+            ),
+          );
+        },
       );
 
       if (source == null) return;
@@ -442,23 +526,42 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(
-          child: Card(
-            child: Padding(
-              padding: EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFEF3A16)),
-                  ),
-                  SizedBox(height: 16),
-                  Text('Đang tải ảnh lên...'),
-                ],
+        builder: (dialogContext) {
+          final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+          
+          return Center(
+            child: Card(
+              color: isDark ? const Color(0xFF0F0F0F) : Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: isDark ? BorderSide(
+                  color: Colors.white.withOpacity(0.15),
+                  width: 2.0,
+                ) : BorderSide.none,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        isDark ? Colors.grey[400]! : const Color(0xFFEF3A16),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Đang tải ảnh lên...',
+                      style: TextStyle(
+                        color: isDark ? Colors.white : const Color(0xFF1F2937),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       );
 
       // Upload image
@@ -594,26 +697,80 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     // Show dialog to edit
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Cập nhật $label'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLines: field == 'bio' ? 3 : 1,
-          decoration: InputDecoration(
-            labelText: label,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+      builder: (dialogContext) {
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF0F0F0F) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: isDark ? BorderSide(
+              color: Colors.white.withOpacity(0.15),
+              width: 2.0,
+            ) : BorderSide.none,
+          ),
+          title: Text(
+            'Cập nhật $label',
+            style: TextStyle(
+              color: isDark ? Colors.white : const Color(0xFF1F2937),
             ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            maxLines: field == 'bio' ? 3 : 1,
+            style: TextStyle(
+              color: isDark ? Colors.white : const Color(0xFF1F2937),
+            ),
+            decoration: InputDecoration(
+              labelText: label,
+              labelStyle: TextStyle(
+                color: isDark ? Colors.grey[400] : Colors.grey[600],
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFE2E8F0),
+                  width: isDark ? 2.0 : 1.0,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFE2E8F0),
+                  width: isDark ? 2.0 : 1.0,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFEF3A16), width: 2),
+              ),
+              filled: true,
+              fillColor: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF8FAFC),
+            ),
           ),
-          ElevatedButton(
-            onPressed: () async {
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              style: TextButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFE2E8F0),
+                    width: isDark ? 2.0 : 1.0,
+                  ),
+                ),
+              ),
+              child: Text(
+                'Hủy',
+                style: TextStyle(
+                  color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
               final newValue = controller.text.trim();
               
               if (newValue.isEmpty) {
@@ -675,7 +832,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     backgroundColor: Colors.green,
                   ),
                 );
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
               } else if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -691,24 +848,27 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             child: const Text('Lưu'),
           ),
         ],
-      ),
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     // Set system UI overlay style to prevent status bar issues
     SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
+      SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.light,
         systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarIconBrightness: Brightness.dark,
+        systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       ),
     );
-
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80),
         child: Container(
@@ -731,24 +891,29 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           ),
           child: SafeArea(
             child: AppBar(
-              leading: Container(
-                margin: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withOpacity(0.3)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+              leading: Builder(
+                builder: (context) {
+                  final isDark = Theme.of(context).brightness == Brightness.dark;
+                  return Container(
+                    margin: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(0.3)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  );
+                },
               ),
               title: Text(
                 "Thông tin cá nhân",
@@ -775,11 +940,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFFFAFAFA),
-                  const Color(0xFFF8FAFC),
-                  const Color(0xFFF1F5F9),
-                ],
+                colors: isDark
+                    ? [
+                        const Color(0xFF000000), // Pure black
+                        const Color(0xFF0A0A0A), // Very dark gray
+                        const Color(0xFF0F0F0F), // Slightly lighter dark gray
+                      ]
+                    : [
+                        const Color(0xFFFAFAFA),
+                        const Color(0xFFF8FAFC),
+                        const Color(0xFFF1F5F9),
+                      ],
               ),
             ),
           ),
@@ -794,7 +965,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 width: 6 + (index % 3) * 2,
                 height: 6 + (index % 3) * 2,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFF6B35).withOpacity(0.1),
+                  color: isDark
+                      ? const Color(0xFFEF3A16).withOpacity(0.15)
+                      : const Color(0xFFFF6B35).withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -809,23 +982,40 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 Container(
                   margin: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDark ? const Color(0xFF0F0F0F) : Colors.white,
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: const Color(0xFFE5E7EB),
-                      width: 1,
+                      color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFE5E7EB),
+                      width: isDark ? 2.0 : 1.0,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
+                        color: isDark 
+                            ? Colors.black.withOpacity(0.5)
+                            : Colors.black.withOpacity(0.04),
                         blurRadius: 20,
                         offset: const Offset(0, 4),
                       ),
-                      BoxShadow(
-                        color: Colors.white.withOpacity(0.8),
-                        blurRadius: 8,
-                        offset: const Offset(-2, -2),
-                      ),
+                      if (isDark)
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.05),
+                          spreadRadius: 3,
+                          blurRadius: 15,
+                          offset: const Offset(0, 0),
+                        ),
+                      if (isDark)
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.08),
+                          spreadRadius: 1,
+                          blurRadius: 8,
+                          offset: const Offset(0, 0),
+                        ),
+                      if (!isDark)
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.8),
+                          blurRadius: 8,
+                          offset: const Offset(-2, -2),
+                        ),
                     ],
                   ),
                   child: Padding(
@@ -867,7 +1057,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                   return CircleAvatar(
                                     key: ValueKey(user?.avatar ?? 'no_avatar_${DateTime.now().millisecondsSinceEpoch}'),
                                     radius: 50,
-                                    backgroundColor: const Color(0xFFF1F5F9),
+                                    backgroundColor: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
                                     foregroundImage: avatarUrl != null
                                         ? NetworkImage(avatarUrl)
                                         : null,
@@ -932,8 +1122,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           builder: (context, authProvider, child) {
                             return Text(
                               authProvider.currentUser?.fullName ?? 'Tên người dùng',
-                              style: const TextStyle(
-                                color: Color(0xFF1F2937),
+                              style: TextStyle(
+                                color: isDark ? Colors.white : const Color(0xFF1F2937),
                                 fontSize: 24,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: -0.3,
@@ -946,8 +1136,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           builder: (context, authProvider, child) {
                             return Text(
                               authProvider.currentUser?.email ?? 'user@example.com',
-                              style: const TextStyle(
-                                color: Color(0xFF6B7280),
+                              style: TextStyle(
+                                color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
                                 fontSize: 15,
                                 fontWeight: FontWeight.w500,
                                 letterSpacing: 0.2,
@@ -964,20 +1154,36 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.8),
+                    color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.8),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
-                      width: 1.5,
+                      color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+                      width: isDark ? 2.0 : 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
+                        color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.05),
+                        spreadRadius: 0,
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
-                      BoxShadow(
-                        color: Colors.white.withOpacity(0.8),
+                      if (isDark)
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.05),
+                          spreadRadius: 3,
+                          blurRadius: 15,
+                          offset: const Offset(0, 0),
+                        ),
+                      if (isDark)
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.08),
+                          spreadRadius: 1,
+                          blurRadius: 8,
+                          offset: const Offset(0, 0),
+                        ),
+                      if (!isDark)
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.8),
                         blurRadius: 4,
                         offset: const Offset(-2, -2),
                       ),
@@ -1043,23 +1249,39 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.8),
+                    color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.8),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
-                      width: 1.5,
+                      color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+                      width: isDark ? 2.0 : 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
+                        color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.05),
+                        spreadRadius: 0,
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
-                      BoxShadow(
-                        color: Colors.white.withOpacity(0.8),
-                        blurRadius: 4,
-                        offset: const Offset(-2, -2),
-                      ),
+                      if (isDark)
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.05),
+                          spreadRadius: 3,
+                          blurRadius: 15,
+                          offset: const Offset(0, 0),
+                        ),
+                      if (isDark)
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.08),
+                          spreadRadius: 1,
+                          blurRadius: 8,
+                          offset: const Offset(0, 0),
+                        ),
+                      if (!isDark)
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.8),
+                          blurRadius: 4,
+                          offset: const Offset(-2, -2),
+                        ),
                     ],
                   ),
                   child: Padding(
@@ -1067,12 +1289,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Thông tin cá nhân',
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 18,
-                            color: Color(0xFF1F2937),
+                            color: isDark ? Colors.white : const Color(0xFF1F2937),
                             letterSpacing: -0.3,
                           ),
                         ),
@@ -1115,23 +1337,39 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.8),
+                    color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.8),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
-                      width: 1.5,
+                      color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+                      width: isDark ? 2.0 : 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
+                        color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.05),
+                        spreadRadius: 0,
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
-                      BoxShadow(
-                        color: Colors.white.withOpacity(0.8),
-                        blurRadius: 4,
-                        offset: const Offset(-2, -2),
-                      ),
+                      if (isDark)
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.05),
+                          spreadRadius: 3,
+                          blurRadius: 15,
+                          offset: const Offset(0, 0),
+                        ),
+                      if (isDark)
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.08),
+                          spreadRadius: 1,
+                          blurRadius: 8,
+                          offset: const Offset(0, 0),
+                        ),
+                      if (!isDark)
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.8),
+                          blurRadius: 4,
+                          offset: const Offset(-2, -2),
+                        ),
                     ],
                   ),
                   child: Padding(
@@ -1147,10 +1385,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 _isSelectionMode && _selectedRecipeIds.isNotEmpty
                                     ? 'Đã chọn ${_selectedRecipeIds.length} bài viết'
                                     : 'Bài viết của tôi',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 18,
-                                  color: Color(0xFF1F2937),
+                                  color: isDark ? Colors.white : const Color(0xFF1F2937),
                                   letterSpacing: -0.3,
                                 ),
                               ),
@@ -1179,40 +1417,59 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         // Search my posts with Neumorphism
                         Container(
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
+                            color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
                             borderRadius: BorderRadius.circular(16),
+                            border: isDark ? Border.all(color: Colors.white.withOpacity(0.15), width: 2.0) : null,
                             boxShadow: [
                               // Outer shadow (dark)
                               BoxShadow(
-                                color: const Color(0xFF64748B).withOpacity(0.2),
+                                color: isDark 
+                                    ? Colors.black.withOpacity(0.5)
+                                    : const Color(0xFF64748B).withOpacity(0.2),
                                 blurRadius: 8,
                                 offset: const Offset(4, 4),
                               ),
-                              // Inner shadow (light)
-                              BoxShadow(
-                                color: Colors.white.withOpacity(0.8),
-                                blurRadius: 8,
-                                offset: const Offset(-4, -4),
-                              ),
+                              if (isDark)
+                                BoxShadow(
+                                  color: Colors.white.withOpacity(0.05),
+                                  spreadRadius: 2,
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 0),
+                                ),
+                              if (isDark)
+                                BoxShadow(
+                                  color: Colors.white.withOpacity(0.08),
+                                  spreadRadius: 1,
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 0),
+                                ),
+                              // Inner shadow (light) - only for light mode
+                              if (!isDark)
+                                BoxShadow(
+                                  color: Colors.white.withOpacity(0.8),
+                                  blurRadius: 8,
+                                  offset: const Offset(-4, -4),
+                                ),
                             ],
                           ),
                           child: TextField(
                             controller: _searchController,
+                            style: TextStyle(color: isDark ? Colors.white : Colors.black),
                             decoration: InputDecoration(
                               hintText: 'Tìm bài viết của tôi...',
                               hintStyle: TextStyle(
-                                color: const Color(0xFF64748B).withOpacity(0.7),
+                                color: isDark ? Colors.grey[500] : const Color(0xFF64748B).withOpacity(0.7),
                                 fontWeight: FontWeight.w500,
                               ),
                               prefixIcon: Icon(
                                 Icons.search,
-                                color: const Color(0xFF64748B).withOpacity(0.7),
+                                color: isDark ? Colors.grey[400] : const Color(0xFF64748B).withOpacity(0.7),
                               ),
                               suffixIcon: _searchQuery.isNotEmpty
                                   ? IconButton(
                                       icon: Icon(
                                         Icons.clear,
-                                        color: const Color(0xFF64748B).withOpacity(0.7),
+                                        color: isDark ? Colors.grey[400] : const Color(0xFF64748B).withOpacity(0.7),
                                       ),
                                       onPressed: () {
                                         setState(() {
@@ -1303,23 +1560,38 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.8),
+                    color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.8),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
-                      width: 1.5,
+                      color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+                      width: isDark ? 2.0 : 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.05),
                         blurRadius: 15,
                         offset: const Offset(0, 5),
                       ),
-                      BoxShadow(
-                        color: Colors.white.withOpacity(0.8),
-                        blurRadius: 4,
-                        offset: const Offset(-2, -2),
-                      ),
+                      if (isDark)
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.05),
+                          spreadRadius: 3,
+                          blurRadius: 15,
+                          offset: const Offset(0, 0),
+                        ),
+                      if (isDark)
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.08),
+                          spreadRadius: 1,
+                          blurRadius: 8,
+                          offset: const Offset(0, 0),
+                        ),
+                      if (!isDark)
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.8),
+                          blurRadius: 4,
+                          offset: const Offset(-2, -2),
+                        ),
                     ],
                   ),
                   child: Consumer<RecipeProvider>(
@@ -1344,13 +1616,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 Icon(
                                   Icons.error_outline,
                                   size: 48,
-                                  color: Colors.grey[400],
+                                  color: isDark ? Colors.grey[500] : Colors.grey[400],
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   'Lỗi tải bài viết: ${recipeProvider.myRecipesError}',
                                   style: TextStyle(
-                                    color: Colors.grey[600],
+                                    color: isDark ? Colors.grey[400] : Colors.grey[600],
                                     fontSize: 14,
                                   ),
                                   textAlign: TextAlign.center,
@@ -1386,13 +1658,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 Icon(
                                   Icons.article_outlined,
                                   size: 48,
-                                  color: Colors.grey[400],
+                                  color: isDark ? Colors.grey[500] : Colors.grey[400],
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   'Chưa có bài viết nào',
                                   style: TextStyle(
-                                    color: Colors.grey[600],
+                                    color: isDark ? Colors.grey[400] : Colors.grey[600],
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -1401,7 +1673,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 Text(
                                   'Hãy tạo bài viết đầu tiên của bạn!',
                                   style: TextStyle(
-                                    color: Colors.grey[500],
+                                    color: isDark ? Colors.grey[500] : Colors.grey[500],
                                     fontSize: 14,
                                   ),
                                 ),
@@ -1440,6 +1712,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Widget _buildRecipeCard(Recipe recipe) {
     final isSelected = _selectedRecipeIds.contains(recipe.id);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return GestureDetector(
       onTap: () {
@@ -1477,25 +1750,44 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           });
         }
       },
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.9),
+          color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.9),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: Colors.white.withOpacity(0.3),
-            width: 1.5,
+            color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+            width: isDark ? 2.0 : 1.5,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.1),
+              spreadRadius: 0,
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
-            BoxShadow(
-              color: Colors.white.withOpacity(0.8),
-              blurRadius: 4,
-              offset: const Offset(-2, -2),
-            ),
+            if (isDark)
+              BoxShadow(
+                color: Colors.white.withOpacity(0.05),
+                spreadRadius: 3,
+                blurRadius: 15,
+                offset: const Offset(0, 0),
+              ),
+            if (isDark)
+              BoxShadow(
+                color: Colors.white.withOpacity(0.08),
+                spreadRadius: 1,
+                blurRadius: 8,
+                offset: const Offset(0, 0),
+              ),
+            if (!isDark)
+              BoxShadow(
+                color: Colors.white.withOpacity(0.8),
+                spreadRadius: 0,
+                blurRadius: 4,
+                offset: const Offset(-2, -2),
+              ),
           ],
         ),
         child: Padding(
@@ -1515,7 +1807,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     border: Border.all(
                       color: isSelected 
                           ? Colors.red.shade600
-                          : const Color(0xFF64748B),
+                          : (isDark ? Colors.grey[400]! : const Color(0xFF64748B)),
                       width: 2,
                     ),
                   ),
@@ -1535,7 +1827,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.1),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -1546,22 +1838,22 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   child: Container(
                     width: 60,
                     height: 60,
-                    color: const Color(0xFFF1F5F9),
+                    color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
                     child: recipe.imageUrl != null && recipe.imageUrl!.isNotEmpty
                         ? Image.network(
                             recipe.imageUrl!,
                             width: 60,
                             height: 60,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => const Icon(
+                            errorBuilder: (context, error, stackTrace) => Icon(
                               Icons.restaurant_menu,
-                              color: Color(0xFF64748B),
+                              color: isDark ? Colors.grey[600] : const Color(0xFF64748B),
                               size: 30,
                             ),
                           )
-                        : const Icon(
+                        : Icon(
                             Icons.restaurant_menu,
-                            color: Color(0xFF64748B),
+                            color: isDark ? Colors.grey[600] : const Color(0xFF64748B),
                             size: 30,
                           ),
                   ),
@@ -1575,10 +1867,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   children: [
                     Text(
                       recipe.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF1F2937),
+                        color: isDark ? Colors.white : const Color(0xFF1F2937),
                         letterSpacing: -0.2,
                       ),
                       maxLines: 1,
@@ -1604,18 +1896,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         const SizedBox(width: 6),
                         Text(
                           recipe.averageRating.toStringAsFixed(1),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF1F2937),
+                            color: isDark ? Colors.white : const Color(0xFF1F2937),
                           ),
                         ),
                         const SizedBox(width: 4),
                         Text(
                           '(${recipe.ratingsCount})',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF6B7280),
+                            color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -1630,9 +1922,19 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 height: 32,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
+                    color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
+                    border: isDark ? Border.all(
+                      color: Colors.white.withOpacity(0.15),
+                      width: 2.0,
+                    ) : null,
+                    boxShadow: isDark ? [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.5),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ] : [
                       BoxShadow(
                         color: const Color(0xFF64748B).withOpacity(0.1),
                         blurRadius: 4,
@@ -1645,9 +1947,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ),
                     ],
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.chevron_right,
-                    color: Color(0xFF64748B),
+                    color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
                     size: 20,
                   ),
                 ),
@@ -1660,26 +1962,37 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _infoTile({required IconData icon, required String title, required String value, VoidCallback? onTap}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.9),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withOpacity(0.3),
-          width: 1.5,
+          color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+          width: isDark ? 2.0 : 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.05),
+            spreadRadius: 0,
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
-          BoxShadow(
-            color: Colors.white.withOpacity(0.8),
-            blurRadius: 4,
-            offset: const Offset(-2, -2),
-          ),
+          if (isDark)
+            BoxShadow(
+              color: Colors.white.withOpacity(0.05),
+              spreadRadius: 3,
+              blurRadius: 15,
+              offset: const Offset(0, 0),
+            ),
+          if (!isDark)
+            BoxShadow(
+              color: Colors.white.withOpacity(0.8),
+              blurRadius: 4,
+              offset: const Offset(-2, -2),
+            ),
         ],
       ),
       child: ListTile(
@@ -1687,7 +2000,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFFEF3A16).withOpacity(0.1),
+            color: isDark ? const Color(0xFFEF3A16).withOpacity(0.2) : const Color(0xFFEF3A16).withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
@@ -1698,25 +2011,29 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         ),
         title: Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1F2937),
+            color: isDark ? Colors.white : const Color(0xFF1F2937),
             fontSize: 15,
           ),
         ),
         subtitle: Text(
           value,
-          style: const TextStyle(
-            color: Color(0xFF6B7280),
+          style: TextStyle(
+            color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
             fontSize: 14,
           ),
         ),
         trailing: Container(
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
+            color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
             borderRadius: BorderRadius.circular(8),
-            boxShadow: [
+            border: isDark ? Border.all(
+              color: Colors.white.withOpacity(0.15),
+              width: 2.0,
+            ) : null,
+            boxShadow: isDark ? [] : [
               BoxShadow(
                 color: const Color(0xFF64748B).withOpacity(0.1),
                 blurRadius: 4,
@@ -1729,9 +2046,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
             ],
           ),
-          child: const Icon(
+          child: Icon(
             Icons.edit,
-            color: Color(0xFF64748B),
+            color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
             size: 16,
           ),
         ),
@@ -1748,14 +2065,26 @@ class _StatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: const Color(0xFFEF3A16).withOpacity(0.1),
+            color: isDark ? const Color(0xFFEF3A16).withOpacity(0.2) : const Color(0xFFEF3A16).withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
-            boxShadow: [
+            border: isDark ? Border.all(
+              color: Colors.white.withOpacity(0.15),
+              width: 2.0,
+            ) : null,
+            boxShadow: isDark ? [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.5),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ] : [
               BoxShadow(
                 color: const Color(0xFF64748B).withOpacity(0.1),
                 blurRadius: 4,
@@ -1781,8 +2110,8 @@ class _StatTile extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           label,
-          style: const TextStyle(
-            color: Color(0xFF64748B),
+          style: TextStyle(
+            color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
             fontSize: 12,
             fontWeight: FontWeight.w500,
           ),
