@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/index.dart';
+import '../../constants/app_constants.dart';
 import '../../models/post_model.dart';
 import '../../providers/recipe_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -66,11 +67,11 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
   /// Phân tích recipes để lấy từ khóa thịnh hành
   List<String> _getTrendingKeywords(List<Recipe> recipes) {
     if (recipes.isEmpty) {
-      print('⚠️ [TRENDING] No recipes available, using default keywords');
+      print('[TRENDING] No recipes available, using default keywords');
       return ['Thịt băm', 'Trứng', 'Cá', 'Đùi gà', 'Bánh', 'Phở'];
     }
     print(
-      '📊 [TRENDING] Analyzing ${recipes.length} recipes for trending keywords...',
+      '[TRENDING] Analyzing ${recipes.length} recipes for trending keywords...',
     );
     Map<String, int> wordCount = {};
     for (var recipe in recipes) {
@@ -120,9 +121,9 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
         }
       }
     }
-    print('✅ [TRENDING] Top keywords: $topKeywords');
+    print('[TRENDING] Top keywords: $topKeywords');
     if (sortedWords.isNotEmpty) {
-      print('📈 [TRENDING] Top 10 with counts:');
+      print('[TRENDING] Top 10 with counts:');
       for (var entry in sortedWords.take(10)) {
         print('   - ${entry.key}: ${entry.value} times');
       }
@@ -138,7 +139,9 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
           ? recipes.first
           : Recipe(id: 0, title: '', servings: 0, userId: 0, userName: ''),
     );
-    return recipe.imageUrl;
+    final url = recipe.imageUrl;
+    if (url == null || url.isEmpty) return null;
+    return ApiConfig.fixImageUrl(url);
   }
 
   /// Preload images for trending keywords to improve performance
@@ -148,7 +151,7 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
   ) async {
     if (!mounted) return;
     print(
-      '🖼️ [IMAGE PRELOAD] Starting to preload ${keywords.length} trending keyword images...',
+      ' [IMAGE PRELOAD] Starting to preload ${keywords.length} trending keyword images...',
     );
     final imageUrls = <String>[];
     for (var keyword in keywords) {
@@ -157,17 +160,17 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
         imageUrls.add(imageUrl);
       }
     }
-    print('🖼️ [IMAGE PRELOAD] Found ${imageUrls.length} images to preload');
+    print('[IMAGE PRELOAD] Found ${imageUrls.length} images to preload');
     for (var imageUrl in imageUrls) {
       if (!mounted) break;
       try {
         await precacheImage(NetworkImage(imageUrl), context);
-        print('✅ [IMAGE PRELOAD] Preloaded: $imageUrl');
+        print('[IMAGE PRELOAD] Preloaded: $imageUrl');
       } catch (e) {
-        print('⚠️ [IMAGE PRELOAD] Failed to preload $imageUrl: $e');
+        print(' [IMAGE PRELOAD] Failed to preload $imageUrl: $e');
       }
     }
-    print('🖼️ [IMAGE PRELOAD] Finished preloading trending images');
+    print(' [IMAGE PRELOAD] Finished preloading trending images');
   }
 
   @override
@@ -205,16 +208,16 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
   bool _isLoadingTrending = false;
   String? _trendingError;
   Future<void> _loadBackendTrendingKeywords() async {
-    print('🔍 [TRENDING] _loadBackendTrendingKeywords() called');
+    print('[TRENDING] _loadBackendTrendingKeywords() called');
     if (!mounted) {
-      print('⚠️ [TRENDING] Not mounted, skipping');
+      print(' [TRENDING] Not mounted, skipping');
       return;
     }
     if (_isLoadingTrending) {
-      print('⚠️ [TRENDING] Already loading, skipping');
+      print(' [TRENDING] Already loading, skipping');
       return;
     }
-    print('✅ [TRENDING] Starting to load trending keywords from backend...');
+    print(' [TRENDING] Starting to load trending keywords from backend...');
     setState(() {
       _isLoadingTrending = true;
       _trendingError = null;
@@ -222,10 +225,10 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
     try {
       final token = AuthService.currentToken;
       print(
-        '🔑 [TRENDING] Token: ${token != null ? "Present (${token.substring(0, 20)}...)" : "NULL"}',
+        ' [TRENDING] Token: ${token != null ? "Present (${token.substring(0, 20)}...)" : "NULL"}',
       );
       print(
-        '📤 [TRENDING] Calling ApiService.getTrendingKeywords(days: 7, limit: 6)...',
+        ' [TRENDING] Calling ApiService.getTrendingKeywords(days: 7, limit: 6)...',
       );
       final res = await ApiService.getTrendingKeywords(
         token: token,
@@ -233,15 +236,15 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
         limit: 6,
       );
       if (!mounted) {
-        print('⚠️ [TRENDING] Not mounted after API call, skipping update');
+        print(' [TRENDING] Not mounted after API call, skipping update');
         return;
       }
       print(
-        '📥 [TRENDING] API Response: success=${res.success}, data=${res.data?.length ?? 0} items, message=${res.message}',
+        ' [TRENDING] API Response: success=${res.success}, data=${res.data?.length ?? 0} items, message=${res.message}',
       );
       if (res.success && res.data != null && res.data!.isNotEmpty) {
         print(
-          '✅ [TRENDING] Successfully loaded ${res.data!.length} trending keywords: ${res.data}',
+          ' [TRENDING] Successfully loaded ${res.data!.length} trending keywords: ${res.data}',
         );
         setState(() {
           _backendTrendingKeywords = res.data!;
@@ -254,16 +257,16 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
           _preloadTrendingImages(res.data!, recipeProvider.recipes);
         }
       } else if (!res.success) {
-        print('❌ [TRENDING] API call failed: ${res.message}');
+        print(' [TRENDING] API call failed: ${res.message}');
         setState(() {
           _trendingError = res.message;
         });
       } else {
-        print('⚠️ [TRENDING] API call succeeded but no data returned');
+        print(' [TRENDING] API call succeeded but no data returned');
       }
     } catch (e, stackTrace) {
-      print('❌ [TRENDING] Exception occurred: $e');
-      print('❌ [TRENDING] Stack trace: $stackTrace');
+      print(' [TRENDING] Exception occurred: $e');
+      print(' [TRENDING] Stack trace: $stackTrace');
       if (!mounted) return;
       setState(() {
         _trendingError = e.toString();
@@ -273,14 +276,14 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
         setState(() {
           _isLoadingTrending = false;
         });
-        print('🏁 [TRENDING] Loading finished');
+        print(' [TRENDING] Loading finished');
       }
     }
   }
 
   /// Start adaptive background polling using isolate (non-blocking)
   Future<void> _startBackgroundPolling() async {
-    print('🚀 [FEED] Starting adaptive background polling with isolate');
+    print(' [FEED] Starting adaptive background polling with isolate');
     _backgroundPolling = AdaptiveBackgroundPolling(
       onDataFetched: () {
         if (!mounted) return;
@@ -288,14 +291,14 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
       },
     );
     await _backgroundPolling!.start();
-    print('✅ [FEED] Background polling started');
+    print(' [FEED] Background polling started');
   }
 
   /// Fetch data in background without blocking UI
   Future<void> _fetchDataInBackground() async {
     final token = AuthService.currentToken;
     if (token == null || !mounted) return;
-    print('🔒 [FEED] Fetching data in background isolate (non-blocking)...');
+    print(' [FEED] Fetching data in background isolate (non-blocking)...');
     try {
       final notificationCount =
           await BackgroundFetchService.fetchNotificationCount(token: token);
@@ -303,7 +306,7 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
         context.read<NotificationProvider>().updateUnreadCount(
           notificationCount,
         );
-        print('✅ [FEED] Updated notification count: $notificationCount');
+        print(' [FEED] Updated notification count: $notificationCount');
       }
 
       final recentlyViewedData =
@@ -316,10 +319,10 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
             .map((json) => Recipe.fromJson(json as Map<String, dynamic>))
             .toList();
         context.read<RecipeProvider>().updateRecentlyViewedRecipes(recipes);
-        print('✅ [FEED] Updated recently viewed: ${recipes.length} recipes');
+        print(' [FEED] Updated recently viewed: ${recipes.length} recipes');
       }
     } catch (e) {
-      print('❌ [FEED] Background fetch error: $e');
+      print(' [FEED] Background fetch error: $e');
     }
   }
 
@@ -767,14 +770,14 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
   Widget _buildRecentSearchSection() {
     return Consumer<SearchHistoryProvider>(
       builder: (context, searchProvider, child) {
-        print('🎨 [UI] Building recent search section...');
+        print(' [UI] Building recent search section...');
         final searchHistory = searchProvider.searchHistory;
         final isLoading = searchProvider.isLoading;
         final error = searchProvider.error;
-        print('🎨 [UI] Search history count: ${searchHistory.length}');
-        print('🎨 [UI] Is loading: $isLoading');
-        print('🎨 [UI] Error: $error');
-        print('🎨 [UI] Search history: $searchHistory');
+        print(' [UI] Search history count: ${searchHistory.length}');
+        print(' [UI] Is loading: $isLoading');
+        print(' [UI] Error: $error');
+        print(' [UI] Search history: $searchHistory');
         Widget headerRow = Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -789,7 +792,7 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
                     color: Color(0xFF64748B),
                   ),
                   onPressed: () {
-                    print('🔄 [DEBUG] Manual refresh button pressed');
+                    print(' [DEBUG] Manual refresh button pressed');
                     context.read<SearchHistoryProvider>().loadSearchHistory(
                       limit: 10,
                     );
@@ -863,7 +866,7 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
                     const SizedBox(height: 12),
                     ElevatedButton.icon(
                       onPressed: () {
-                        print('🔄 [ERROR] Retry button pressed');
+                        print(' [ERROR] Retry button pressed');
                         context.read<SearchHistoryProvider>().loadSearchHistory(
                           limit: 10,
                         );
@@ -1595,7 +1598,7 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
       builder: (context) => FilterBottomSheet(
         initialQuery: _currentSearchQuery,
         onApplyFilter: (titleQuery, includeIngredients, excludeIngredients) {
-          print('🚀 [FEED] Filter applied, navigating to SearchResultsScreen');
+          print(' [FEED] Filter applied, navigating to SearchResultsScreen');
           print('   Title: $titleQuery');
           print('   Include: $includeIngredients');
           print('   Exclude: $excludeIngredients');

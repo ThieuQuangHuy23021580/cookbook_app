@@ -30,7 +30,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    print('🔍 [SEARCH RESULTS] Initialized with:');
+    print(' [SEARCH RESULTS] Initialized with:');
     print('   initialQuery: "${widget.initialQuery}"');
     print('   includeIngredients: ${widget.includeIngredients}');
     print('   excludeIngredients: ${widget.excludeIngredients}');
@@ -43,7 +43,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
 
     final recipeProvider = context.read<RecipeProvider>();
     if (widget.includeIngredients != null || widget.excludeIngredients != null) {
-      print('🔍 [SEARCH] Using ingredient filter API');
+      print(' [SEARCH] Using ingredient filter API');
       print('   Include: ${widget.includeIngredients}');
       print('   Exclude: ${widget.excludeIngredients}');
       await recipeProvider.filterByIngredients(
@@ -52,12 +52,12 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
       );
       if (!mounted) return;
       final allResults = recipeProvider.searchResults;
-      print('✅ [SEARCH] Got ${allResults.length} results from filter API');
+      print(' [SEARCH] Got ${allResults.length} results from filter API');
       if (widget.initialQuery.isNotEmpty) {
         final filteredResults = allResults.where((recipe) {
           return recipe.title.toLowerCase().contains(widget.initialQuery.toLowerCase());
         }).toList();
-        print('📝 [SEARCH] Filtered by title "${widget.initialQuery}": ${filteredResults.length} results');
+        print(' [SEARCH] Filtered by title "${widget.initialQuery}": ${filteredResults.length} results');
         if (mounted) {
           setState(() {
             _filteredResults = filteredResults;
@@ -71,7 +71,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
         }
       }
     } else if (widget.initialQuery.isNotEmpty) {
-      print('🔍 [SEARCH] Using title search API: "${widget.initialQuery}"');
+      print(' [SEARCH] Using title search API: "${widget.initialQuery}"');
       await recipeProvider.searchRecipes(widget.initialQuery);
       if (mounted) {
         setState(() {
@@ -79,7 +79,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
         });
       }
     } else {
-      print('⚠️ [SEARCH] No search query and no filters');
+      print(' [SEARCH] No search query and no filters');
       if (mounted) {
         setState(() {
           _filteredResults = [];
@@ -292,7 +292,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
             : (widget.initialQuery.isNotEmpty
                 ? recipeProvider.searchResults
                 : []);
-        print('📊 [BUILD TAB] hasIngredientFilters: $hasIngredientFilters');
+        print(' [BUILD TAB] hasIngredientFilters: $hasIngredientFilters');
         print('   _filteredResults.length: ${_filteredResults.length}');
         print('   recipeProvider.searchResults.length: ${recipeProvider.searchResults.length}');
         print('   resultsToUse.length: ${resultsToUse.length}');

@@ -256,9 +256,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Future<void> _deleteRecipe(Recipe recipe) async {
-    print('🗑️ [DELETE RECIPE] Starting deletion...');
-    print('🗑️ [DELETE RECIPE] Recipe ID: ${recipe.id}');
-    print('🗑️ [DELETE RECIPE] Recipe Title: ${recipe.title}');
+    print(' [DELETE RECIPE] Starting deletion...');
+    print(' [DELETE RECIPE] Recipe ID: ${recipe.id}');
+    print(' [DELETE RECIPE] Recipe Title: ${recipe.title}');
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -306,12 +306,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       Navigator.pop(context);
       if (response.success) {
         print('');
-        print('✅ ==========================================');
-        print('✅ [DELETE RECIPE] XÓA BÀI VIẾT THÀNH CÔNG!');
-        print('✅ ==========================================');
-        print('✅ Recipe ID: ${recipe.id}');
-        print('✅ Recipe Title: ${recipe.title}');
-        print('✅ ==========================================');
+        print(' ==========================================');
+        print(' [DELETE RECIPE] XÓA BÀI VIẾT THÀNH CÔNG!');
+        print(' ==========================================');
+        print(' Recipe ID: ${recipe.id}');
+        print(' Recipe Title: ${recipe.title}');
+        print(' ==========================================');
         print('');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -327,11 +327,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         context.read<AuthProvider>().loadUserStats();
       } else {
         print('');
-        print('❌ ==========================================');
-        print('❌ [DELETE RECIPE] XÓA BÀI VIẾT THẤT BẠI!');
-        print('❌ ==========================================');
-        print('❌ Error: ${response.message}');
-        print('❌ ==========================================');
+        print(' ==========================================');
+        print(' [DELETE RECIPE] XÓA BÀI VIẾT THẤT BẠI!');
+        print(' ==========================================');
+        print(' Error: ${response.message}');
+        print(' ==========================================');
         print('');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -345,7 +345,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         );
       }
     } catch (e) {
-      print('❌ [DELETE RECIPE] Error: $e');
+      print(' [DELETE RECIPE] Error: $e');
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -516,8 +516,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           );
         },
       );
-      print('🔍 [AVATAR UPLOAD] Starting upload...');
-      print('🔍 [AVATAR UPLOAD] Image path: ${image.path}');
+      print(' [AVATAR UPLOAD] Starting upload...');
+      print(' [AVATAR UPLOAD] Image path: ${image.path}');
       final uploadResponse = await ApiService.uploadImage(
         imageFile: File(image.path),
         type: 'avatars',
@@ -525,43 +525,43 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       );
       if (!mounted) return;
       Navigator.pop(context);
-      print('🔍 [AVATAR UPLOAD] Upload response success: ${uploadResponse.success}');
-      print('🔍 [AVATAR UPLOAD] File URL: ${uploadResponse.data?.fileUrl}');
+      print(' [AVATAR UPLOAD] Upload response success: ${uploadResponse.success}');
+      print(' [AVATAR UPLOAD] File URL: ${uploadResponse.data?.fileUrl}');
       if (uploadResponse.success && uploadResponse.data?.fileUrl != null) {
         final rawAvatarUrl = uploadResponse.data!.fileUrl!;
         final newAvatarUrl = ApiConfig.fixImageUrl(rawAvatarUrl);
-        print('🔍 [AVATAR UPLOAD] Raw avatar URL from server: $rawAvatarUrl');
-        print('🔍 [AVATAR UPLOAD] Fixed avatar URL: $newAvatarUrl');
+        print(' [AVATAR UPLOAD] Raw avatar URL from server: $rawAvatarUrl');
+        print(' [AVATAR UPLOAD] Fixed avatar URL: $newAvatarUrl');
         final updatedData = <String, dynamic>{
           'fullName': user.fullName,
           'avatarUrl': newAvatarUrl,
           'bio': user.bio ?? '',
           'hometown': user.hometown ?? '',
         };
-        print('🔍 [AVATAR UPLOAD] Updating user profile with data: $updatedData');
+        print(' [AVATAR UPLOAD] Updating user profile with data: $updatedData');
         final updateResponse = await ApiService.updateUser(
           user.id,
           updatedData,
           authProvider.token!,
         );
-        print('🔍 [AVATAR UPLOAD] Update response success: ${updateResponse.success}');
-        print('🔍 [AVATAR UPLOAD] Updated user avatar: ${updateResponse.data?.avatar}');
+        print(' [AVATAR UPLOAD] Update response success: ${updateResponse.success}');
+        print(' [AVATAR UPLOAD] Updated user avatar: ${updateResponse.data?.avatar}');
         if (updateResponse.success && mounted) {
           if (user.avatar != null && user.avatar!.isNotEmpty) {
             try {
               final oldImageProvider = NetworkImage(user.avatar!);
               await oldImageProvider.evict();
-              print('🔍 [AVATAR UPLOAD] Cleared cache for old avatar');
+              print(' [AVATAR UPLOAD] Cleared cache for old avatar');
             } catch (e) {
-              print('⚠️ [AVATAR UPLOAD] Failed to clear old cache: $e');
+              print(' [AVATAR UPLOAD] Failed to clear old cache: $e');
             }
           }
           try {
             final newImageProvider = NetworkImage(newAvatarUrl);
             await newImageProvider.evict();
-            print('🔍 [AVATAR UPLOAD] Cleared cache for new avatar');
+            print(' [AVATAR UPLOAD] Cleared cache for new avatar');
           } catch (e) {
-            print('⚠️ [AVATAR UPLOAD] Failed to clear new cache: $e');
+            print(' [AVATAR UPLOAD] Failed to clear new cache: $e');
           }
           await authProvider.loadUserProfile();
           if (mounted) {
@@ -951,14 +951,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 builder: (context, authProvider, child) {
                                   final user = authProvider.currentUser;
                                   final hasAvatar = user?.avatar != null && user!.avatar!.isNotEmpty;
-                                  print('🔍 [AVATAR DISPLAY] User avatar URL: ${user?.avatar}');
-                                  print('🔍 [AVATAR DISPLAY] Has avatar: $hasAvatar');
+                                  print(' [AVATAR DISPLAY] User avatar URL: ${user?.avatar}');
+                                  print(' [AVATAR DISPLAY] Has avatar: $hasAvatar');
                                   final avatarUrl = hasAvatar
                                       ? ApiConfig.fixImageUrl(user!.avatar!)
                                       : null;
                                   if (hasAvatar && user!.avatar!.contains('localhost')) {
-                                    print('⚠️ [AVATAR DISPLAY] WARNING: URL contains localhost!');
-                                    print('⚠️ [AVATAR DISPLAY] Fixed URL: $avatarUrl');
+                                    print(' [AVATAR DISPLAY] WARNING: URL contains localhost!');
+                                    print(' [AVATAR DISPLAY] Fixed URL: $avatarUrl');
                                   }
 
                                   return CircleAvatar(
@@ -969,9 +969,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                         ? NetworkImage(avatarUrl)
                                         : null,
                                     onForegroundImageError: hasAvatar ? (exception, stackTrace) {
-                                      print('❌ [AVATAR DISPLAY] Failed to load image: $exception');
-                                      print('❌ [AVATAR DISPLAY] URL was: ${user!.avatar}');
-                                      print('❌ [AVATAR DISPLAY] Stack trace: $stackTrace');
+                                      print(' [AVATAR DISPLAY] Failed to load image: $exception');
+                                      print(' [AVATAR DISPLAY] URL was: ${user!.avatar}');
+                                      print(' [AVATAR DISPLAY] Stack trace: $stackTrace');
                                     } : null,
                                     child: !hasAvatar
                                         ? const Icon(

@@ -1,6 +1,8 @@
 class ApiConfig {
+
   static const String baseUrl =
-      'https://centroidal-ventriloquially-donnetta.ngrok-free.dev/api';
+      'https://meaningly-unamplifiable-pierre.ngrok-free.dev/api';
+
   static const String auth = '/auth';
   static const String users = '/users';
   static const String recipes = '/recipes';
@@ -18,12 +20,14 @@ class ApiConfig {
   static const String changePassword = '$auth/change-password';
   static const String userExists = '$users/exists';
   static const String userProfile = '$users/me';
+
   static String followUser(int userId) => '$users/$userId/follow';
   static String unfollowUser(int userId) => '$users/$userId/follow';
   static String getFollowing(int userId) => '$users/$userId/following';
   static String getFollowers(int userId) => '$users/$userId/followers';
   static String checkIsFollowing(int userId) => '$users/$userId/is-following';
   static String getFollowStats(int userId) => '$users/$userId/follow-stats';
+
   static const String getRecipes = '$recipes/getRecipes';
   static const String searchRecipes = '$recipes/search';
   static const String filterByIngredients = '$recipes/filter-by-ingredients';
@@ -38,21 +42,18 @@ class ApiConfig {
 
   static const Duration timeout = Duration(seconds: 30);
 
-  /// Helper để fix localhost URL từ backend
-  /// Backend có thể trả về URL dạng http://localhost:8080/uploads/...
-  /// Cần convert sang URL thực tế để điện thoại có thể access
   static String fixImageUrl(String url) {
     if (url.isEmpty) return url;
     if (!url.contains('localhost') && !url.contains('127.0.0.1')) {
       return url;
     }
-    print('⚠️ [URL FIX] Detected localhost URL: $url');
+    print(' [URL FIX] Detected localhost URL: $url');
     final uri = Uri.parse(url);
     final path = uri.path;
     final baseUri = Uri.parse(baseUrl);
     final fixedUrl =
         '${baseUri.scheme}://${baseUri.host}${baseUri.port != 80 && baseUri.port != 443 ? ':${baseUri.port}' : ''}$path';
-    print('✅ [URL FIX] Fixed URL: $fixedUrl');
+    print(' [URL FIX] Fixed URL: $fixedUrl');
     return fixedUrl;
   }
 }

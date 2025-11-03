@@ -81,22 +81,22 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
     if (!mounted) return;
     setState(() => _isFollowingLoading = true);
     try {
-      print('🔄 [FOLLOW] Starting follow/unfollow action for userId: ${widget.userId}');
-      print('🔄 [FOLLOW] Current follow status: $_isFollowing');
+      print(' [FOLLOW] Starting follow/unfollow action for userId: ${widget.userId}');
+      print(' [FOLLOW] Current follow status: $_isFollowing');
       ApiResponse<String> response;
       if (_isFollowing) {
-        print('🔄 [FOLLOW] Unfollowing user...');
+        print(' [FOLLOW] Unfollowing user...');
         response = await ApiService.unfollowUser(widget.userId, token);
       } else {
-        print('🔄 [FOLLOW] Following user...');
+        print(' [FOLLOW] Following user...');
         response = await ApiService.followUser(widget.userId, token);
       }
-      print('🔄 [FOLLOW] API Response - Success: ${response.success}, Message: ${response.message}');
+      print(' [FOLLOW] API Response - Success: ${response.success}, Message: ${response.message}');
       if (!mounted) return;
       if (response.success) {
         final wasFollowing = _isFollowing;
         final newFollowingStatus = !wasFollowing;
-        print('🔄 [FOLLOW] Updating UI - Old status: $wasFollowing, New status: $newFollowingStatus');
+        print(' [FOLLOW] Updating UI - Old status: $wasFollowing, New status: $newFollowingStatus');
         setState(() {
           _isFollowing = newFollowingStatus;
           if (_user != null && _user!.stats != null) {
@@ -104,7 +104,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
             final newFollowersCount = wasFollowing
                 ? (oldFollowersCount > 0 ? oldFollowersCount - 1 : 0)
                 : oldFollowersCount + 1;
-            print('🔄 [FOLLOW] Updating followersCount - Old: $oldFollowersCount, New: $newFollowersCount');
+            print(' [FOLLOW] Updating followersCount - Old: $oldFollowersCount, New: $newFollowersCount');
             _user = _user!.copyWith(
               stats: UserStats(
                 recipesCount: _user!.stats!.recipesCount,
@@ -128,9 +128,9 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
             duration: const Duration(seconds: 2),
           ),
         );
-        print('✅ [FOLLOW] Successfully ${newFollowingStatus ? "followed" : "unfollowed"} user');
+        print(' [FOLLOW] Successfully ${newFollowingStatus ? "followed" : "unfollowed"} user');
       } else {
-        print('❌ [FOLLOW] API returned error: ${response.message}');
+        print(' [FOLLOW] API returned error: ${response.message}');
         if (!mounted) return;
         String errorMessage = response.message ?? 'Có lỗi xảy ra';
         if (errorMessage.contains("doesn't exist") || errorMessage.contains("Table") || errorMessage.contains("JDBC")) {
@@ -154,8 +154,8 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
         );
       }
     } catch (e, stackTrace) {
-      print('❌ [FOLLOW] Exception occurred: $e');
-      print('❌ [FOLLOW] Stack trace: $stackTrace');
+      print(' [FOLLOW] Exception occurred: $e');
+      print(' [FOLLOW] Stack trace: $stackTrace');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

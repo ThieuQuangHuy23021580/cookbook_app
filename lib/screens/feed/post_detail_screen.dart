@@ -35,27 +35,27 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   @override
   void initState() {
     super.initState();
-    print('🚀 [POST DETAIL] Initializing PostDetailScreen for post ID: ${widget.post.id}');
-    print('📊 [POST DETAIL] Initial likesCount from Post object: ${widget.post.savedCount} (this is savedCount, not likesCount)');
+    print(' [POST DETAIL] Initializing PostDetailScreen for post ID: ${widget.post.id}');
+    print(' [POST DETAIL] Initial likesCount from Post object: ${widget.post.savedCount} (this is savedCount, not likesCount)');
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final recipeId = int.tryParse(widget.post.id);
       if (recipeId != null) {
-        print('🔄 [POST DETAIL] Starting data loading for recipe ID: $recipeId');
+        print(' [POST DETAIL] Starting data loading for recipe ID: $recipeId');
         context.read<CommentProvider>().loadComments(recipeId);
         context.read<RatingProvider>().loadAllRatingData(recipeId);
         _loadBookmarkStatus();
         _loadLikeStatus();
-        print('📖 [POST DETAIL] Loading recipe detail (will update likesCount from API)...');
+        print(' [POST DETAIL] Loading recipe detail (will update likesCount from API)...');
         await _loadRecipeDetail(recipeId);
-        print('✅ [POST DETAIL] Data loading completed. Final likesCount: $_likesCount');
+        print(' [POST DETAIL] Data loading completed. Final likesCount: $_likesCount');
       } else {
-        print('❌ [POST DETAIL] Invalid recipe ID: ${widget.post.id}');
+        print(' [POST DETAIL] Invalid recipe ID: ${widget.post.id}');
       }
     });
   }
 
   Future<void> _loadRecipeDetail(int recipeId) async {
-    print('📖 [RECIPE DETAIL] Loading recipe detail for ID: $recipeId');
+    print(' [RECIPE DETAIL] Loading recipe detail for ID: $recipeId');
     setState(() {
       _isLoadingRecipe = true;
     });
@@ -68,17 +68,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           if (recipe != null) {
             final oldLikesCount = _likesCount;
             _likesCount = recipe.likesCount;
-            print('✅ [RECIPE DETAIL] Updated likesCount: $oldLikesCount → $_likesCount (from API)');
-            print('📊 [RECIPE DETAIL] Recipe data - likesCount: ${recipe.likesCount}, bookmarksCount: ${recipe.bookmarksCount}, ratingsCount: ${recipe.ratingsCount}');
+            print(' [RECIPE DETAIL] Updated likesCount: $oldLikesCount → $_likesCount (from API)');
+            print(' [RECIPE DETAIL] Recipe data - likesCount: ${recipe.likesCount}, bookmarksCount: ${recipe.bookmarksCount}, ratingsCount: ${recipe.ratingsCount}');
           } else {
-            print('⚠️ [RECIPE DETAIL] Recipe detail is null, likesCount remains: $_likesCount');
+            print(' [RECIPE DETAIL] Recipe detail is null, likesCount remains: $_likesCount');
           }
           _isLoadingRecipe = false;
         });
       }
     } catch (e, stackTrace) {
-      print('❌ [RECIPE DETAIL] Error loading recipe detail: $e');
-      print('❌ [RECIPE DETAIL] Stack trace: $stackTrace');
+      print(' [RECIPE DETAIL] Error loading recipe detail: $e');
+      print(' [RECIPE DETAIL] Stack trace: $stackTrace');
       if (mounted) {
         setState(() {
           _isLoadingRecipe = false;
@@ -109,29 +109,29 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
     final recipeId = int.tryParse(widget.post.id);
     if (recipeId == null) {
-      print('⚠️ [LIKE STATUS] Invalid recipe ID: ${widget.post.id}');
+      print(' [LIKE STATUS] Invalid recipe ID: ${widget.post.id}');
       return;
     }
-    print('🔍 [LIKE STATUS] Loading like status for recipe $recipeId');
+    print(' [LIKE STATUS] Loading like status for recipe $recipeId');
     final recipeProvider = context.read<RecipeProvider>();
     _isLiked = recipeProvider.likedRecipeIds.contains(recipeId);
-    print('💡 [LIKE STATUS] Is liked: $_isLiked');
+    print(' [LIKE STATUS] Is liked: $_isLiked');
     try {
       try {
         final recipe = recipeProvider.recipes.firstWhere((r) => r.id == recipeId);
         _likesCount = recipe.likesCount;
-        print('✅ [LIKE STATUS] Found in recipes list, likesCount: $_likesCount');
+        print(' [LIKE STATUS] Found in recipes list, likesCount: $_likesCount');
       } catch (e) {
         try {
           final recipe = recipeProvider.searchResults.firstWhere((r) => r.id == recipeId);
           _likesCount = recipe.likesCount;
-          print('✅ [LIKE STATUS] Found in searchResults, likesCount: $_likesCount');
+          print(' [LIKE STATUS] Found in searchResults, likesCount: $_likesCount');
         } catch (e2) {
-          print('⚠️ [LIKE STATUS] Not found in provider lists, will load from API');
+          print(' [LIKE STATUS] Not found in provider lists, will load from API');
         }
       }
     } catch (e) {
-      print('⚠️ [LIKE STATUS] Error loading from provider: $e');
+      print(' [LIKE STATUS] Error loading from provider: $e');
     }
     if (mounted) {
       setState(() {});
@@ -188,42 +188,42 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
     final recipeId = int.tryParse(widget.post.id);
     if (recipeId == null) {
-      print('⚠️ [TOGGLE LIKE] Invalid recipe ID: ${widget.post.id}');
+      print(' [TOGGLE LIKE] Invalid recipe ID: ${widget.post.id}');
       return;
     }
-    print('❤️ [TOGGLE LIKE] Toggling like for recipe $recipeId');
-    print('📊 [TOGGLE LIKE] Current state - isLiked: $_isLiked, likesCount: $_likesCount');
+    print('[TOGGLE LIKE] Toggling like for recipe $recipeId');
+    print(' [TOGGLE LIKE] Current state - isLiked: $_isLiked, likesCount: $_likesCount');
     setState(() {
       _isLiking = true;
     });
     try {
-      print('📤 [TOGGLE LIKE] Calling API: toggleLikeRecipe($recipeId)');
+      print(' [TOGGLE LIKE] Calling API: toggleLikeRecipe($recipeId)');
       final apiResponse = await RecipeRepository.toggleLikeRecipe(recipeId);
-      print('📥 [TOGGLE LIKE] API Response - success: ${apiResponse.success}, message: ${apiResponse.message}');
+      print(' [TOGGLE LIKE] API Response - success: ${apiResponse.success}, message: ${apiResponse.message}');
       if (apiResponse.success && apiResponse.data != null) {
         final oldLiked = _isLiked;
         final oldLikesCount = _likesCount;
         _isLiked = apiResponse.data!.liked;
         _likesCount = apiResponse.data!.likesCount;
-        print('✅ [TOGGLE LIKE] Updated from API response:');
+        print(' [TOGGLE LIKE] Updated from API response:');
         print('   isLiked: $oldLiked → $_isLiked');
         print('   likesCount: $oldLikesCount → $_likesCount');
         final recipeProvider = context.read<RecipeProvider>();
         await recipeProvider.loadLikedRecipeIds();
-        print('✅ [TOGGLE LIKE] Provider likedRecipeIds updated');
+        print(' [TOGGLE LIKE] Provider likedRecipeIds updated');
       } else {
-        print('⚠️ [TOGGLE LIKE] API response failed, using fallback method');
+        print(' [TOGGLE LIKE] API response failed, using fallback method');
         final recipeProvider = context.read<RecipeProvider>();
         await recipeProvider.toggleLikeRecipe(recipeId);
         _isLiked = recipeProvider.likedRecipeIds.contains(recipeId);
-        print('📖 [TOGGLE LIKE] Reloading recipe detail to get updated likesCount...');
+        print(' [TOGGLE LIKE] Reloading recipe detail to get updated likesCount...');
         final updatedRecipe = await recipeProvider.getRecipeById(recipeId);
         if (updatedRecipe != null) {
           final oldLikesCount = _likesCount;
           _likesCount = updatedRecipe.likesCount;
-          print('✅ [TOGGLE LIKE] Updated likesCount from recipe detail: $oldLikesCount → $_likesCount');
+          print(' [TOGGLE LIKE] Updated likesCount from recipe detail: $oldLikesCount → $_likesCount');
         } else {
-          print('⚠️ [TOGGLE LIKE] Failed to reload recipe detail');
+          print(' [TOGGLE LIKE] Failed to reload recipe detail');
         }
       }
       if (mounted) {
@@ -240,8 +240,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         );
       }
     } catch (e, stackTrace) {
-      print('❌ [TOGGLE LIKE] Error: $e');
-      print('❌ [TOGGLE LIKE] Stack trace: $stackTrace');
+      print(' [TOGGLE LIKE] Error: $e');
+      print(' [TOGGLE LIKE] Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1944,14 +1944,14 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     final response = await ratingProvider.addRating(recipeId, rating);
     if (!mounted) return;
     if (response.success) {
-      print('✅ [RATING] Rating successful, reloading stats...');
+      print(' [RATING] Rating successful, reloading stats...');
       await ratingProvider.loadRatingStats(recipeId);
       _loadRecipeDetail(recipeId);
       context.read<RecipeProvider>().loadRecipes();
       context.read<RecipeProvider>().loadMyRecipes();
-      print('✅ [RATING] Stats reloaded');
-      print('📊 [RATING] New average: ${response.data?.averageRating}');
-      print('📊 [RATING] Total ratings: ${response.data?.ratingsCount}');
+      print(' [RATING] Stats reloaded');
+      print(' [RATING] New average: ${response.data?.averageRating}');
+      print(' [RATING] Total ratings: ${response.data?.ratingsCount}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Đã đánh giá $rating sao!'),
@@ -2225,15 +2225,15 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           },
         );
         authorUserId = recipe.userId;
-        print('✅ [AUTHOR PROFILE] Found userId from provider: $authorUserId');
+        print(' [AUTHOR PROFILE] Found userId from provider: $authorUserId');
       } catch (e) {
-        print('⚠️ [AUTHOR PROFILE] Not found in provider, loading recipe detail...');
+        print(' [AUTHOR PROFILE] Not found in provider, loading recipe detail...');
         try {
           await _loadRecipeDetail(recipeId);
           authorUserId = _recipeDetail?.userId;
-          print('✅ [AUTHOR PROFILE] Loaded userId from API: $authorUserId');
+          print(' [AUTHOR PROFILE] Loaded userId from API: $authorUserId');
         } catch (e2) {
-          print('❌ [AUTHOR PROFILE] Failed to load recipe detail: $e2');
+          print(' [AUTHOR PROFILE] Failed to load recipe detail: $e2');
         }
       }
     }

@@ -121,7 +121,7 @@ class Recipe {
       }
       return [];
     } catch (e) {
-      print('❌ Error parsing ingredients: $e');
+      print(' Error parsing ingredients: $e');
       return [];
     }
   }
@@ -137,7 +137,7 @@ class Recipe {
       }
       return [];
     } catch (e) {
-      print('❌ Error parsing steps: $e');
+      print(' Error parsing steps: $e');
       return [];
     }
   }

@@ -42,7 +42,7 @@ class NotificationProvider with ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      print('❌ Error loading unread count: $e');
+      print(' Error loading unread count: $e');
     }
   }
 
@@ -76,7 +76,7 @@ class NotificationProvider with ChangeNotifier {
       }
       return false;
     } catch (e) {
-      print('❌ Error marking notification as read: $e');
+      print(' Error marking notification as read: $e');
       return false;
     }
   }
@@ -95,7 +95,7 @@ class NotificationProvider with ChangeNotifier {
       }
       return false;
     } catch (e) {
-      print('❌ Error deleting notification: $e');
+      print(' Error deleting notification: $e');
       return false;
     }
   }

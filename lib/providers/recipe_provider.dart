@@ -63,7 +63,7 @@ class RecipeProvider with ChangeNotifier {
       }
       return null;
     } catch (e) {
-      print('❌ Error loading recipe by ID: $e');
+      print(' Error loading recipe by ID: $e');
       return null;
     }
   }
@@ -149,14 +149,14 @@ class RecipeProvider with ChangeNotifier {
         }
       } else {
         print(
-          '❌ [PROVIDER] Failed to load bookmarked recipes: ${response.message}',
+          ' [PROVIDER] Failed to load bookmarked recipes: ${response.message}',
         );
         _setBookmarkedError(
           response.message ?? 'Không thể tải công thức đã lưu',
         );
       }
     } catch (e) {
-      print('❌ [PROVIDER] Error loading bookmarked recipes: $e');
+      print(' [PROVIDER] Error loading bookmarked recipes: $e');
       _setBookmarkedError('Lỗi tải công thức đã lưu: $e');
     } finally {
       _setLoadingBookmarked(false);
@@ -183,14 +183,14 @@ class RecipeProvider with ChangeNotifier {
         }
       } else {
         print(
-          '❌ [PROVIDER] Failed to load recently viewed recipes: ${response.message}',
+          ' [PROVIDER] Failed to load recently viewed recipes: ${response.message}',
         );
         _setRecentlyViewedError(
           response.message ?? 'Không thể tải lịch sử xem',
         );
       }
     } catch (e) {
-      print('❌ [PROVIDER] Error loading recently viewed recipes: $e');
+      print(' [PROVIDER] Error loading recently viewed recipes: $e');
       _setRecentlyViewedError('Lỗi tải lịch sử xem: $e');
     } finally {
       _setLoadingRecentlyViewed(false);
@@ -218,11 +218,11 @@ class RecipeProvider with ChangeNotifier {
         notifyListeners();
       } else {
         print(
-          '❌ [PROVIDER] Failed to load bookmarked IDs: ${response.message}',
+          ' [PROVIDER] Failed to load bookmarked IDs: ${response.message}',
         );
       }
     } catch (e) {
-      print('❌ [PROVIDER] Error loading bookmarked IDs: $e');
+      print(' [PROVIDER] Error loading bookmarked IDs: $e');
     }
   }
 
@@ -301,10 +301,10 @@ class RecipeProvider with ChangeNotifier {
         await loadBookmarkedRecipes();
         print('[PROVIDER] All data refreshed');
       } else {
-        print('❌ [PROVIDER] Toggle failed: ${response.message}');
+        print(' [PROVIDER] Toggle failed: ${response.message}');
       }
     } catch (e) {
-      print('❌ [PROVIDER] Error in toggleBookmarkRecipe: $e');
+      print(' [PROVIDER] Error in toggleBookmarkRecipe: $e');
     }
   }
 

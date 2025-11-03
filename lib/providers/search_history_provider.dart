@@ -15,15 +15,15 @@ class SearchHistoryProvider with ChangeNotifier {
 
   /// Load search history from API
   Future<void> loadSearchHistory({int limit = 10}) async {
-    print('📋 [PROVIDER] ========== START LOADING SEARCH HISTORY ==========');
-    print('📋 [PROVIDER] Limit: $limit');
+    print(' [PROVIDER] ========== START LOADING SEARCH HISTORY ==========');
+    print(' [PROVIDER] Limit: $limit');
     final isLoggedIn = AuthService.isLoggedIn;
     final token = AuthService.currentToken;
-    print('🔐 [PROVIDER] User logged in: $isLoggedIn');
-    print('🔐 [PROVIDER] Token exists: ${token != null}');
-    print('🔐 [PROVIDER] Token length: ${token?.length ?? 0}');
+    print(' [PROVIDER] User logged in: $isLoggedIn');
+    print(' [PROVIDER] Token exists: ${token != null}');
+    print(' [PROVIDER] Token length: ${token?.length ?? 0}');
     if (!isLoggedIn || token == null || token.isEmpty) {
-      print('❌ [PROVIDER] Cannot load search history - user not authenticated');
+      print(' [PROVIDER] Cannot load search history - user not authenticated');
       _setError('Vui lòng đăng nhập để xem lịch sử tìm kiếm');
       return;
     }
@@ -40,20 +40,20 @@ class SearchHistoryProvider with ChangeNotifier {
       print('[PROVIDER] Message: ${response.message}');
       if (response.success) {
         _searchHistory = response.data ?? [];
-        print('✅ [PROVIDER] Loaded ${_searchHistory.length} search queries');
-        print('📋 [PROVIDER] Queries: $_searchHistory');
-        print('📋 [PROVIDER] Calling notifyListeners...');
+        print(' [PROVIDER] Loaded ${_searchHistory.length} search queries');
+        print(' [PROVIDER] Queries: $_searchHistory');
+        print(' [PROVIDER] Calling notifyListeners...');
       } else {
-        print('❌ [PROVIDER] Failed to load: ${response.message}');
+        print(' [PROVIDER] Failed to load: ${response.message}');
         _setError(response.message ?? 'Không thể tải lịch sử tìm kiếm');
       }
     } catch (e, stackTrace) {
-      print('❌ [PROVIDER] Error loading search history: $e');
-      print('❌ [PROVIDER] Stack trace: $stackTrace');
+      print(' [PROVIDER] Error loading search history: $e');
+      print(' [PROVIDER] Stack trace: $stackTrace');
       _setError('Lỗi kết nối: $e');
     } finally {
       _setLoading(false);
-      print('📋 [PROVIDER] ========== END LOADING SEARCH HISTORY ==========');
+      print(' [PROVIDER] ========== END LOADING SEARCH HISTORY ==========');
     }
   }
 
@@ -63,11 +63,11 @@ class SearchHistoryProvider with ChangeNotifier {
       final response = await SearchHistoryService.getStats();
       if (response.success) {
         _stats = response.data;
-        print('✅ [PROVIDER] Loaded stats: ${_stats?.totalSearches} searches');
+        print(' [PROVIDER] Loaded stats: ${_stats?.totalSearches} searches');
         notifyListeners();
       }
     } catch (e) {
-      print('❌ [PROVIDER] Error loading stats: $e');
+      print(' [PROVIDER] Error loading stats: $e');
     }
   }
 
@@ -84,7 +84,7 @@ class SearchHistoryProvider with ChangeNotifier {
         return false;
       }
     } catch (e) {
-      print('❌ [PROVIDER] Error deleting query: $e');
+      print(' [PROVIDER] Error deleting query: $e');
       _setError('Lỗi kết nối: $e');
       return false;
     }
@@ -104,7 +104,7 @@ class SearchHistoryProvider with ChangeNotifier {
         return false;
       }
     } catch (e) {
-      print('❌ [PROVIDER] Error clearing history: $e');
+      print(' [PROVIDER] Error clearing history: $e');
       _setError('Lỗi kết nối: $e');
       return false;
     }

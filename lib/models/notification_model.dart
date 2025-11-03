@@ -14,6 +14,7 @@ class AppNotification {
   final String message;
   final bool isRead;
   final DateTime createdAt;
+
   AppNotification({
     required this.id,
     required this.userId,
@@ -29,6 +30,7 @@ class AppNotification {
     required this.isRead,
     required this.createdAt,
   });
+
   factory AppNotification.fromJson(Map<String, dynamic> json) {
     final rawActorAvatar = json['actorAvatar'] as String?;
     final fixedActorAvatar = rawActorAvatar != null && rawActorAvatar.isNotEmpty
@@ -58,6 +60,7 @@ class AppNotification {
           : DateTime.now(),
     );
   }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -79,17 +82,17 @@ class AppNotification {
   String getIconEmoji() {
     switch (type) {
       case 'LIKE':
-        return '❤️';
+        return '️';
       case 'COMMENT':
-        return '💬';
+        return '';
       case 'RATING':
         return '⭐';
       case 'REPLY':
         return '↩️';
       case 'BOOKMARK':
-        return '🔖';
+        return '';
       default:
-        return '🔔';
+        return '';
     }
   }
 

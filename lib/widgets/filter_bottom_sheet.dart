@@ -258,7 +258,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                             .where((e) => e.isNotEmpty)
                             .toList();
                       }
-                      print('🔍 [FILTER] Parsed ingredients:');
+                      print(' [FILTER] Parsed ingredients:');
                       print('   Include (${includeIngredients?.length ?? 0}): $includeIngredients');
                       print('   Exclude (${excludeIngredients?.length ?? 0}): $excludeIngredients');
                       final hasTitleQuery = widget.initialQuery.trim().isNotEmpty;
@@ -275,7 +275,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                         );
                         return;
                       }
-                      print('🔍 [FILTER] Applying filter:');
+                      print(' [FILTER] Applying filter:');
                       print('   Title: ${widget.initialQuery.trim().isNotEmpty ? widget.initialQuery.trim() : "None"}');
                       print('   Include: $includeIngredients');
                       print('   Exclude: $excludeIngredients');

@@ -94,28 +94,28 @@ class AuthService {
         password: password,
       );
       if (!loginResult.success) {
-        print('❌ Login failed: ${loginResult.message}');
+        print(' Login failed: ${loginResult.message}');
         return ApiResponse.error(loginResult.message ?? ErrorMessages.invalidCredentials);
       }
-      print('✅ Login successful, token: ${loginResult.data}');
+      print(' Login successful, token: ${loginResult.data}');
       final userResult = await ApiService.getCurrentUser(loginResult.data!);
       if (!userResult.success) {
-        print('❌ GetCurrentUser failed: ${userResult.message}');
+        print(' GetCurrentUser failed: ${userResult.message}');
         await AuthManager.saveAuthData(
           token: loginResult.data!,
           userData: {'email': username, 'fullName': 'User'},
         );
         return ApiResponse.error(userResult.message ?? 'Không thể lấy thông tin user');
       }
-      print('✅ GetCurrentUser successful');
+      print(' GetCurrentUser successful');
       await AuthManager.saveAuthData(
         token: loginResult.data!,
         userData: userResult.data!.toJson(),
       );
-      print('✅ Auth data saved successfully');
+      print(' Auth data saved successfully');
       return ApiResponse.success(userResult.data!);
     } catch (e) {
-      print('❌ Login exception: $e');
+      print(' Login exception: $e');
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }

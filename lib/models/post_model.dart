@@ -20,7 +20,7 @@ class Post {
     this.createdAt,
   });
 
-  /// Format thời:
+  /// Format thời gian :
   /// - Dưới 1 tiếng: phút
   /// - Dưới 1 ngày: giờ (làm tròn xuống)
   /// - Dưới 1 tuần: ngày (làm tròn xuống)

@@ -13,7 +13,7 @@ class BackgroundFetchService {
   /// Start background isolate
   static Future<void> initialize() async {
     if (_isolate != null) {
-      print('🔒 [BACKGROUND] Isolate already running');
+      print(' [BACKGROUND] Isolate already running');
       return;
     }
     try {
@@ -23,9 +23,9 @@ class BackgroundFetchService {
         _receivePort!.sendPort,
       );
       _sendPort = await _receivePort!.first as SendPort;
-      print('✅ [BACKGROUND] Isolate initialized successfully');
+      print(' [BACKGROUND] Isolate initialized successfully');
     } catch (e) {
-      print('❌ [BACKGROUND] Failed to initialize isolate: $e');
+      print(' [BACKGROUND] Failed to initialize isolate: $e');
     }
   }
   /// Stop background isolate
@@ -35,7 +35,7 @@ class BackgroundFetchService {
     _receivePort?.close();
     _receivePort = null;
     _sendPort = null;
-    print('🛑 [BACKGROUND] Isolate stopped');
+    print(' [BACKGROUND] Isolate stopped');
   }
   /// Fetch data in background isolate (non-blocking)
   static Future<Map<String, dynamic>> fetchInBackground({
@@ -66,19 +66,19 @@ class BackgroundFetchService {
         final headers = Map<String, String>.from(message['headers'] as Map);
         final responsePort = message['responsePort'] as SendPort;
         try {
-          print('🔒 [ISOLATE] Fetching: $url');
+          print(' [ISOLATE] Fetching: $url');
           final response = await http.get(
             Uri.parse(url),
             headers: headers,
           ).timeout(ApiConfig.timeout);
-          print('🔒 [ISOLATE] Response: ${response.statusCode}');
+          print(' [ISOLATE] Response: ${response.statusCode}');
           responsePort.send({
             'success': true,
             'statusCode': response.statusCode,
             'body': response.body,
           });
         } catch (e) {
-          print('❌ [ISOLATE] Error: $e');
+          print(' [ISOLATE] Error: $e');
           responsePort.send({
             'success': false,
             'error': e.toString(),
@@ -99,18 +99,18 @@ class BackgroundFetchService {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
       };
-      print('🔒 [BACKGROUND] Fetching recently viewed in isolate...');
+      print(' [BACKGROUND] Fetching recently viewed in isolate...');
       final result = await fetchInBackground(url: url, headers: headers);
       if (result['success'] == true && result['statusCode'] == 200) {
         final List<dynamic> data = jsonDecode(result['body']);
-        print('✅ [BACKGROUND] Fetched ${data.length} recipes');
+        print(' [BACKGROUND] Fetched ${data.length} recipes');
         return data;
       } else {
-        print('❌ [BACKGROUND] Failed: ${result['error'] ?? result['body']}');
+        print(' [BACKGROUND] Failed: ${result['error'] ?? result['body']}');
         return null;
       }
     } catch (e) {
-      print('❌ [BACKGROUND] Error fetching recently viewed: $e');
+      print(' [BACKGROUND] Error fetching recently viewed: $e');
       return null;
     }
   }
@@ -125,19 +125,19 @@ class BackgroundFetchService {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
       };
-      print('🔒 [BACKGROUND] Fetching notification count in isolate...');
+      print(' [BACKGROUND] Fetching notification count in isolate...');
       final result = await fetchInBackground(url: url, headers: headers);
       if (result['success'] == true && result['statusCode'] == 200) {
         final data = jsonDecode(result['body']);
         final count = data['count'] as int;
-        print('✅ [BACKGROUND] Notification count: $count');
+        print(' [BACKGROUND] Notification count: $count');
         return count;
       } else {
-        print('❌ [BACKGROUND] Failed: ${result['error'] ?? result['body']}');
+        print(' [BACKGROUND] Failed: ${result['error'] ?? result['body']}');
         return null;
       }
     } catch (e) {
-      print('❌ [BACKGROUND] Error fetching notification count: $e');
+      print(' [BACKGROUND] Error fetching notification count: $e');
       return null;
     }
   }
@@ -152,18 +152,18 @@ class BackgroundFetchService {
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
       };
-      print('🔒 [BACKGROUND] Fetching all recipes in isolate...');
+      print(' [BACKGROUND] Fetching all recipes in isolate...');
       final result = await fetchInBackground(url: url, headers: headers);
       if (result['success'] == true && result['statusCode'] == 200) {
         final List<dynamic> data = jsonDecode(result['body']);
-        print('✅ [BACKGROUND] Fetched ${data.length} recipes');
+        print(' [BACKGROUND] Fetched ${data.length} recipes');
         return data;
       } else {
-        print('❌ [BACKGROUND] Failed: ${result['error'] ?? result['body']}');
+        print(' [BACKGROUND] Failed: ${result['error'] ?? result['body']}');
         return null;
       }
     } catch (e) {
-      print('❌ [BACKGROUND] Error fetching recipes: $e');
+      print(' [BACKGROUND] Error fetching recipes: $e');
       return null;
     }
   }
@@ -179,11 +179,11 @@ class AdaptiveBackgroundPolling {
   /// Start adaptive polling with background isolate
   Future<void> start() async {
     if (_isPolling) {
-      print('⚠️ [ADAPTIVE] Already polling');
+      print(' [ADAPTIVE] Already polling');
       return;
     }
     _isPolling = true;
-    print('🎯 [ADAPTIVE] Starting adaptive background polling');
+    print(' [ADAPTIVE] Starting adaptive background polling');
     await BackgroundFetchService.initialize();
     _schedulePoll();
   }
@@ -193,7 +193,7 @@ class AdaptiveBackgroundPolling {
     _timer = Timer(_currentInterval, () async {
       if (!_isPolling) return;
       _adjustInterval();
-      print('🎯 [ADAPTIVE] Polling with interval: ${_currentInterval.inSeconds}s');
+      print(' [ADAPTIVE] Polling with interval: ${_currentInterval.inSeconds}s');
       onDataFetched?.call();
       _schedulePoll();
     });
@@ -205,22 +205,22 @@ class AdaptiveBackgroundPolling {
     final inactiveDuration = now.difference(_lastUserActivity);
     if (inactiveDuration.inSeconds < 30) {
       _currentInterval = const Duration(seconds: 10);
-      print('🎯 [ADAPTIVE] User very active → 10s interval');
+      print(' [ADAPTIVE] User very active → 10s interval');
     } else if (inactiveDuration.inSeconds < 60) {
       _currentInterval = const Duration(seconds: 30);
-      print('🎯 [ADAPTIVE] User active → 30s interval');
+      print(' [ADAPTIVE] User active → 30s interval');
     } else if (inactiveDuration.inSeconds < 300) {
       _currentInterval = const Duration(seconds: 60);
-      print('🎯 [ADAPTIVE] User idle → 60s interval');
+      print(' [ADAPTIVE] User idle → 60s interval');
     } else {
       _currentInterval = const Duration(minutes: 5);
-      print('🎯 [ADAPTIVE] User very idle → 5min interval');
+      print(' [ADAPTIVE] User very idle → 5min interval');
     }
   }
   /// Mark user activity to adjust polling frequency
   void markActivity() {
     _lastUserActivity = DateTime.now();
-    print('👆 [ADAPTIVE] User activity detected');
+    print(' [ADAPTIVE] User activity detected');
   }
   /// Stop polling
   void stop() {
@@ -228,7 +228,7 @@ class AdaptiveBackgroundPolling {
     _timer?.cancel();
     _timer = null;
     BackgroundFetchService.dispose();
-    print('🛑 [ADAPTIVE] Polling stopped');
+    print(' [ADAPTIVE] Polling stopped');
   }
   /// Get current interval
   Duration get currentInterval => _currentInterval;

@@ -23,7 +23,7 @@ class Ingredient {
         unit: json['unit'] as String?,
       );
     } catch (e) {
-      print('❌ Error parsing ingredient: $e');
+      print(' Error parsing ingredient: $e');
       return Ingredient(id: 0, name: 'Unknown', quantity: null, unit: null);
     }
   }
@@ -98,7 +98,7 @@ class RecipeStep {
       }
       return [];
     } catch (e) {
-      print('❌ Error parsing images: $e');
+      print(' Error parsing images: $e');
       return [];
     }
   }

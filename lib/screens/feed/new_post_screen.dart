@@ -1596,8 +1596,8 @@ class _NewPostScreenState extends State<NewPostScreen> {
       ),
     );
     try {
-      print('🚀 [NEW POST] Starting recipe creation...');
-      print('📸 [NEW POST] Uploading main image...');
+      print(' [NEW POST] Starting recipe creation...');
+      print(' [NEW POST] Uploading main image...');
       String? mainImageUrl;
       if (_images.isNotEmpty) {
         final uploadResult = await ApiService.uploadImage(
@@ -1606,12 +1606,12 @@ class _NewPostScreenState extends State<NewPostScreen> {
         );
         if (uploadResult.success && uploadResult.data != null) {
           mainImageUrl = uploadResult.data!.fileUrl;
-          print('✅ [NEW POST] Main image uploaded: $mainImageUrl');
+          print(' [NEW POST] Main image uploaded: $mainImageUrl');
         } else {
           throw Exception('Upload ảnh chính thất bại: ${uploadResult.message}');
         }
       }
-      print('📸 [NEW POST] Uploading step images...');
+      print(' [NEW POST] Uploading step images...');
       final List<List<Map<String, dynamic>>> stepsWithImages = [];
       for (int stepIndex = 0; stepIndex < _stepTitleCtrls.length; stepIndex++) {
         final stepImagesList = <Map<String, dynamic>>[];
@@ -1627,13 +1627,13 @@ class _NewPostScreenState extends State<NewPostScreen> {
                 'imageUrl': uploadResult.data!.fileUrl,
                 'orderNumber': imgIdx + 1,
               });
-              print('✅ [NEW POST] Step ${stepIndex + 1} image ${imgIdx + 1} uploaded');
+              print(' [NEW POST] Step ${stepIndex + 1} image ${imgIdx + 1} uploaded');
             }
           }
         }
         stepsWithImages.add(stepImagesList);
       }
-      print('📝 [NEW POST] Preparing recipe data...');
+      print(' [NEW POST] Preparing recipe data...');
       final recipeData = {
         'title': _titleCtrl.text.trim(),
         'imageUrl': mainImageUrl,
@@ -1658,45 +1658,45 @@ class _NewPostScreenState extends State<NewPostScreen> {
           };
         }).toList(),
       };
-      print('📦 [NEW POST] Recipe data prepared:');
+      print(' [NEW POST] Recipe data prepared:');
       print('   - Title: ${recipeData['title']}');
       print('   - Image URL: ${recipeData['imageUrl']}');
       print('   - Ingredients count: ${(recipeData['ingredients'] as List).length}');
       print('   - Steps count: ${(recipeData['steps'] as List).length}');
-      print('📦 [NEW POST] Ingredients:');
+      print(' [NEW POST] Ingredients:');
       for (var i = 0; i < (recipeData['ingredients'] as List).length; i++) {
         final ing = (recipeData['ingredients'] as List)[i];
         print('   ${i + 1}. ${ing['name']} - ${ing['quantity']} ${ing['unit']}');
       }
-      print('📦 [NEW POST] Steps:');
+      print(' [NEW POST] Steps:');
       for (var i = 0; i < (recipeData['steps'] as List).length; i++) {
         final step = (recipeData['steps'] as List)[i];
         print('   ${i + 1}. ${step['title']} - ${(step['images'] as List).length} images');
       }
-      print('🚀 [NEW POST] Creating recipe...');
+      print(' [NEW POST] Creating recipe...');
       final recipeProvider = context.read<RecipeProvider>();
       final response = await recipeProvider.createRecipe(recipeData);
       Navigator.pop(context);
       if (response.success) {
         print('');
-        print('🎉 ==========================================');
-        print('✅ [NEW POST] ĐĂNG BÀI THÀNH CÔNG!');
-        print('🎉 ==========================================');
-        print('📝 Recipe ID: ${response.data?.id}');
-        print('📝 Title: ${response.data?.title}');
-        print('📝 Image URL: ${response.data?.imageUrl}');
-        print('📝 Ingredients: ${response.data?.ingredients.length ?? 0}');
-        print('📝 Steps: ${response.data?.steps.length ?? 0}');
-        print('🎉 ==========================================');
+        print(' ==========================================');
+        print(' [NEW POST] ĐĂNG BÀI THÀNH CÔNG!');
+        print(' ==========================================');
+        print(' Recipe ID: ${response.data?.id}');
+        print(' Title: ${response.data?.title}');
+        print(' Image URL: ${response.data?.imageUrl}');
+        print(' Ingredients: ${response.data?.ingredients.length ?? 0}');
+        print(' Steps: ${response.data?.steps.length ?? 0}');
+        print(' ==========================================');
         print('');
         final authProvider = context.read<AuthProvider>();
         final currentUser = authProvider.currentUser;
         final recipeProvider = context.read<RecipeProvider>();
         final recipeId = response.data!.id;
-        print('🔄 [NEW POST] Fetching full recipe detail for ID: $recipeId');
+        print(' [NEW POST] Fetching full recipe detail for ID: $recipeId');
         final recipe = await recipeProvider.getRecipeById(recipeId);
         if (recipe == null) {
-          print('❌ [NEW POST] Failed to load recipe detail');
+          print(' [NEW POST] Failed to load recipe detail');
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -1706,7 +1706,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
           );
           return;
         }
-        print('🔍 [NEW POST] Recipe data check:');
+        print(' [NEW POST] Recipe data check:');
         print('   - userName: ${recipe.userName}');
         print('   - currentUser: ${currentUser?.fullName}');
         print('   - createdAt: ${recipe.createdAt}');
@@ -1739,13 +1739,13 @@ class _NewPostScreenState extends State<NewPostScreen> {
           steps: stepsList,
           createdAt: recipe.createdAt ?? DateTime.now(),
         );
-        print('📝 [NEW POST] Post object created:');
+        print(' [NEW POST] Post object created:');
         print('   - Author: ${post.author}');
         print('   - Ingredients: ${post.ingredients.length}');
         print('   - Steps: ${post.steps.length}');
         print('   - CreatedAt: ${post.createdAt}');
         if (!mounted) return;
-        _showSuccessSnackBar('🎉 Đăng bài thành công! Đang hiển thị bài viết...');
+        _showSuccessSnackBar(' Đăng bài thành công! Đang hiển thị bài viết...');
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -1763,30 +1763,30 @@ class _NewPostScreenState extends State<NewPostScreen> {
             builder: (context) => PostDetailScreen(post: post),
           ),
         );
-        print('✅ [NEW POST] Navigated to Post Detail Screen');
-        print('🔄 [NEW POST] Reloading recipes in background...');
+        print(' [NEW POST] Navigated to Post Detail Screen');
+        print(' [NEW POST] Reloading recipes in background...');
         context.read<RecipeProvider>().loadRecipes().then((_) {
-          print('✅ [NEW POST] Feed recipes reloaded');
+          print(' [NEW POST] Feed recipes reloaded');
         });
         context.read<RecipeProvider>().loadMyRecipes().then((_) {
-          print('✅ [NEW POST] My recipes reloaded');
+          print(' [NEW POST] My recipes reloaded');
         });
         context.read<AuthProvider>().loadUserStats().then((_) {
-          print('✅ [NEW POST] User stats reloaded');
+          print(' [NEW POST] User stats reloaded');
         });
       } else {
         print('');
-        print('❌ ==========================================');
-        print('❌ [NEW POST] ĐĂNG BÀI THẤT BẠI!');
-        print('❌ ==========================================');
-        print('❌ Error: ${response.message}');
-        print('❌ ==========================================');
+        print(' ==========================================');
+        print(' [NEW POST] ĐĂNG BÀI THẤT BẠI!');
+        print(' ==========================================');
+        print(' Error: ${response.message}');
+        print(' ==========================================');
         print('');
         _showErrorSnackBar(response.message ?? 'Đăng bài thất bại');
       }
     } catch (e, stackTrace) {
-      print('❌ [NEW POST] Error: $e');
-      print('❌ [NEW POST] Stack trace: $stackTrace');
+      print(' [NEW POST] Error: $e');
+      print(' [NEW POST] Stack trace: $stackTrace');
       Navigator.pop(context);
       _showErrorSnackBar('Lỗi: $e');
     }
