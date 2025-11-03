@@ -5,23 +5,18 @@ import '/models/user_model.dart';
 import '/models/api_response_model.dart';
 
 class AuthProvider with ChangeNotifier {
-  // State variables
   bool _isLoggedIn = false;
   User? _currentUser;
   String? _token;
   bool _isLoading = false;
   bool _isLoadingProfile = false;
   String? _error;
-
-  // Getters
   bool get isLoggedIn => _isLoggedIn;
   User? get currentUser => _currentUser;
   String? get token => _token;
   bool get isLoading => _isLoading;
   bool get isLoadingProfile => _isLoadingProfile;
   String? get error => _error;
-
-  // Initialize auth state
   Future<void> initializeAuth() async {
     _setLoading(true);
     try {
@@ -40,20 +35,17 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Login with email/password
   Future<ApiResponse<User>> login({
     required String username,
     required String password,
   }) async {
     _setLoading(true);
     _clearError();
-    
     try {
       final response = await AuthService.login(
         username: username,
         password: password,
       );
-      
       if (response.success) {
         _isLoggedIn = true;
         _currentUser = response.data;
@@ -62,7 +54,6 @@ class AuthProvider with ChangeNotifier {
       } else {
         _setError(response.message ?? 'Đăng nhập thất bại');
       }
-      
       return response;
     } catch (e) {
       final error = AuthService.handleNetworkError(e);
@@ -73,14 +64,11 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Login with Google
   Future<ApiResponse<Map<String, dynamic>>> loginWithGoogle() async {
     _setLoading(true);
     _clearError();
-    
     try {
       final response = await AuthService.signInWithGoogle();
-      
       if (response.success) {
         _isLoggedIn = true;
         _token = AuthService.currentToken;
@@ -92,7 +80,6 @@ class AuthProvider with ChangeNotifier {
       } else {
         _setError(response.message ?? 'Đăng nhập Google thất bại');
       }
-      
       return response;
     } catch (e) {
       final error = AuthService.handleNetworkError(e);
@@ -103,7 +90,6 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Register new user
   Future<ApiResponse<String>> register({
     required String email,
     required String username,
@@ -113,7 +99,6 @@ class AuthProvider with ChangeNotifier {
   }) async {
     _setLoading(true);
     _clearError();
-    
     try {
       final response = await AuthService.register(
         email: email,
@@ -122,11 +107,9 @@ class AuthProvider with ChangeNotifier {
         fullName: fullName,
         otp: otp,
       );
-      
       if (!response.success) {
         _setError(response.message ?? 'Đăng ký thất bại');
       }
-      
       return response;
     } catch (e) {
       final error = AuthService.handleNetworkError(e);
@@ -137,18 +120,14 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Send OTP
   Future<ApiResponse<String>> sendOtp(String email) async {
     _setLoading(true);
     _clearError();
-    
     try {
       final response = await AuthService.sendOtpToEmail(email);
-      
       if (!response.success) {
         _setError(response.message ?? 'Không thể gửi OTP');
       }
-      
       return response;
     } catch (e) {
       final error = AuthService.handleNetworkError(e);
@@ -159,7 +138,6 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Check email exists
   Future<ApiResponse<bool>> checkEmailExists(String email) async {
     try {
       return await AuthService.checkEmailExists(email);
@@ -168,21 +146,17 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Update profile
   Future<ApiResponse<User>> updateProfile(Map<String, dynamic> data) async {
     _setLoading(true);
     _clearError();
-    
     try {
       final response = await AuthService.updateProfile(data);
-      
       if (response.success) {
         _currentUser = response.data;
         notifyListeners();
       } else {
         _setError(response.message ?? 'Cập nhật thông tin thất bại');
       }
-      
       return response;
     } catch (e) {
       final error = AuthService.handleNetworkError(e);
@@ -193,25 +167,19 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Get current user info
   Future<void> refreshCurrentUser() async {
     if (!_isLoggedIn) return;
-    
     try {
       final response = await AuthService.getCurrentUser();
       if (response.success) {
         _currentUser = response.data;
         notifyListeners();
       }
-    } catch (e) {
-      // Silent fail for refresh
-    }
+    } catch (e) {}
   }
 
-  // Logout
   Future<void> logout() async {
     _setLoading(true);
-    
     try {
       await AuthService.logout();
       _isLoggedIn = false;
@@ -226,7 +194,6 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Validation methods
   bool isValidEmail(String email) {
     return AuthService.isValidEmail(email);
   }
@@ -243,14 +210,10 @@ class AuthProvider with ChangeNotifier {
     return AuthService.isValidOtp(otp);
   }
 
-  // Helper methods
-  // Load user profile with detailed information
   Future<void> loadUserProfile() async {
     if (!_isLoggedIn || _token == null) return;
-    
     _setLoadingProfile(true);
     _clearError();
-    
     try {
       final response = await ApiService.getCurrentUser(_token!);
       if (response.success && response.data != null) {
@@ -266,12 +229,9 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Load user stats (mock data for now)
   Future<void> loadUserStats() async {
     if (!_isLoggedIn) return;
-    
     try {
-      // Mock stats - replace with real API call when available
       final mockStats = UserStats(
         recipesCount: 15,
         likesReceived: 120,
@@ -282,8 +242,6 @@ class AuthProvider with ChangeNotifier {
         followersCount: 150,
         followingCount: 75,
       );
-      
-      // Update current user with stats
       if (_currentUser != null) {
         _currentUser = _currentUser!.copyWith(stats: mockStats);
         notifyListeners();
@@ -312,7 +270,6 @@ class AuthProvider with ChangeNotifier {
     _error = null;
   }
 
-  // Clear error manually
   void clearError() {
     _clearError();
   }

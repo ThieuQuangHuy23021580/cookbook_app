@@ -3,7 +3,7 @@ import '../constants/app_constants.dart';
 class AppNotification {
   final int id;
   final int userId;
-  final String type; // LIKE, COMMENT, RATING, REPLY, BOOKMARK
+  final String type;
   final int? actorId;
   final String? actorName;
   final String? actorAvatar;
@@ -14,7 +14,6 @@ class AppNotification {
   final String message;
   final bool isRead;
   final DateTime createdAt;
-
   AppNotification({
     required this.id,
     required this.userId,
@@ -30,19 +29,15 @@ class AppNotification {
     required this.isRead,
     required this.createdAt,
   });
-
   factory AppNotification.fromJson(Map<String, dynamic> json) {
-    // Fix localhost URLs for images
     final rawActorAvatar = json['actorAvatar'] as String?;
     final fixedActorAvatar = rawActorAvatar != null && rawActorAvatar.isNotEmpty
         ? ApiConfig.fixImageUrl(rawActorAvatar)
         : null;
-
     final rawRecipeImage = json['recipeImage'] as String?;
     final fixedRecipeImage = rawRecipeImage != null && rawRecipeImage.isNotEmpty
         ? ApiConfig.fixImageUrl(rawRecipeImage)
         : null;
-
     return AppNotification(
       id: json['id'] as int,
       userId: json['userId'] as int,
@@ -57,11 +52,12 @@ class AppNotification {
       message: json['message'] as String,
       isRead: json['isRead'] as bool? ?? false,
       createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'] as String).subtract(const Duration(hours: 7))
+          ? DateTime.parse(
+              json['createdAt'] as String,
+            ).subtract(const Duration(hours: 7))
           : DateTime.now(),
     );
   }
-
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -80,7 +76,6 @@ class AppNotification {
     };
   }
 
-  // Helper to get icon for notification type
   String getIconEmoji() {
     switch (type) {
       case 'LIKE':
@@ -97,7 +92,7 @@ class AppNotification {
         return '🔔';
     }
   }
-  
+
   AppNotification copyWith({
     int? id,
     int? userId,
@@ -130,4 +125,3 @@ class AppNotification {
     );
   }
 }
-

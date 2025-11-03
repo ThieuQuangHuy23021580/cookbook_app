@@ -1,7 +1,10 @@
 import '../core/index.dart';
 
 class RatingRepository {
-  static Future<ApiResponse<RatingResponse>> addRating(int recipeId, Map<String, dynamic> data) async {
+  static Future<ApiResponse<RatingResponse>> addRating(
+    int recipeId,
+    Map<String, dynamic> data,
+  ) async {
     final token = AuthService.currentToken;
     if (token == null) {
       return ApiResponse.error(ErrorMessages.unauthorized);
@@ -30,18 +33,26 @@ class RatingRepository {
   }
 
   static Future<ApiResponse<List<Rating>>> getRatings(int recipeId) async {
-    return await ApiService.getRatings(recipeId, token: AuthService.currentToken);
+    return await ApiService.getRatings(
+      recipeId,
+      token: AuthService.currentToken,
+    );
   }
 
-  static Future<ApiResponse<RatingResponse>> rateRecipe(int recipeId, int rating) async {
+  static Future<ApiResponse<RatingResponse>> rateRecipe(
+    int recipeId,
+    int rating,
+  ) async {
     if (rating < 1 || rating > 5) {
       return ApiResponse.error('Đánh giá phải từ 1 đến 5 sao');
     }
-    
     return await addRating(recipeId, {'rating': rating});
   }
 
-  static Future<ApiResponse<RatingResponse>> updateRating(int recipeId, int newRating) async {
+  static Future<ApiResponse<RatingResponse>> updateRating(
+    int recipeId,
+    int newRating,
+  ) async {
     return await rateRecipe(recipeId, newRating);
   }
 

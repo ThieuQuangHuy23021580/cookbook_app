@@ -14,7 +14,8 @@ class NotificationRepository {
   }
 
   /// Get unread notifications
-  static Future<ApiResponse<List<AppNotification>>> getUnreadNotifications() async {
+  static Future<ApiResponse<List<AppNotification>>>
+  getUnreadNotifications() async {
     final token = AuthService.currentToken;
     if (token == null) {
       return ApiResponse.error('Vui lòng đăng nhập');
@@ -30,8 +31,7 @@ class NotificationRepository {
     }
     return await ApiService.getUnreadNotificationCount(token);
   }
-  
-  // Alias for backward compatibility
+
   static Future<ApiResponse<int>> getUnreadCount() async {
     return getUnreadNotificationCount();
   }
@@ -46,7 +46,9 @@ class NotificationRepository {
   }
 
   /// Delete notification
-  static Future<ApiResponse<String>> deleteNotification(int notificationId) async {
+  static Future<ApiResponse<String>> deleteNotification(
+    int notificationId,
+  ) async {
     final token = AuthService.currentToken;
     if (token == null) {
       return ApiResponse.error('Vui lòng đăng nhập');
@@ -54,4 +56,3 @@ class NotificationRepository {
     return await ApiService.deleteNotification(notificationId, token);
   }
 }
-

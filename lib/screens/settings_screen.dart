@@ -2,22 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
-
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
 
+  const SettingsScreen({super.key});
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _notificationsEnabled = true;
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    // Set system UI overlay style to prevent status bar issues
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -26,7 +21,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       ),
     );
-    
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: PreferredSize(
@@ -89,7 +83,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       body: Stack(
         children: [
-          // Dynamic background with particles
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -97,9 +90,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 end: Alignment.bottomRight,
                 colors: isDark
                     ? [
-                        const Color(0xFF000000), // Pure black
-                        const Color(0xFF0A0A0A), // Very dark gray
-                        const Color(0xFF0F0F0F), // Slightly lighter dark gray
+                        const Color(0xFF000000),
+                        const Color(0xFF0A0A0A),
+                        const Color(0xFF0F0F0F),
                       ]
                     : [
                         const Color(0xFFFAFAFA),
@@ -109,8 +102,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
-          // Floating particles background
-          ...List.generate(10, (index) => 
+          ...List.generate(10, (index) =>
             Positioned(
               top: (index * 70.0) % MediaQuery.of(context).size.height,
               left: (index * 90.0) % MediaQuery.of(context).size.width,
@@ -128,11 +120,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
-          // Main content
           SingleChildScrollView(
             child: Column(
               children: [
-                // Header with Glassmorphism
                 Container(
                   margin: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -166,7 +156,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     padding: const EdgeInsets.all(24),
                     child: Column(
                       children: [
-                        // Settings icon with 3D effect
                         Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
@@ -230,35 +219,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                 ),
-                
-                // Settings sections
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Column(
                     children: [
-                      // General settings
                       _buildSettingsSection(
                         'Cài đặt chung',
                         [
-                          _buildSettingsItem(
-                            icon: Icons.notifications,
-                            title: 'Thông báo',
-                            subtitle: 'Quản lý thông báo',
-                            trailing: _buildNeumorphicSwitch(
-                              value: _notificationsEnabled,
-                              onChanged: (value) {
-                                setState(() {
-                                  _notificationsEnabled = value;
-                                });
-                              },
-                            ),
-                          ),
-                          _buildSettingsItem(
-                            icon: Icons.language,
-                            title: 'Ngôn ngữ',
-                            subtitle: 'Tiếng Việt',
-                            onTap: () {},
-                          ),
                           Consumer<ThemeProvider>(
                             builder: (context, themeProvider, child) {
                               return _buildSettingsItem(
@@ -270,43 +237,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   onChanged: (value) {
                                     themeProvider.toggleTheme();
                                   },
+                                  isDark: isDark,
                                 ),
                               );
                             },
                           ),
                         ],
                       ),
-                      
                       const SizedBox(height: 20),
-                      
-                      // App settings
                       _buildSettingsSection(
                         'Ứng dụng',
                         [
                           _buildSettingsItem(
-                            icon: Icons.storage,
-                            title: 'Dung lượng',
-                            subtitle: 'Xem dung lượng đã sử dụng',
-                            onTap: () {},
-                          ),
-                          _buildSettingsItem(
-                            icon: Icons.update,
-                            title: 'Cập nhật',
-                            subtitle: 'Kiểm tra phiên bản mới',
-                            onTap: () {},
-                          ),
-                          _buildSettingsItem(
                             icon: Icons.info,
                             title: 'Về ứng dụng',
                             subtitle: 'Phiên bản 1.0.0',
-                            onTap: () {},
+                            onTap: () => _showAboutAppDialog(context),
                           ),
                         ],
                       ),
-                      
                       const SizedBox(height: 20),
-                      
-                      // Privacy settings
                       _buildSettingsSection(
                         'Quyền riêng tư',
                         [
@@ -314,44 +264,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             icon: Icons.privacy_tip,
                             title: 'Chính sách bảo mật',
                             subtitle: 'Đọc chính sách bảo mật',
-                            onTap: () {},
+                            onTap: () => _showPrivacyPolicyDialog(context),
                           ),
                           _buildSettingsItem(
                             icon: Icons.description,
                             title: 'Điều khoản sử dụng',
                             subtitle: 'Đọc điều khoản sử dụng',
-                            onTap: () {},
+                            onTap: () => _showTermsOfServiceDialog(context),
                           ),
                         ],
                       ),
-                      
-                      const SizedBox(height: 20),
-                      
-                      // Support
-                      _buildSettingsSection(
-                        'Hỗ trợ',
-                        [
-                          _buildSettingsItem(
-                            icon: Icons.help_center,
-                            title: 'Trung tâm trợ giúp',
-                            subtitle: 'Câu hỏi thường gặp',
-                            onTap: () {},
-                          ),
-                          _buildSettingsItem(
-                            icon: Icons.contact_support,
-                            title: 'Liên hệ hỗ trợ',
-                            subtitle: 'Gửi phản hồi',
-                            onTap: () {},
-                          ),
-                          _buildSettingsItem(
-                            icon: Icons.star,
-                            title: 'Đánh giá ứng dụng',
-                            subtitle: 'Đánh giá trên cửa hàng',
-                            onTap: () {},
-                          ),
-                        ],
-                      ),
-                      
                       const SizedBox(height: 24),
                     ],
                   ),
@@ -363,10 +285,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
-
   Widget _buildSettingsSection(String title, List<Widget> children) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
@@ -416,7 +336,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
-
   Widget _buildSettingsItem({
     required IconData icon,
     required String title,
@@ -425,9 +344,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     VoidCallback? onTap,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: isDark
             ? const Color(0xFF0F0F0F).withOpacity(0.9)
@@ -533,10 +451,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
-
   Widget _buildNeumorphicSwitch({
     required bool value,
     required ValueChanged<bool> onChanged,
+    required bool isDark,
   }) {
     return GestureDetector(
       onTap: () => onChanged(!value),
@@ -545,21 +463,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
         width: 50,
         height: 30,
         decoration: BoxDecoration(
-          color: value ? const Color(0xFFEF3A16) : const Color(0xFFF1F5F9),
+          color: value ? const Color(0xFFEF3A16) : (isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9)),
           borderRadius: BorderRadius.circular(15),
+          border: isDark && !value ? Border.all(
+            color: Colors.white.withOpacity(0.15),
+            width: 2.0,
+          ) : null,
           boxShadow: [
-            // Outer shadow (dark)
             BoxShadow(
-              color: const Color(0xFF64748B).withOpacity(0.3),
+              color: isDark
+                  ? Colors.black.withOpacity(0.3)
+                  : const Color(0xFF64748B).withOpacity(0.3),
               blurRadius: 8,
               offset: const Offset(4, 4),
             ),
-            // Inner shadow (light)
-            BoxShadow(
-              color: Colors.white.withOpacity(0.8),
-              blurRadius: 8,
-              offset: const Offset(-4, -4),
-            ),
+            if (!isDark)
+              BoxShadow(
+                color: Colors.white.withOpacity(0.8),
+                blurRadius: 8,
+                offset: const Offset(-4, -4),
+              ),
           ],
         ),
         child: AnimatedAlign(
@@ -587,6 +510,428 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     size: 16,
                   )
                 : null,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAboutAppDialog(BuildContext context) {
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F0F0F) : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: isDark ? Border.all(
+              color: Colors.white.withOpacity(0.15),
+              width: 2.0,
+            ) : null,
+            boxShadow: [
+              BoxShadow(
+                color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.2),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+              if (isDark)
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.05),
+                  spreadRadius: 2,
+                  blurRadius: 8,
+                  offset: const Offset(0, 0),
+                ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF3A16).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                    border: isDark ? Border.all(
+                      color: Colors.white.withOpacity(0.15),
+                      width: 2.0,
+                    ) : null,
+                  ),
+                  child: const Icon(
+                    Icons.restaurant_menu,
+                    color: Color(0xFFEF3A16),
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Về Ứng Dụng',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : const Color(0xFF1F2937),
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Phiên bản 1.0.0',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Ứng dụng giúp bạn chia sẻ và khám phá hàng ngàn công thức nấu ăn mỗi ngày. Cùng cộng đồng yêu bếp lan tỏa niềm vui nấu nướng và sáng tạo món ngon theo cách của riêng bạn!',
+                  style: TextStyle(
+                    fontSize: 16,
+                    height: 1.6,
+                    color: isDark ? Colors.grey[300] : const Color(0xFF4B5563),
+                    fontWeight: FontWeight.w400,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFFEF3A16),
+                          Color(0xFFFF5A00),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFEF3A16).withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'Đóng',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showPrivacyPolicyDialog(BuildContext context) {
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F0F0F) : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: isDark ? Border.all(
+              color: Colors.white.withOpacity(0.15),
+              width: 2.0,
+            ) : null,
+            boxShadow: [
+              BoxShadow(
+                color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.2),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+              if (isDark)
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.05),
+                  spreadRadius: 2,
+                  blurRadius: 8,
+                  offset: const Offset(0, 0),
+                ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF3A16).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                    border: isDark ? Border.all(
+                      color: Colors.white.withOpacity(0.15),
+                      width: 2.0,
+                    ) : null,
+                  ),
+                  child: const Icon(
+                    Icons.privacy_tip,
+                    color: Color(0xFFEF3A16),
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Chính sách bảo mật',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : const Color(0xFF1F2937),
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Chúng tôi tôn trọng quyền riêng tư của bạn. Ứng dụng chỉ thu thập thông tin cần thiết để cung cấp và cải thiện trải nghiệm sử dụng, chẳng hạn như tên hiển thị, hình ảnh món ăn và nội dung bạn chia sẻ.',
+                        style: TextStyle(
+                          fontSize: 16,
+                          height: 1.6,
+                          color: isDark ? Colors.grey[300] : const Color(0xFF4B5563),
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Mọi dữ liệu cá nhân đều được bảo mật và không chia sẻ cho bên thứ ba khi chưa có sự đồng ý của bạn.',
+                        style: TextStyle(
+                          fontSize: 16,
+                          height: 1.6,
+                          color: isDark ? Colors.grey[300] : const Color(0xFF4B5563),
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Bạn có thể xóa hoặc chỉnh sửa thông tin cá nhân bất cứ lúc nào trong phần hồ sơ của mình.',
+                        style: TextStyle(
+                          fontSize: 16,
+                          height: 1.6,
+                          color: isDark ? Colors.grey[300] : const Color(0xFF4B5563),
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFFEF3A16),
+                          Color(0xFFFF5A00),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFEF3A16).withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'Đóng',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showTermsOfServiceDialog(BuildContext context) {
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F0F0F) : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: isDark ? Border.all(
+              color: Colors.white.withOpacity(0.15),
+              width: 2.0,
+            ) : null,
+            boxShadow: [
+              BoxShadow(
+                color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.2),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+              if (isDark)
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.05),
+                  spreadRadius: 2,
+                  blurRadius: 8,
+                  offset: const Offset(0, 0),
+                ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF3A16).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                    border: isDark ? Border.all(
+                      color: Colors.white.withOpacity(0.15),
+                      width: 2.0,
+                    ) : null,
+                  ),
+                  child: const Icon(
+                    Icons.description,
+                    color: Color(0xFFEF3A16),
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Điều khoản sử dụng',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : const Color(0xFF1F2937),
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Khi sử dụng ứng dụng, bạn đồng ý không đăng tải nội dung vi phạm pháp luật, bản quyền, hoặc gây ảnh hưởng đến người khác.',
+                        style: TextStyle(
+                          fontSize: 16,
+                          height: 1.6,
+                          color: isDark ? Colors.grey[300] : const Color(0xFF4B5563),
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Các công thức và hình ảnh bạn chia sẻ thuộc quyền sở hữu của bạn, nhưng bằng việc đăng tải, bạn đồng ý cho phép chúng tôi hiển thị nội dung đó trong cộng đồng người dùng.',
+                        style: TextStyle(
+                          fontSize: 16,
+                          height: 1.6,
+                          color: isDark ? Colors.grey[300] : const Color(0xFF4B5563),
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Chúng tôi có quyền chỉnh sửa hoặc gỡ bỏ nội dung không phù hợp để đảm bảo môi trường lành mạnh và tôn trọng lẫn nhau.',
+                        style: TextStyle(
+                          fontSize: 16,
+                          height: 1.6,
+                          color: isDark ? Colors.grey[300] : const Color(0xFF4B5563),
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Việc tiếp tục sử dụng ứng dụng đồng nghĩa với việc bạn đã đọc và chấp nhận các điều khoản này.',
+                        style: TextStyle(
+                          fontSize: 16,
+                          height: 1.6,
+                          color: isDark ? Colors.grey[300] : const Color(0xFF4B5563),
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFFEF3A16),
+                          Color(0xFFFF5A00),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFEF3A16).withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'Đóng',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -13,7 +13,10 @@ class UserRepository {
     return await AuthService.getCurrentUser();
   }
 
-  static Future<ApiResponse<User>> updateUser(int id, Map<String, dynamic> data) async {
+  static Future<ApiResponse<User>> updateUser(
+    int id,
+    Map<String, dynamic> data,
+  ) async {
     final token = AuthService.currentToken;
     if (token == null) {
       return ApiResponse.error(ErrorMessages.unauthorized);

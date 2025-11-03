@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import '../core/index.dart';
-
 class GmailSignInButton extends StatefulWidget {
+
   final VoidCallback? onSuccess;
   final VoidCallback? onError;
   final String text;
   final bool isLoading;
-
   const GmailSignInButton({
     super.key,
     this.onSuccess,
@@ -14,7 +13,6 @@ class GmailSignInButton extends StatefulWidget {
     this.text = 'Đăng ký với Gmail',
     this.isLoading = false,
   });
-
   @override
   State<GmailSignInButton> createState() => _GmailSignInButtonState();
 }
@@ -22,7 +20,6 @@ class GmailSignInButton extends StatefulWidget {
 class _GmailSignInButtonState extends State<GmailSignInButton> {
   bool _isPressed = false;
   bool _isProcessing = false;
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -53,12 +50,12 @@ class _GmailSignInButtonState extends State<GmailSignInButton> {
         height: 56,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: _isPressed 
+          color: _isPressed
               ? const Color(0xFF4285F4).withOpacity(0.9)
               : const Color(0xFF4285F4),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: _isPressed 
+            color: _isPressed
                 ? const Color(0xFF1A73E8)
                 : const Color(0xFF4285F4),
             width: 1,
@@ -124,17 +121,12 @@ class _GmailSignInButtonState extends State<GmailSignInButton> {
     setState(() {
       _isProcessing = true;
     });
-
     try {
       final result = await AuthService.signInWithGoogle();
-
       if (result.success) {
-        // Success - user signed in
         if (widget.onSuccess != null) {
           widget.onSuccess!();
         }
-
-        // Show success message
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -144,12 +136,9 @@ class _GmailSignInButtonState extends State<GmailSignInButton> {
           );
         }
       } else {
-        // Error occurred
         if (widget.onError != null) {
           widget.onError!();
         }
-
-        // Show error message
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -160,11 +149,9 @@ class _GmailSignInButtonState extends State<GmailSignInButton> {
         }
       }
     } catch (error) {
-      // Handle error
       if (widget.onError != null) {
         widget.onError!();
       }
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

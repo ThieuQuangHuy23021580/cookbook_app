@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
-
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
 
+  const SplashScreen({super.key});
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
@@ -14,17 +13,13 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _logoController;
   late AnimationController _particleController;
   late AnimationController _fadeController;
-  
   late Animation<double> _logoScale;
   late Animation<double> _logoOpacity;
   late Animation<double> _fadeOpacity;
   late Animation<Offset> _logoPosition;
-
   @override
   void initState() {
     super.initState();
-    
-    // Set system UI overlay style
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -33,24 +28,18 @@ class _SplashScreenState extends State<SplashScreen>
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
     );
-
-    // Initialize animation controllers
     _logoController = AnimationController(
       duration: const Duration(milliseconds: 2000),
       vsync: this,
     );
-    
     _particleController = AnimationController(
       duration: const Duration(milliseconds: 3000),
       vsync: this,
     );
-    
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
-
-    // Initialize animations
     _logoScale = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -58,7 +47,6 @@ class _SplashScreenState extends State<SplashScreen>
       parent: _logoController,
       curve: Curves.elasticOut,
     ));
-
     _logoOpacity = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -66,7 +54,6 @@ class _SplashScreenState extends State<SplashScreen>
       parent: _logoController,
       curve: const Interval(0.0, 0.8, curve: Curves.easeIn),
     ));
-
     _logoPosition = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
@@ -74,7 +61,6 @@ class _SplashScreenState extends State<SplashScreen>
       parent: _logoController,
       curve: Curves.easeOutCubic,
     ));
-
     _fadeOpacity = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -82,24 +68,14 @@ class _SplashScreenState extends State<SplashScreen>
       parent: _fadeController,
       curve: Curves.easeIn,
     ));
-
-    // Start animations
     _startAnimations();
   }
 
   void _startAnimations() async {
-    // Start particle animation
     _particleController.repeat();
-    
-    // Start logo animation
     await _logoController.forward();
-    
-    // Start fade in animation for text
     await _fadeController.forward();
-    
-    // Wait a bit then navigate
     await Future.delayed(const Duration(milliseconds: 1500));
-    
     if (mounted) {
       Navigator.pushReplacementNamed(context, '/welcome');
     }
@@ -130,8 +106,7 @@ class _SplashScreenState extends State<SplashScreen>
         ),
         child: Stack(
           children: [
-            // Animated background particles
-            ...List.generate(20, (index) => 
+            ...List.generate(20, (index) =>
               AnimatedBuilder(
                 animation: _particleController,
                 builder: (context, child) {
@@ -154,13 +129,10 @@ class _SplashScreenState extends State<SplashScreen>
                 },
               ),
             ),
-            
-            // Main content
             Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo animation
                   SlideTransition(
                     position: _logoPosition,
                     child: FadeTransition(
@@ -203,10 +175,7 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                     ),
                   ),
-                  
                   const SizedBox(height: 80),
-                  
-                  // Loading indicator
                   FadeTransition(
                     opacity: _fadeOpacity,
                     child: SizedBox(
@@ -223,8 +192,6 @@ class _SplashScreenState extends State<SplashScreen>
                 ],
               ),
             ),
-            
-            // Bottom decoration
             Positioned(
               bottom: 50,
               left: 0,

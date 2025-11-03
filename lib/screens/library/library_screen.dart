@@ -5,22 +5,19 @@ import '../../core/index.dart';
 import '../../models/post_model.dart';
 import '../../providers/recipe_provider.dart';
 import '../feed/post_detail_screen.dart';
-
 class LibraryScreen extends StatefulWidget {
-  const LibraryScreen({super.key});
 
+  const LibraryScreen({super.key});
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
 }
 
 class _LibraryScreenState extends State<LibraryScreen> {
   String _searchQuery = '';
-  String _sortBy = 'recent'; // 'recent' = Đã xem gần nhất, 'name' = Theo tên
-
+  String _sortBy = 'recent';
   @override
   void initState() {
     super.initState();
-    // Load bookmarked recipes when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<RecipeProvider>().loadBookmarkedRecipes();
     });
@@ -28,7 +25,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Set system UI overlay style
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -37,14 +33,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
     );
-
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // Animated Background
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -52,9 +45,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 end: Alignment.bottomRight,
                 colors: isDark
                     ? [
-                        const Color(0xFF000000), // Pure black
-                        const Color(0xFF0A0A0A), // Very dark gray
-                        const Color(0xFF0F0F0F), // Slightly lighter dark gray
+                        const Color(0xFF000000),
+                        const Color(0xFF0A0A0A),
+                        const Color(0xFF0F0F0F),
                       ]
                     : [
                         const Color(0xFFFAFAFA),
@@ -65,12 +58,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
               ),
             ),
           ),
-
-          // Main Content
           SafeArea(
             child: Column(
               children: [
-                // Custom App Bar with Glass Effect
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   decoration: BoxDecoration(
@@ -92,11 +82,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   ),
                   child: Column(
                     children: [
-                      // Header
                       Row(
                         children: [
-                          
-                          
                           const Text(
                             'Kho món ngon của tôi',
                             style: TextStyle(
@@ -106,7 +93,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
                             ),
                           ),
                           const Spacer(),
-                          // Sort Button
                           Container(
                             decoration: BoxDecoration(
                               color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.2),
@@ -174,7 +160,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      // Search Bar
                       Container(
                         decoration: BoxDecoration(
                           color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.2),
@@ -234,8 +219,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     ],
                   ),
                 ),
-
-                // Content
                 Expanded(
                   child: Consumer<RecipeProvider>(
                     builder: (context, recipeProvider, child) {
@@ -248,7 +231,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           ),
                         );
                       }
-
                       if (recipeProvider.bookmarkedRecipes.isEmpty) {
                         return Center(
                           child: Column(
@@ -281,28 +263,20 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         );
                       }
 
-                      // Filter recipes based on search query
                       final filteredRecipes = recipeProvider.bookmarkedRecipes
                           .where((recipe) =>
                               recipe.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
                               (recipe.userName ?? '').toLowerCase().contains(_searchQuery.toLowerCase()))
                           .toList();
-
-                      // Sort recipes
                       if (_sortBy == 'name') {
-                        // Sắp xếp theo tên (alphabetical)
                         filteredRecipes.sort((a, b) {
                           return a.title.toLowerCase().compareTo(b.title.toLowerCase());
                         });
                       } else {
-                        // Mặc định: "Đã xem gần nhất" - đảo ngược danh sách để mới nhất lên đầu
-                        // API trả về danh sách IDs theo thứ tự, nên danh sách recipes cũng theo thứ tự đó
-                        // Đảo ngược để món nào lưu sau (mới nhất) xếp lên đầu
                         final reversedList = filteredRecipes.reversed.toList();
                         filteredRecipes.clear();
                         filteredRecipes.addAll(reversedList);
                       }
-
                       return ListView.builder(
                         padding: const EdgeInsets.all(16),
                         itemCount: filteredRecipes.length,
@@ -321,31 +295,27 @@ class _LibraryScreenState extends State<LibraryScreen> {
       ),
     );
   }
-
   Widget _buildRecipeCard(dynamic recipe) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return GestureDetector(
       onTap: () {
-        // Convert recipe to Post format for PostDetailScreen
         final post = Post(
           id: recipe.id.toString(),
           title: recipe.title,
           author: recipe.userName ?? 'Unknown',
-          minutesAgo: recipe.createdAt != null 
+          minutesAgo: recipe.createdAt != null
               ? DateTime.now().difference(recipe.createdAt).inMinutes
               : 0,
           savedCount: recipe.bookmarksCount,
           imageUrl: recipe.imageUrl ?? '',
-          ingredients: recipe.ingredients.map<String>((ing) => 
+          ingredients: recipe.ingredients.map<String>((ing) =>
             '${ing.name}${ing.quantity != null ? " ${ing.quantity}" : ""}${ing.unit != null ? " ${ing.unit}" : ""}'
           ).toList(),
-          steps: recipe.steps.map<String>((step) => 
+          steps: recipe.steps.map<String>((step) =>
             '${step.stepNumber}. ${step.title}${step.description != null ? ": ${step.description}" : ""}'
           ).toList(),
           createdAt: recipe.createdAt,
         );
-        
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -414,7 +384,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  // Image with 3D effect
                   Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
@@ -459,7 +428,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  // Content
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -485,7 +453,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            // Star rating
                             Row(
                               children: List.generate(5, (starIndex) {
                                 return Icon(
@@ -522,17 +489,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       ],
                     ),
                   ),
-                  // Bookmark button
                   Consumer<RecipeProvider>(
                     builder: (context, recipeProvider, child) {
                       final recipeId = recipe.id;
                       final isBookmarked = recipeProvider.bookmarkedRecipeIds.contains(recipeId);
-                      
                       return IconButton(
                         onPressed: () async {
                           try {
                             await recipeProvider.toggleBookmarkRecipe(recipeId);
-                            
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
@@ -570,8 +534,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         },
                         icon: Icon(
                           isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                          color: isBookmarked 
-                              ? const Color(0xFFEF3A16) 
+                          color: isBookmarked
+                              ? const Color(0xFFEF3A16)
                               : (isDark ? Colors.grey[400] : Colors.grey[600]),
                         ),
                       );

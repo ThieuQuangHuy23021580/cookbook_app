@@ -8,27 +8,24 @@ class OtpVerificationPage extends StatefulWidget {
   final String email;
   final String fullName;
   final String password;
-
   const OtpVerificationPage({
     super.key,
     required this.email,
     required this.fullName,
     required this.password,
   });
-
   @override
   State<OtpVerificationPage> createState() => _OtpVerificationPageState();
 }
 
-class _OtpVerificationPageState extends State<OtpVerificationPage> with TickerProviderStateMixin {
+class _OtpVerificationPageState extends State<OtpVerificationPage>
+    with TickerProviderStateMixin {
   final _otpController = TextEditingController();
   bool _isLoading = false;
   bool _isResending = false;
   int _countdown = 60;
-
   late AnimationController _animationController;
   late Animation<double> _animation;
-
   @override
   void initState() {
     super.initState();
@@ -36,14 +33,8 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> with TickerPr
       duration: const Duration(seconds: 3),
       vsync: this,
     );
-    _animation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeInOut,
-      ),
+    _animation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _animationController.repeat(reverse: true);
     _startCountdown();
@@ -78,15 +69,11 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> with TickerPr
       );
       return;
     }
-
     setState(() {
       _isLoading = true;
     });
-
     try {
       final authProvider = context.read<AuthProvider>();
-      
-      // Register with OTP
       final response = await authProvider.register(
         email: widget.email,
         username: widget.email,
@@ -94,7 +81,6 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> with TickerPr
         fullName: widget.fullName,
         otp: _otpController.text.trim(),
       );
-
       if (response.success) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -103,8 +89,6 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> with TickerPr
               backgroundColor: Colors.green,
             ),
           );
-          
-          // Navigate to main screen
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const MainScreen()),
@@ -123,10 +107,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> with TickerPr
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -142,11 +123,9 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> with TickerPr
     setState(() {
       _isResending = true;
     });
-
     try {
       final authProvider = context.read<AuthProvider>();
       final response = await authProvider.sendOtp(widget.email);
-
       if (response.success) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -155,8 +134,6 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> with TickerPr
               backgroundColor: Colors.green,
             ),
           );
-          
-          // Reset countdown
           setState(() {
             _countdown = 60;
           });
@@ -175,10 +152,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> with TickerPr
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -195,7 +169,6 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> with TickerPr
     return Scaffold(
       body: Stack(
         children: [
-          // Animated Background
           AnimatedBuilder(
             animation: _animation,
             builder: (context, child) {
@@ -227,8 +200,6 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> with TickerPr
               );
             },
           ),
-
-          // Floating Particles
           ...List.generate(15, (index) {
             return Positioned(
               left: (index * 60.0) % MediaQuery.of(context).size.width,
@@ -237,10 +208,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> with TickerPr
                 animation: _animation,
                 builder: (context, child) {
                   return Transform.translate(
-                    offset: Offset(
-                      0,
-                      -40 * _animation.value,
-                    ),
+                    offset: Offset(0, -40 * _animation.value),
                     child: Opacity(
                       opacity: (1 - _animation.value) * 0.5,
                       child: Container(
@@ -257,14 +225,11 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> with TickerPr
               ),
             );
           }),
-
-          // Content
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  // Back Button
                   Align(
                     alignment: Alignment.centerLeft,
                     child: IconButton(
@@ -278,10 +243,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> with TickerPr
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 40),
-
-                  // Logo
                   Container(
                     width: 100,
                     height: 100,
@@ -307,9 +269,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> with TickerPr
                       color: Color(0xFFEF3A16),
                     ),
                   ),
-
                   const SizedBox(height: 20),
-
                   const Text(
                     'Xác thực OTP',
                     style: TextStyle(
@@ -325,21 +285,13 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> with TickerPr
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 10),
-
                   Text(
                     'Chúng tôi đã gửi mã OTP đến\n${widget.email}',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.white,
-                    ),
+                    style: const TextStyle(fontSize: 16, color: Colors.white),
                   ),
-
                   const SizedBox(height: 40),
-
-                  // OTP Input Form
                   ClipRRect(
                     borderRadius: BorderRadius.circular(24),
                     child: BackdropFilter(
@@ -375,7 +327,6 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> with TickerPr
                         ),
                         child: Column(
                           children: [
-                            // OTP Input Field
                             TextFormField(
                               controller: _otpController,
                               keyboardType: TextInputType.number,
@@ -422,10 +373,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> with TickerPr
                                 counterText: '',
                               ),
                             ),
-
                             const SizedBox(height: 30),
-
-                            // Verify Button
                             SizedBox(
                               width: double.infinity,
                               height: 50,
@@ -452,10 +400,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> with TickerPr
                                       ),
                               ),
                             ),
-
                             const SizedBox(height: 20),
-
-                            // Resend OTP
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -502,26 +447,17 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> with TickerPr
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 30),
-
-                  // Help Text
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.2),
-                      ),
+                      border: Border.all(color: Colors.white.withOpacity(0.2)),
                     ),
                     child: const Column(
                       children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: Colors.white,
-                          size: 24,
-                        ),
+                        Icon(Icons.info_outline, color: Colors.white, size: 24),
                         SizedBox(height: 8),
                         Text(
                           'Mã OTP có hiệu lực trong 5 phút',
@@ -534,10 +470,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> with TickerPr
                         SizedBox(height: 4),
                         Text(
                           'Kiểm tra cả hộp thư spam nếu không thấy email',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                          ),
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
                         ),
                       ],
                     ),

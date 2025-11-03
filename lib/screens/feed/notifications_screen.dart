@@ -7,10 +7,9 @@ import '../../providers/auth_provider.dart';
 import '../../models/notification_model.dart';
 import '../../models/post_model.dart';
 import 'post_detail_screen.dart';
-
 class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({super.key});
 
+  const NotificationsScreen({super.key});
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
 }
@@ -19,17 +18,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
   Timer? _refreshTimer;
   late TabController _tabController;
   final ScrollController _scrollController = ScrollController();
-
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<NotificationProvider>().loadNotifications();
     });
-    
-    // Auto-refresh every 3 minutes
     _refreshTimer = Timer.periodic(const Duration(minutes: 3), (_) {
       if (mounted) {
         context.read<NotificationProvider>().loadNotifications();
@@ -49,7 +44,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: PreferredSize(
@@ -112,7 +106,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
       ),
       body: Stack(
         children: [
-          // Dynamic background with particles
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -120,9 +113,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
                 end: Alignment.bottomRight,
                 colors: isDark
                     ? [
-                        const Color(0xFF000000), // Pure black
-                        const Color(0xFF0A0A0A), // Very dark gray
-                        const Color(0xFF0F0F0F), // Slightly lighter dark gray
+                        const Color(0xFF000000),
+                        const Color(0xFF0A0A0A),
+                        const Color(0xFF0F0F0F),
                       ]
                     : [
                         const Color(0xFFFAFAFA),
@@ -132,8 +125,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
               ),
             ),
           ),
-          // Floating particles background
-          ...List.generate(12, (index) => 
+          ...List.generate(12, (index) =>
             Positioned(
               top: (index * 60.0) % MediaQuery.of(context).size.height,
               left: (index * 80.0) % MediaQuery.of(context).size.width,
@@ -151,10 +143,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
               ),
             ),
           ),
-          // Main content
           Column(
             children: [
-              // Tab Bar
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.8),
@@ -184,14 +174,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
                   ),
                 ),
               ),
-              
-              // Tab Content
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _NotificationsTab(index: 0, scrollController: _scrollController), // Tất cả
-                    _NotificationsTab(index: 1, scrollController: _scrollController), // Chưa đọc
+                    _NotificationsTab(index: 0, scrollController: _scrollController),
+                    _NotificationsTab(index: 1, scrollController: _scrollController),
                   ],
                 ),
               ),
@@ -201,15 +189,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
       ),
     );
   }
-
 }
-
 /// Widget cho tab notifications
 class _NotificationsTab extends StatelessWidget {
+
   final int index;
   final ScrollController? scrollController;
   const _NotificationsTab({required this.index, this.scrollController});
-
   @override
   Widget build(BuildContext context) {
     return Consumer<NotificationProvider>(
@@ -221,7 +207,6 @@ class _NotificationsTab extends StatelessWidget {
             ),
           );
         }
-
         if (notificationProvider.error != null) {
           return Center(
             child: Column(
@@ -252,12 +237,10 @@ class _NotificationsTab extends StatelessWidget {
         final notifications = index == 0
             ? notificationProvider.notifications
             : notificationProvider.notifications.where((n) => !n.isRead).toList();
-
         return _buildNotificationsList(context, notifications, scrollController);
       },
     );
   }
-
   Widget _buildNotificationsList(BuildContext context, List<AppNotification> notifications, ScrollController? scrollController) {
     if (notifications.isEmpty) {
       return const Center(
@@ -285,7 +268,7 @@ class _NotificationsTab extends StatelessWidget {
       strokeWidth: 2.5,
       child: ListView.separated(
         controller: scrollController,
-        physics: const AlwaysScrollableScrollPhysics(), // Always allow scroll to enable pull-to-refresh
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: notifications.length,
         separatorBuilder: (_, __) => const SizedBox(height: 8),
@@ -293,7 +276,6 @@ class _NotificationsTab extends StatelessWidget {
       ),
     );
   }
-
   Widget _buildNotificationItem(BuildContext context, AppNotification notification) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -343,24 +325,21 @@ class _NotificationsTab extends StatelessWidget {
     );
   }
 }
-
 /// Widget để build notification item (tách ra để tránh rebuild không cần thiết)
 class _NotificationItemWidget extends StatelessWidget {
+
   final AppNotification notification;
-
   const _NotificationItemWidget({required this.notification});
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Container(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.95) : Colors.transparent,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark 
-              ? const Color(0xFF0EA5E9).withOpacity(0.8) 
+          color: isDark
+              ? const Color(0xFF0EA5E9).withOpacity(0.8)
               : const Color(0xFF0EA5E9).withOpacity(0.3),
           width: isDark ? 2.0 : 1.0,
         ),
@@ -390,14 +369,10 @@ class _NotificationItemWidget extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () async {
-            // Mark as read
             if (!notification.isRead) {
               context.read<NotificationProvider>().markAsRead(notification.id);
             }
-
-            // Navigate to recipe detail if available
             if (notification.recipeId != null) {
-              // Show loading
               showDialog(
                 context: context,
                 barrierDismissible: false,
@@ -407,17 +382,11 @@ class _NotificationItemWidget extends StatelessWidget {
                   ),
                 ),
               );
-
               try {
-                // Fetch full recipe detail
                 final recipeProvider = context.read<RecipeProvider>();
                 final authProvider = context.read<AuthProvider>();
-                
                 final recipe = await recipeProvider.getRecipeById(notification.recipeId!);
-                
-                // Close loading dialog
                 if (context.mounted) Navigator.pop(context);
-                
                 if (recipe == null) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -430,26 +399,23 @@ class _NotificationItemWidget extends StatelessWidget {
                   return;
                 }
 
-                // Map ingredients with detailed logging
                 final ingredientsList = <String>[];
                 for (var ing in recipe.ingredients) {
                   final text = '${ing.name}${ing.quantity != null ? " ${ing.quantity}" : ""}${ing.unit != null ? " ${ing.unit}" : ""}';
                   ingredientsList.add(text);
                 }
-                
-                // Map steps with detailed logging
+
                 final stepsList = <String>[];
                 for (var step in recipe.steps) {
                   final text = '${step.stepNumber}. ${step.title}';
                   stepsList.add(text);
                 }
-                
-                // Create full Post object
+
                 final post = Post(
                   id: recipe.id.toString(),
                   title: recipe.title,
                   author: recipe.userName ?? authProvider.currentUser?.fullName ?? 'Unknown',
-                  minutesAgo: recipe.createdAt != null 
+                  minutesAgo: recipe.createdAt != null
                       ? DateTime.now().difference(recipe.createdAt!).inMinutes
                       : 0,
                   savedCount: recipe.bookmarksCount,
@@ -458,8 +424,6 @@ class _NotificationItemWidget extends StatelessWidget {
                   steps: stepsList,
                   createdAt: recipe.createdAt ?? DateTime.now(),
                 );
-                
-                // Navigate to post detail screen
                 if (context.mounted) {
                   Navigator.push(
                     context,
@@ -475,9 +439,7 @@ class _NotificationItemWidget extends StatelessWidget {
                   });
                 }
               } catch (e) {
-                // Close loading dialog
                 if (context.mounted) Navigator.pop(context);
-                
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -494,7 +456,6 @@ class _NotificationItemWidget extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Icon with gradient background
                 Builder(
                   builder: (context) {
                     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -512,8 +473,8 @@ class _NotificationItemWidget extends StatelessWidget {
                         ),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: isDark 
-                              ? const Color(0xFF0EA5E9).withOpacity(1.0) 
+                          color: isDark
+                              ? const Color(0xFF0EA5E9).withOpacity(1.0)
                               : const Color(0xFF0EA5E9).withOpacity(0.6),
                           width: isDark ? 2.5 : 1.5,
                         ),
@@ -548,24 +509,22 @@ class _NotificationItemWidget extends StatelessWidget {
                   },
                 ),
                 const SizedBox(width: 16),
-                // Content
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Message
                       Builder(
                         builder: (context) {
                           final isDark = Theme.of(context).brightness == Brightness.dark;
                           return Text(
                             notification.message,
                             style: TextStyle(
-                              fontWeight: notification.isRead 
-                                  ? FontWeight.w500 
+                              fontWeight: notification.isRead
+                                  ? FontWeight.w500
                                   : FontWeight.bold,
                               fontSize: 14,
-                              color: isDark 
-                                  ? (notification.isRead ? Colors.white.withOpacity(0.9) : Colors.white) 
+                              color: isDark
+                                  ? (notification.isRead ? Colors.white.withOpacity(0.9) : Colors.white)
                                   : const Color(0xFF1F2937),
                               height: 1.4,
                               shadows: isDark && !notification.isRead ? [
@@ -580,7 +539,6 @@ class _NotificationItemWidget extends StatelessWidget {
                         },
                       ),
                       const SizedBox(height: 6),
-                      // Time with icon
                       Builder(
                         builder: (context) {
                           final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -607,7 +565,6 @@ class _NotificationItemWidget extends StatelessWidget {
                     ],
                   ),
                 ),
-                // Unread indicator
                 if (!notification.isRead)
                   Builder(
                     builder: (context) {
@@ -653,11 +610,9 @@ class _NotificationItemWidget extends StatelessWidget {
       ),
     );
   }
-
   String _formatTime(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
-
     if (difference.inMinutes < 1) {
       return 'Vừa xong';
     } else if (difference.inMinutes < 60) {
@@ -675,5 +630,3 @@ class _NotificationItemWidget extends StatelessWidget {
     }
   }
 }
-
-

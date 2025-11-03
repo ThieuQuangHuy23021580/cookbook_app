@@ -8,14 +8,15 @@ import '../../models/comment_rating_model.dart';
 import '../../providers/recipe_provider.dart';
 import '../../providers/comment_provider.dart';
 import '../../providers/rating_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../repositories/recipe_repository.dart';
 import '../../constants/app_constants.dart';
 import '../profile/other_user_profile_screen.dart';
-
+import '../profile/user_profile_screen.dart';
 class PostDetailScreen extends StatefulWidget {
+
   final Post post;
   const PostDetailScreen({super.key, required this.post});
-
   @override
   State<PostDetailScreen> createState() => _PostDetailScreenState();
 }
@@ -30,28 +31,20 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   Recipe? _recipeDetail;
   final TextEditingController _commentController = TextEditingController();
   final TextEditingController _replyController = TextEditingController();
-  
-  // Track expanded state for replies of each comment
   final Map<int, bool> _expandedReplies = {};
-
   @override
   void initState() {
     super.initState();
     print('🚀 [POST DETAIL] Initializing PostDetailScreen for post ID: ${widget.post.id}');
     print('📊 [POST DETAIL] Initial likesCount from Post object: ${widget.post.savedCount} (this is savedCount, not likesCount)');
-    
-    // Load comments and ratings when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final recipeId = int.tryParse(widget.post.id);
       if (recipeId != null) {
         print('🔄 [POST DETAIL] Starting data loading for recipe ID: $recipeId');
         context.read<CommentProvider>().loadComments(recipeId);
         context.read<RatingProvider>().loadAllRatingData(recipeId);
-        // Load bookmark status
         _loadBookmarkStatus();
-        // Load like status (only isLiked, likesCount will be loaded from recipe detail)
         _loadLikeStatus();
-        // Load full recipe detail (will update likesCount) - đảm bảo load sau cùng để update likesCount
         print('📖 [POST DETAIL] Loading recipe detail (will update likesCount from API)...');
         await _loadRecipeDetail(recipeId);
         print('✅ [POST DETAIL] Data loading completed. Final likesCount: $_likesCount');
@@ -66,15 +59,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     setState(() {
       _isLoadingRecipe = true;
     });
-
     try {
       final recipeProvider = context.read<RecipeProvider>();
       final recipe = await recipeProvider.getRecipeById(recipeId);
-      
       if (mounted) {
         setState(() {
           _recipeDetail = recipe;
-          // Update likesCount từ recipe detail (nếu có)
           if (recipe != null) {
             final oldLikesCount = _likesCount;
             _likesCount = recipe.likesCount;
@@ -105,9 +95,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Future<void> _loadBookmarkStatus() async {
+
     final recipeId = int.tryParse(widget.post.id);
     if (recipeId == null) return;
-
     final recipeProvider = context.read<RecipeProvider>();
     _isBookmarked = recipeProvider.bookmarkedRecipeIds.contains(recipeId);
     if (mounted) {
@@ -116,63 +106,49 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Future<void> _loadLikeStatus() async {
+
     final recipeId = int.tryParse(widget.post.id);
     if (recipeId == null) {
       print('⚠️ [LIKE STATUS] Invalid recipe ID: ${widget.post.id}');
       return;
     }
-
     print('🔍 [LIKE STATUS] Loading like status for recipe $recipeId');
-
     final recipeProvider = context.read<RecipeProvider>();
     _isLiked = recipeProvider.likedRecipeIds.contains(recipeId);
     print('💡 [LIKE STATUS] Is liked: $_isLiked');
-    
-    // LikesCount sẽ được load từ _loadRecipeDetail()
-    // Chỉ load từ provider nếu có sẵn (tùy chọn) để có giá trị sớm hơn
     try {
-      // Thử tìm trong recipes list
       try {
         final recipe = recipeProvider.recipes.firstWhere((r) => r.id == recipeId);
         _likesCount = recipe.likesCount;
         print('✅ [LIKE STATUS] Found in recipes list, likesCount: $_likesCount');
       } catch (e) {
-        // Nếu không tìm thấy trong recipes, thử searchResults
         try {
           final recipe = recipeProvider.searchResults.firstWhere((r) => r.id == recipeId);
           _likesCount = recipe.likesCount;
           print('✅ [LIKE STATUS] Found in searchResults, likesCount: $_likesCount');
         } catch (e2) {
-          // Nếu không tìm thấy, để _loadRecipeDetail load sau
-          // Không set _likesCount = 0 ở đây vì sẽ được load từ recipe detail
           print('⚠️ [LIKE STATUS] Not found in provider lists, will load from API');
         }
       }
     } catch (e) {
-      // Không set _likesCount = 0 ở đây vì sẽ được load từ recipe detail
       print('⚠️ [LIKE STATUS] Error loading from provider: $e');
     }
-    
     if (mounted) {
       setState(() {});
     }
   }
 
   Future<void> _toggleBookmark() async {
+
     final recipeId = int.tryParse(widget.post.id);
     if (recipeId == null) return;
-
     setState(() {
       _isBookmarking = true;
     });
-
     try {
       final recipeProvider = context.read<RecipeProvider>();
       await recipeProvider.toggleBookmarkRecipe(recipeId);
-      
-      // Update local state
       _isBookmarked = recipeProvider.bookmarkedRecipeIds.contains(recipeId);
-      
       if (mounted) {
         setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(
@@ -209,48 +185,37 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Future<void> _toggleLike() async {
+
     final recipeId = int.tryParse(widget.post.id);
     if (recipeId == null) {
       print('⚠️ [TOGGLE LIKE] Invalid recipe ID: ${widget.post.id}');
       return;
     }
-
     print('❤️ [TOGGLE LIKE] Toggling like for recipe $recipeId');
     print('📊 [TOGGLE LIKE] Current state - isLiked: $_isLiked, likesCount: $_likesCount');
-
     setState(() {
       _isLiking = true;
     });
-
     try {
-      // Gọi trực tiếp API để lấy LikeResponse với likesCount mới nhất
       print('📤 [TOGGLE LIKE] Calling API: toggleLikeRecipe($recipeId)');
       final apiResponse = await RecipeRepository.toggleLikeRecipe(recipeId);
       print('📥 [TOGGLE LIKE] API Response - success: ${apiResponse.success}, message: ${apiResponse.message}');
-      
       if (apiResponse.success && apiResponse.data != null) {
-        // Update like status và likesCount từ API response
         final oldLiked = _isLiked;
         final oldLikesCount = _likesCount;
         _isLiked = apiResponse.data!.liked;
         _likesCount = apiResponse.data!.likesCount;
-        
         print('✅ [TOGGLE LIKE] Updated from API response:');
         print('   isLiked: $oldLiked → $_isLiked');
         print('   likesCount: $oldLikesCount → $_likesCount');
-        
-        // Update provider để sync với state
         final recipeProvider = context.read<RecipeProvider>();
         await recipeProvider.loadLikedRecipeIds();
         print('✅ [TOGGLE LIKE] Provider likedRecipeIds updated');
       } else {
-        // Fallback: dùng provider method nếu API trả về lỗi
         print('⚠️ [TOGGLE LIKE] API response failed, using fallback method');
         final recipeProvider = context.read<RecipeProvider>();
         await recipeProvider.toggleLikeRecipe(recipeId);
         _isLiked = recipeProvider.likedRecipeIds.contains(recipeId);
-        
-        // Load lại recipe detail để lấy likesCount
         print('📖 [TOGGLE LIKE] Reloading recipe detail to get updated likesCount...');
         final updatedRecipe = await recipeProvider.getRecipeById(recipeId);
         if (updatedRecipe != null) {
@@ -261,7 +226,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           print('⚠️ [TOGGLE LIKE] Failed to reload recipe detail');
         }
       }
-      
       if (mounted) {
         setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(
@@ -300,9 +264,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Future<void> _addComment() async {
+
     final recipeId = int.tryParse(widget.post.id);
     if (recipeId == null) return;
-
     final commentText = _commentController.text.trim();
     if (commentText.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -317,11 +281,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       );
       return;
     }
-
     try {
       final commentProvider = context.read<CommentProvider>();
       final response = await commentProvider.addComment(recipeId, commentText);
-      
       if (response.success) {
         _commentController.clear();
         if (mounted) {
@@ -367,9 +329,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   Future<void> _addReply(Comment parentComment) async {
+
     final recipeId = int.tryParse(widget.post.id);
     if (recipeId == null) return;
-
     final replyText = _replyController.text.trim();
     if (replyText.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -384,17 +346,15 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       );
       return;
     }
-
     try {
       final commentProvider = context.read<CommentProvider>();
       final response = await commentProvider.addComment(
-        recipeId, 
-        replyText, 
+        recipeId,
+        replyText,
         parentCommentId: parentComment.id,
         repliedToUserId: parentComment.userId,
         repliedToUserName: parentComment.userName,
       );
-      
       if (response.success) {
         _replyController.clear();
         if (mounted) {
@@ -474,7 +434,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   CircleAvatar(
                     radius: 20,
                     backgroundColor: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
-                  backgroundImage: comment.userAvatar != null 
+                  backgroundImage: comment.userAvatar != null
                       ? NetworkImage(ApiConfig.fixImageUrl(comment.userAvatar!))
                       : null,
                   child: comment.userAvatar == null
@@ -704,8 +664,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    // Set system UI overlay style to prevent status bar issues
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -714,7 +672,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       ),
     );
-    
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: PreferredSize(
@@ -762,7 +719,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 ),
               ),
               actions: [
-                // Like button
                 Container(
                   margin: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
@@ -771,7 +727,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     border: Border.all(color: Colors.white.withOpacity(0.3)),
                   ),
                   child: IconButton(
-                    icon: _isLiking 
+                    icon: _isLiking
                         ? const SizedBox(
                             width: 20,
                             height: 20,
@@ -781,13 +737,12 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                             ),
                           )
                         : Icon(
-                            _isLiked ? Icons.favorite : Icons.favorite_border, 
+                            _isLiked ? Icons.favorite : Icons.favorite_border,
                             color: _isLiked ? Colors.red[300] : Colors.white,
                           ),
                     onPressed: _isLiking ? null : _toggleLike,
                   ),
                 ),
-                // Bookmark button
                 Container(
                   margin: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
@@ -796,7 +751,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     border: Border.all(color: Colors.white.withOpacity(0.3)),
                   ),
                   child: IconButton(
-                    icon: _isBookmarking 
+                    icon: _isBookmarking
                         ? const SizedBox(
                             width: 20,
                             height: 20,
@@ -806,7 +761,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                             ),
                           )
                         : Icon(
-                            _isBookmarked ? Icons.bookmark : Icons.bookmark_border, 
+                            _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
                             color: Colors.white,
                           ),
                     onPressed: _isBookmarking ? null : _toggleBookmark,
@@ -849,7 +804,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       ),
       body: Stack(
         children: [
-          // Dynamic background with particles
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -857,9 +811,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 end: Alignment.bottomRight,
                 colors: isDark
                     ? [
-                        const Color(0xFF000000), // Pure black
-                        const Color(0xFF0A0A0A), // Very dark gray
-                        const Color(0xFF0F0F0F), // Slightly lighter dark gray
+                        const Color(0xFF000000),
+                        const Color(0xFF0A0A0A),
+                        const Color(0xFF0F0F0F),
                       ]
                     : [
                         const Color(0xFFFAFAFA),
@@ -869,8 +823,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ),
             ),
           ),
-          // Floating particles background
-          ...List.generate(10, (index) => 
+          ...List.generate(10, (index) =>
             Positioned(
               top: (index * 70.0) % MediaQuery.of(context).size.height,
               left: (index * 90.0) % MediaQuery.of(context).size.width,
@@ -888,11 +841,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ),
             ),
           ),
-          // Main content
           ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Author info card - Glassmorphism
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -961,13 +912,30 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Người đăng: ${widget.post.author}',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.white : const Color(0xFF1F2937),
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            'Người đăng: ',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white : const Color(0xFF1F2937),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => _navigateToAuthorProfile(),
+                            child: Text(
+                              widget.post.author,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFFEF3A16),
+                                decoration: TextDecoration.underline,
+                                decorationColor: const Color(0xFFEF3A16),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -984,7 +952,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          // Main image - 3D effect
           Container(
             height: 250,
             decoration: BoxDecoration(
@@ -1022,7 +989,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          // Title - Enhanced typography
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -1074,7 +1040,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          // Like count and Bookmark count - Modern design
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -1116,12 +1081,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             ),
             child: Row(
               children: [
-                // Like count
                 Expanded(
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      color: isDark 
+                      color: isDark
                           ? (_isLiked ? Colors.red.shade900.withOpacity(0.3) : const Color(0xFF0F0F0F))
                           : (_isLiked ? Colors.red.shade50.withOpacity(0.5) : const Color(0xFFF8FAFC)),
                       borderRadius: BorderRadius.circular(16),
@@ -1172,7 +1136,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Bookmark count
                 Expanded(
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1220,8 +1183,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                 ),
                               );
                             }
-                            
-                            // Find the recipe in the current list to get updated count
+
                             final recipe = recipeProvider.recipes.firstWhere(
                               (r) => r.id == recipeId,
                               orElse: () => recipeProvider.searchResults.firstWhere(
@@ -1240,7 +1202,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                 ),
                               ),
                             );
-                            
                             return Text(
                               '${recipe.bookmarksCount}',
                               style: TextStyle(
@@ -1260,7 +1221,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          // Ingredients section
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -1355,7 +1315,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          // Cooking steps section
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -1425,10 +1384,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          // Rating section
           _buildRatingSection(),
           const SizedBox(height: 20),
-          // Comments section
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -1490,9 +1447,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         ),
                       );
                     }
-                    
+
                     final comments = commentProvider.getCommentsForRecipe(int.tryParse(widget.post.id) ?? 0);
-                    
                     if (comments.isEmpty) {
                       return Container(
                         padding: const EdgeInsets.all(20),
@@ -1517,7 +1473,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         ),
                       );
                     }
-                    
+
                     return Column(
                       children: comments.map((comment) => _buildComment(comment)).toList(),
                     );
@@ -1533,10 +1489,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       ),
     );
   }
-
   Widget _buildStepCard(RecipeStep step) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -1551,7 +1505,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Step number and title
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1601,10 +1554,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ),
             ],
           ),
-          // Step images if available
           if (step.images.isNotEmpty) ...[
             const SizedBox(height: 12),
-            // Display images in a grid or horizontal scroll
             if (step.images.length == 1)
               _buildSingleStepImage(step.images.first)
             else if (step.images.length == 2)
@@ -1637,10 +1588,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       ),
     );
   }
-
   Widget _buildSingleStepImage(StepImage stepImage) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: Image.network(
@@ -1671,10 +1620,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       ),
     );
   }
-
   Widget _buildStepImageThumbnail(StepImage stepImage) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: Image.network(
@@ -1706,10 +1653,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       ),
     );
   }
-
   Widget _buildSimpleStepCard(int index, String stepText) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -1772,11 +1717,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       ),
     );
   }
-
   Widget _buildRatingSection() {
     final recipeId = int.tryParse(widget.post.id) ?? 0;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1820,7 +1763,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         builder: (context, ratingProvider, child) {
           final myRating = ratingProvider.getMyRating(recipeId);
           final stats = ratingProvider.getRatingStats(recipeId);
-          
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1833,8 +1775,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              
-              // Average rating display
               if (stats != null) ...[
                 Row(
                   children: [
@@ -1903,8 +1843,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 const Divider(),
                 const SizedBox(height: 20),
               ],
-              
-              // User's rating
               Text(
                 'Đánh giá của bạn',
                 style: TextStyle(
@@ -1914,14 +1852,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              
-              // Star rating input
               Row(
                 children: List.generate(5, (index) {
                   final starValue = index + 1;
                   final isSelected = myRating != null && starValue <= myRating.rating;
                   final hasRated = myRating != null;
-                  
                   return GestureDetector(
                     onTap: hasRated ? null : () => _rateRecipe(recipeId, starValue),
                     child: Container(
@@ -1929,9 +1864,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       child: Icon(
                         isSelected ? Icons.star : Icons.star_border,
                         size: 40,
-                        color: isSelected 
+                        color: isSelected
                             ? const Color(0xFFFFA500)
-                            : (hasRated 
+                            : (hasRated
                                 ? const Color(0xFFE2E8F0).withOpacity(0.5)
                                 : const Color(0xFFE2E8F0)),
                       ),
@@ -1939,7 +1874,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   );
                 }),
               ),
-              
               if (myRating != null) ...[
                 const SizedBox(height: 12),
                 Container(
@@ -2006,29 +1940,18 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   Future<void> _rateRecipe(int recipeId, int rating) async {
     print('⭐ [RATING] User rating: $rating stars for recipe $recipeId');
-    
     final ratingProvider = context.read<RatingProvider>();
     final response = await ratingProvider.addRating(recipeId, rating);
-    
     if (!mounted) return;
-    
     if (response.success) {
       print('✅ [RATING] Rating successful, reloading stats...');
-      
-      // Reload rating stats to get updated average
       await ratingProvider.loadRatingStats(recipeId);
-      
-      // Also reload the recipe detail to update the display
       _loadRecipeDetail(recipeId);
-      
-      // Reload all recipes to update the list
       context.read<RecipeProvider>().loadRecipes();
       context.read<RecipeProvider>().loadMyRecipes();
-      
       print('✅ [RATING] Stats reloaded');
       print('📊 [RATING] New average: ${response.data?.averageRating}');
       print('📊 [RATING] Total ratings: ${response.data?.ratingsCount}');
-      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Đã đánh giá $rating sao!'),
@@ -2052,11 +1975,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       );
     }
   }
-
-
   Widget _buildComment(Comment comment) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -2076,7 +1996,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               CircleAvatar(
                 radius: 20,
                 backgroundColor: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
-                backgroundImage: comment.userAvatar != null 
+                backgroundImage: comment.userAvatar != null
                     ? NetworkImage(ApiConfig.fixImageUrl(comment.userAvatar!))
                     : null,
                 child: comment.userAvatar == null
@@ -2103,7 +2023,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ),
             ],
           ),
-          // Reply button
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -2127,7 +2046,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ),
             ],
           ),
-          // Render replies if they exist
           if (comment.replies.isNotEmpty) ...[
             const SizedBox(height: 12),
             _buildRepliesSection(comment),
@@ -2136,16 +2054,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       ),
     );
   }
-
   Widget _buildRepliesSection(Comment comment) {
     final isExpanded = _expandedReplies[comment.id] ?? false;
     final totalReplies = comment.replies.length;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Toggle button - YouTube style
         InkWell(
           onTap: () {
             setState(() {
@@ -2165,8 +2080,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  isExpanded 
-                      ? 'Ẩn câu trả lời' 
+                  isExpanded
+                      ? 'Ẩn câu trả lời'
                       : '$totalReplies câu trả lời',
                   style: const TextStyle(
                     fontSize: 13,
@@ -2178,8 +2093,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             ),
           ),
         ),
-        
-        // Replies list - chỉ hiện khi expanded
         if (isExpanded) ...[
           const SizedBox(height: 8),
           Container(
@@ -2198,7 +2111,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     CircleAvatar(
                       radius: 16,
                       backgroundColor: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFE2E8F0),
-                      backgroundImage: reply.userAvatar != null 
+                      backgroundImage: reply.userAvatar != null
                           ? NetworkImage(ApiConfig.fixImageUrl(reply.userAvatar!))
                           : null,
                       child: reply.userAvatar == null
@@ -2232,11 +2145,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       ],
     );
   }
-
   Widget _buildCommentText(Comment comment) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    // Hiển thị text comment với @username nếu có
     if (comment.repliedToUserName != null && comment.repliedToUserName!.isNotEmpty) {
       return GestureDetector(
         onTap: () {
@@ -2268,7 +2178,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         ),
       );
     }
-    
+
     return Text(
       comment.comment,
       style: TextStyle(
@@ -2287,6 +2197,76 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     );
   }
 
+  Future<void> _navigateToAuthorProfile() async {
+
+    final recipeId = int.tryParse(widget.post.id);
+    if (recipeId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không thể tải thông tin tác giả'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    int? authorUserId = _recipeDetail?.userId;
+    if (authorUserId == null) {
+      final recipeProvider = context.read<RecipeProvider>();
+      try {
+        final recipe = recipeProvider.recipes.firstWhere(
+          (r) => r.id == recipeId,
+          orElse: () {
+            try {
+              return recipeProvider.searchResults.firstWhere((r) => r.id == recipeId);
+            } catch (e) {
+              throw Exception('Not found');
+            }
+          },
+        );
+        authorUserId = recipe.userId;
+        print('✅ [AUTHOR PROFILE] Found userId from provider: $authorUserId');
+      } catch (e) {
+        print('⚠️ [AUTHOR PROFILE] Not found in provider, loading recipe detail...');
+        try {
+          await _loadRecipeDetail(recipeId);
+          authorUserId = _recipeDetail?.userId;
+          print('✅ [AUTHOR PROFILE] Loaded userId from API: $authorUserId');
+        } catch (e2) {
+          print('❌ [AUTHOR PROFILE] Failed to load recipe detail: $e2');
+        }
+      }
+    }
+    if (authorUserId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Không thể tải thông tin tác giả'),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+
+    final authProvider = context.read<AuthProvider>();
+    final currentUser = authProvider.currentUser;
+    if (!mounted) return;
+    if (currentUser != null && currentUser.id == authorUserId) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const UserProfileScreen(),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OtherUserProfileScreen(userId: authorUserId!),
+        ),
+      );
+    }
+  }
 }
-
-

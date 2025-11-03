@@ -7,7 +7,6 @@ class NotificationProvider with ChangeNotifier {
   int _unreadCount = 0;
   bool _isLoading = false;
   String? _error;
-
   List<AppNotification> get notifications => _notifications;
   int get unreadCount => _unreadCount;
   bool get isLoading => _isLoading;
@@ -18,7 +17,6 @@ class NotificationProvider with ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
-
     try {
       final response = await NotificationRepository.getNotifications();
       if (response.success) {
@@ -53,10 +51,8 @@ class NotificationProvider with ChangeNotifier {
     try {
       final response = await NotificationRepository.markAsRead(notificationId);
       if (response.success) {
-        // Update local state
         final index = _notifications.indexWhere((n) => n.id == notificationId);
         if (index != -1) {
-          // Create new notification with isRead = true
           final updatedNotification = AppNotification(
             id: _notifications[index].id,
             userId: _notifications[index].userId,
@@ -88,7 +84,9 @@ class NotificationProvider with ChangeNotifier {
   /// Delete notification
   Future<bool> deleteNotification(int notificationId) async {
     try {
-      final response = await NotificationRepository.deleteNotification(notificationId);
+      final response = await NotificationRepository.deleteNotification(
+        notificationId,
+      );
       if (response.success) {
         _notifications.removeWhere((n) => n.id == notificationId);
         _updateUnreadCount();
@@ -113,7 +111,6 @@ class NotificationProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Clear all data
   void clear() {
     _notifications = [];
     _unreadCount = 0;
@@ -122,4 +119,3 @@ class NotificationProvider with ChangeNotifier {
     notifyListeners();
   }
 }
-

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import 'dart:ui';
+import 'forgot_password_screen.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
-
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
@@ -16,10 +16,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
-
   late AnimationController _animationController;
   Animation<double> _animation = const AlwaysStoppedAnimation(0.0);
-
   @override
   void initState() {
     super.initState();
@@ -27,14 +25,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       duration: const Duration(seconds: 3),
       vsync: this,
     );
-    _animation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeInOut,
-      ),
+    _animation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _animationController.repeat(reverse: true);
   }
@@ -49,18 +41,15 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() {
       _isLoading = true;
     });
-
     try {
       final authProvider = context.read<AuthProvider>();
       final response = await authProvider.login(
         username: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-
       if (response.success) {
         if (mounted) {
           Navigator.pushReplacementNamed(context, '/main');
@@ -78,10 +67,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -98,7 +84,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     return Scaffold(
       body: Stack(
         children: [
-          // Animated Background
           AnimatedBuilder(
             animation: _animation,
             builder: (context, child) {
@@ -130,8 +115,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               );
             },
           ),
-
-          // Floating Particles
           ...List.generate(20, (index) {
             return Positioned(
               left: (index * 50.0) % MediaQuery.of(context).size.width,
@@ -140,10 +123,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 animation: _animation,
                 builder: (context, child) {
                   return Transform.translate(
-                    offset: Offset(
-                      0,
-                      -30 * _animation.value,
-                    ),
+                    offset: Offset(0, -30 * _animation.value),
                     child: Opacity(
                       opacity: (1 - _animation.value) * 0.6,
                       child: Container(
@@ -160,14 +140,11 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               ),
             );
           }),
-
-          // Content
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  // Back Button
                   Align(
                     alignment: Alignment.centerLeft,
                     child: IconButton(
@@ -181,8 +158,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                       ),
                     ),
                   ),
-
-                  // Logo/Title
                   Container(
                     width: 100,
                     height: 100,
@@ -216,9 +191,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 15),
-
                   const Text(
                     'CookBook',
                     style: TextStyle(
@@ -239,27 +212,19 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 35),
-
                   const Text(
                     'Đăng nhập để tiếp tục',
-                    style: TextStyle(
-                      fontSize: 17,
-                      color: Colors.white,
-                    ),
+                    style: TextStyle(fontSize: 17, color: Colors.white),
                   ),
-                  
                   const SizedBox(height: 20),
-                  
-                  // Login Form - Glass Effect
                   ClipRRect(
                     borderRadius: BorderRadius.circular(24),
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                       child: Container(
-                    padding: const EdgeInsets.all(30),
-                    decoration: BoxDecoration(
+                        padding: const EdgeInsets.all(30),
+                        decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -273,9 +238,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                             color: Colors.white.withOpacity(0.6),
                             width: 2,
                           ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
                               blurRadius: 20,
                               offset: const Offset(0, 10),
                             ),
@@ -283,14 +248,13 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                               color: Colors.white.withOpacity(0.1),
                               blurRadius: 20,
                               offset: const Offset(-5, -5),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
                         child: Form(
                           key: _formKey,
                           child: Column(
                             children: [
-                              // Email Field with nested ClipRRect
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(16),
                                 child: Container(
@@ -300,11 +264,13 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                   ),
                                   child: Column(
                                     children: [
-                                      // Inner ClipRRect with glass effect for TextField
                                       ClipRRect(
                                         borderRadius: BorderRadius.circular(16),
                                         child: BackdropFilter(
-                                          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                                          filter: ImageFilter.blur(
+                                            sigmaX: 5,
+                                            sigmaY: 5,
+                                          ),
                                           child: Container(
                                             decoration: BoxDecoration(
                                               gradient: LinearGradient(
@@ -315,19 +281,24 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                                   Colors.white.withOpacity(0.6),
                                                 ],
                                               ),
-                                              borderRadius: BorderRadius.circular(16),
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
                                               border: Border.all(
-                                                color: Colors.white.withOpacity(0.8),
+                                                color: Colors.white.withOpacity(
+                                                  0.8,
+                                                ),
                                                 width: 1.5,
                                               ),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: Colors.black.withOpacity(0.1),
+                                                  color: Colors.black
+                                                      .withOpacity(0.1),
                                                   blurRadius: 15,
                                                   offset: const Offset(0, 8),
                                                 ),
                                                 BoxShadow(
-                                                  color: Colors.white.withOpacity(0.3),
+                                                  color: Colors.white
+                                                      .withOpacity(0.3),
                                                   blurRadius: 10,
                                                   offset: const Offset(-2, -2),
                                                 ),
@@ -335,7 +306,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                             ),
                                             child: TextFormField(
                                               controller: _emailController,
-                                              keyboardType: TextInputType.emailAddress,
+                                              keyboardType:
+                                                  TextInputType.emailAddress,
                                               style: const TextStyle(
                                                 color: Color(0xFF0F172A),
                                                 fontWeight: FontWeight.w600,
@@ -353,16 +325,20 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                                   color: Color(0xFFEF3A16),
                                                 ),
                                                 border: InputBorder.none,
-                                                contentPadding: const EdgeInsets.symmetric(
-                                                  horizontal: 20,
-                                                  vertical: 16,
-                                                ),
+                                                contentPadding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 20,
+                                                      vertical: 16,
+                                                    ),
                                                 filled: true,
                                                 fillColor: Colors.transparent,
-                                                errorStyle: const TextStyle(height: 0),
+                                                errorStyle: const TextStyle(
+                                                  height: 0,
+                                                ),
                                               ),
                                               validator: (value) {
-                                                if (value == null || value.isEmpty) {
+                                                if (value == null ||
+                                                    value.isEmpty) {
                                                   return 'Vui lòng nhập email';
                                                 }
                                                 if (!value.contains('@')) {
@@ -374,8 +350,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                           ),
                                         ),
                                       ),
-                                      
-                                      // Error message outside inner ClipRRect (no glass effect)
                                       ValueListenableBuilder<TextEditingValue>(
                                         valueListenable: _emailController,
                                         builder: (context, value, child) {
@@ -385,10 +359,12 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                               error = 'Email không hợp lệ';
                                             }
                                           }
-                                          
                                           if (error != null) {
                                             return Padding(
-                                              padding: const EdgeInsets.only(top: 8, left: 4),
+                                              padding: const EdgeInsets.only(
+                                                top: 8,
+                                                left: 4,
+                                              ),
                                               child: Text(
                                                 error,
                                                 style: const TextStyle(
@@ -406,10 +382,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                   ),
                                 ),
                               ),
-                          
-                          const SizedBox(height: 20),
-                          
-                          // Password Field with nested ClipRRect
+                              const SizedBox(height: 20),
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(16),
                                 child: Container(
@@ -419,11 +392,13 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                   ),
                                   child: Column(
                                     children: [
-                                      // Inner ClipRRect with glass effect for TextField
                                       ClipRRect(
                                         borderRadius: BorderRadius.circular(16),
                                         child: BackdropFilter(
-                                          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                                          filter: ImageFilter.blur(
+                                            sigmaX: 5,
+                                            sigmaY: 5,
+                                          ),
                                           child: Container(
                                             decoration: BoxDecoration(
                                               gradient: LinearGradient(
@@ -434,19 +409,24 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                                   Colors.white.withOpacity(0.6),
                                                 ],
                                               ),
-                                              borderRadius: BorderRadius.circular(16),
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
                                               border: Border.all(
-                                                color: Colors.white.withOpacity(0.8),
+                                                color: Colors.white.withOpacity(
+                                                  0.8,
+                                                ),
                                                 width: 1.5,
                                               ),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: Colors.black.withOpacity(0.1),
+                                                  color: Colors.black
+                                                      .withOpacity(0.1),
                                                   blurRadius: 15,
                                                   offset: const Offset(0, 8),
                                                 ),
                                                 BoxShadow(
-                                                  color: Colors.white.withOpacity(0.3),
+                                                  color: Colors.white
+                                                      .withOpacity(0.3),
                                                   blurRadius: 10,
                                                   offset: const Offset(-2, -2),
                                                 ),
@@ -474,27 +454,36 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                                 suffixIcon: IconButton(
                                                   icon: Icon(
                                                     _isPasswordVisible
-                                                        ? Icons.visibility_outlined
-                                                        : Icons.visibility_off_outlined,
-                                                    color: const Color(0xFF64748B),
+                                                        ? Icons
+                                                              .visibility_outlined
+                                                        : Icons
+                                                              .visibility_off_outlined,
+                                                    color: const Color(
+                                                      0xFF64748B,
+                                                    ),
                                                   ),
                                                   onPressed: () {
                                                     setState(() {
-                                                      _isPasswordVisible = !_isPasswordVisible;
+                                                      _isPasswordVisible =
+                                                          !_isPasswordVisible;
                                                     });
                                                   },
                                                 ),
                                                 border: InputBorder.none,
-                                                contentPadding: const EdgeInsets.symmetric(
-                                                  horizontal: 20,
-                                                  vertical: 16,
-                                                ),
+                                                contentPadding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 20,
+                                                      vertical: 16,
+                                                    ),
                                                 filled: true,
                                                 fillColor: Colors.transparent,
-                                                errorStyle: const TextStyle(height: 0),
+                                                errorStyle: const TextStyle(
+                                                  height: 0,
+                                                ),
                                               ),
                                               validator: (value) {
-                                                if (value == null || value.isEmpty) {
+                                                if (value == null ||
+                                                    value.isEmpty) {
                                                   return 'Vui lòng nhập mật khẩu';
                                                 }
                                                 if (value.length < 6) {
@@ -506,21 +495,22 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                           ),
                                         ),
                                       ),
-                                      
-                                      // Error message outside inner ClipRRect (no glass effect)
                                       ValueListenableBuilder<TextEditingValue>(
                                         valueListenable: _passwordController,
                                         builder: (context, value, child) {
                                           String? error;
                                           if (value.text.isNotEmpty) {
                                             if (value.text.length < 6) {
-                                              error = 'Mật khẩu phải có ít nhất 6 ký tự';
+                                              error =
+                                                  'Mật khẩu phải có ít nhất 6 ký tự';
                                             }
                                           }
-                                          
                                           if (error != null) {
                                             return Padding(
-                                              padding: const EdgeInsets.only(top: 8, left: 4),
+                                              padding: const EdgeInsets.only(
+                                                top: 8,
+                                                left: 4,
+                                              ),
                                               child: Text(
                                                 error,
                                                 style: const TextStyle(
@@ -538,78 +528,68 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                   ),
                                 ),
                               ),
-                          
-                          const SizedBox(height: 5),
-                          
-                          // Forgot Password
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Tính năng quên mật khẩu đang phát triển'),
-                                  ),
-                                );
-                              },
-                              child: const Text(
-                                'Quên mật khẩu?',
-                                style: TextStyle(
-                                  color: Color(0xFFEF3A16),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ),
-                          
-                          const SizedBox(height: 20),
-                          
-                          // Login Button
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: _isLoading ? null : _handleLogin,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFEF3A16),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                elevation: 2,
-                              ),
-                              child: _isLoading
-                                  ? const CircularProgressIndicator(
-                                      color: Colors.white,
-                                    )
-                                  : const Text(
-                                      'Đăng nhập',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
+                              const SizedBox(height: 5),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const ForgotPasswordScreen(),
                                       ),
+                                    );
+                                  },
+                                  child: const Text(
+                                    'Quên mật khẩu?',
+                                    style: TextStyle(
+                                      color: Color(0xFFEF3A16),
+                                      fontWeight: FontWeight.w500,
                                     ),
-                            ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 50,
+                                child: ElevatedButton(
+                                  onPressed: _isLoading ? null : _handleLogin,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFEF3A16),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    elevation: 2,
+                                  ),
+                                  child: _isLoading
+                                      ? const CircularProgressIndicator(
+                                          color: Colors.white,
+                                        )
+                                      : const Text(
+                                          'Đăng nhập',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
-                    ),
-                  ),
-                  
                   const SizedBox(height: 20),
-                  
-                  // Register Link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text(
                         'Chưa có tài khoản? ',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
+                        style: TextStyle(color: Colors.white, fontSize: 16),
                       ),
                       TextButton(
                         onPressed: () {

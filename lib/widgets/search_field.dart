@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
-
 class SearchField extends StatelessWidget {
+
   final String hint;
   final ValueChanged<String>? onSubmitted;
   final VoidCallback? onFilterPressed;
   const SearchField({
-    super.key, 
-    this.hint = 'Tìm món, nguyên liệu...', 
+    super.key,
+    this.hint = 'Tìm món, nguyên liệu...',
     this.onSubmitted,
     this.onFilterPressed,
   });
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Container(
       height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -70,5 +68,3 @@ class SearchField extends StatelessWidget {
     );
   }
 }
-
-

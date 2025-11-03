@@ -5,65 +5,54 @@ import '../../models/post_model.dart';
 import '../../models/recipe_model.dart';
 import '../../providers/recipe_provider.dart';
 import 'post_detail_screen.dart';
-
 class SearchResultsScreen extends StatefulWidget {
+
   final String initialQuery;
   final List<String>? includeIngredients;
   final List<String>? excludeIngredients;
   const SearchResultsScreen({
-    super.key, 
+    super.key,
     required this.initialQuery,
     this.includeIngredients,
     this.excludeIngredients,
   });
-
   @override
   State<SearchResultsScreen> createState() => _SearchResultsScreenState();
 }
 
 class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTickerProviderStateMixin {
+
   late TabController _tabController;
   int _pageNewest = 1;
   int _pagePopular = 1;
   List<Recipe> _filteredResults = [];
-
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    
     print('🔍 [SEARCH RESULTS] Initialized with:');
     print('   initialQuery: "${widget.initialQuery}"');
     print('   includeIngredients: ${widget.includeIngredients}');
     print('   excludeIngredients: ${widget.excludeIngredients}');
-    
-    // Search for recipes when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _performSearch();
     });
   }
 
   Future<void> _performSearch() async {
+
     final recipeProvider = context.read<RecipeProvider>();
-    
-    // If has ingredient filters, use filter API
     if (widget.includeIngredients != null || widget.excludeIngredients != null) {
       print('🔍 [SEARCH] Using ingredient filter API');
       print('   Include: ${widget.includeIngredients}');
       print('   Exclude: ${widget.excludeIngredients}');
-      
       await recipeProvider.filterByIngredients(
         includeIngredients: widget.includeIngredients,
         excludeIngredients: widget.excludeIngredients,
       );
-      
       if (!mounted) return;
-      
-      // Get results from provider
       final allResults = recipeProvider.searchResults;
       print('✅ [SEARCH] Got ${allResults.length} results from filter API');
-      
-      // If also has title query, filter results by title on client-side
       if (widget.initialQuery.isNotEmpty) {
         final filteredResults = allResults.where((recipe) {
           return recipe.title.toLowerCase().contains(widget.initialQuery.toLowerCase());
@@ -75,7 +64,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
           });
         }
       } else {
-        // Only ingredient filter, no title search
         if (mounted) {
           setState(() {
             _filteredResults = allResults;
@@ -83,18 +71,14 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
         }
       }
     } else if (widget.initialQuery.isNotEmpty) {
-      // Only title search, no ingredient filter
       print('🔍 [SEARCH] Using title search API: "${widget.initialQuery}"');
       await recipeProvider.searchRecipes(widget.initialQuery);
       if (mounted) {
-        // For title-only search, use provider results directly
-        // Don't set _filteredResults so it uses recipeProvider.searchResults
         setState(() {
           _filteredResults = [];
         });
       }
     } else {
-      // No search query and no filters - show empty
       print('⚠️ [SEARCH] No search query and no filters');
       if (mounted) {
         setState(() {
@@ -112,27 +96,23 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
 
   @override
   Widget build(BuildContext context) {
-    // Set system UI overlay style
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Theme.of(context).brightness == Brightness.dark 
-            ? Brightness.light 
+        statusBarIconBrightness: Theme.of(context).brightness == Brightness.dark
+            ? Brightness.light
             : Brightness.dark,
         systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarIconBrightness: Theme.of(context).brightness == Brightness.dark 
-            ? Brightness.light 
+        systemNavigationBarIconBrightness: Theme.of(context).brightness == Brightness.dark
+            ? Brightness.light
             : Brightness.dark,
       ),
     );
-    
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // Dynamic background with particles
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -140,9 +120,9 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                 end: Alignment.bottomRight,
                 colors: isDark
                     ? [
-                        const Color(0xFF000000), // Pure black
-                        const Color(0xFF0A0A0A), // Very dark gray
-                        const Color(0xFF0F0F0F), // Slightly lighter dark gray
+                        const Color(0xFF000000),
+                        const Color(0xFF0A0A0A),
+                        const Color(0xFF0F0F0F),
                       ]
                     : [
                         const Color(0xFFFAFAFA),
@@ -152,8 +132,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
               ),
             ),
           ),
-          // Floating particles background
-          ...List.generate(15, (index) => 
+          ...List.generate(15, (index) =>
             Positioned(
               top: (index * 50.0) % MediaQuery.of(context).size.height,
               left: (index * 70.0) % MediaQuery.of(context).size.width,
@@ -171,12 +150,9 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
               ),
             ),
           ),
-
-          // Main Content
           SafeArea(
             child: Column(
               children: [
-                // Custom App Bar with Glass Effect
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                   decoration: BoxDecoration(
@@ -204,7 +180,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                   ),
                   child: Row(
                     children: [
-                      // Back Button
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.2),
@@ -230,13 +205,12 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                         ),
                       ),
                       const SizedBox(width: 16),
-                      // Search Query Display
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              widget.initialQuery.isNotEmpty 
+                              widget.initialQuery.isNotEmpty
                                   ? 'Kết quả cho "${widget.initialQuery}"'
                                   : 'Kết quả tìm kiếm',
                               style: const TextStyle(
@@ -259,8 +233,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                     ],
                   ),
                 ),
-
-                // Tab Bar
                 Container(
                   decoration: BoxDecoration(
                     color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.8),
@@ -294,14 +266,12 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                     ],
                   ),
                 ),
-
-                // Tab Content
                 Expanded(
                   child: TabBarView(
                     controller: _tabController,
                     children: [
-                      _buildTabContent(true), // Newest
-                      _buildTabContent(false), // Popular
+                      _buildTabContent(true),
+                      _buildTabContent(false),
                     ],
                   ),
                 ),
@@ -312,28 +282,21 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
       ),
     );
   }
-
   Widget _buildTabContent(bool isNewest) {
     return Consumer<RecipeProvider>(
       builder: (context, recipeProvider, child) {
-        // Use filtered results if we have ingredient filters (with or without title query)
-        // Otherwise use provider search results (for title-only search)
-        final hasIngredientFilters = (widget.includeIngredients != null && widget.includeIngredients!.isNotEmpty) 
+        final hasIngredientFilters = (widget.includeIngredients != null && widget.includeIngredients!.isNotEmpty)
             || (widget.excludeIngredients != null && widget.excludeIngredients!.isNotEmpty);
-        final resultsToUse = hasIngredientFilters 
-            ? _filteredResults 
-            : (widget.initialQuery.isNotEmpty 
-                ? recipeProvider.searchResults 
+        final resultsToUse = hasIngredientFilters
+            ? _filteredResults
+            : (widget.initialQuery.isNotEmpty
+                ? recipeProvider.searchResults
                 : []);
-        
-        // Debug log
         print('📊 [BUILD TAB] hasIngredientFilters: $hasIngredientFilters');
         print('   _filteredResults.length: ${_filteredResults.length}');
         print('   recipeProvider.searchResults.length: ${recipeProvider.searchResults.length}');
         print('   resultsToUse.length: ${resultsToUse.length}');
-        
         final isDark = Theme.of(context).brightness == Brightness.dark;
-        
         if (recipeProvider.isSearching) {
           return Center(
             child: CircularProgressIndicator(
@@ -343,7 +306,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
             ),
           );
         }
-        
         if (recipeProvider.searchError != null) {
           return Center(
             child: Column(
@@ -377,7 +339,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
             ),
           );
         }
-        
         if (resultsToUse.isEmpty) {
           return Center(
             child: Column(
@@ -409,7 +370,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
             ),
           );
         }
-        
         return _pagedList(
           recipes: resultsToUse,
           isNewest: isNewest,
@@ -436,31 +396,25 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
       },
     );
   }
-
   Widget _pagedList({required List<dynamic> recipes, required bool isNewest, required int page, required VoidCallback onPrev, required VoidCallback onNext}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    // Sort recipes based on tab
     final sortedRecipes = List<dynamic>.from(recipes);
     if (isNewest) {
-      // Sắp xếp theo thời gian tạo (mới nhất trước)
       sortedRecipes.sort((a, b) {
         final aDate = a.createdAt ?? DateTime(1970);
         final bDate = b.createdAt ?? DateTime(1970);
-        return bDate.compareTo(aDate); // Giảm dần: mới nhất trước
+        return bDate.compareTo(aDate);
       });
     } else {
-      // Sắp xếp theo số lượt thích (phổ biến - nhiều like trước)
       sortedRecipes.sort((a, b) => b.likesCount.compareTo(a.likesCount));
     }
-    
+
     final itemsPerPage = 10;
-    // final totalPages = (sortedRecipes.length / itemsPerPage).ceil();
     final startIndex = (page - 1) * itemsPerPage;
     final endIndex = (startIndex + itemsPerPage).clamp(0, sortedRecipes.length);
     final currentRecipes = sortedRecipes.sublist(startIndex, endIndex);
     return Column(
       children: [
-        // Recipe List
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -471,8 +425,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
             },
           ),
         ),
-        
-        // Pagination Controls
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -494,7 +446,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Previous Page Button
               SizedBox(
                 width: 100,
                 child: ElevatedButton.icon(
@@ -511,8 +462,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                   ),
                 ),
               ),
-              
-              // Page Number
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
@@ -538,8 +487,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                   ),
                 ),
               ),
-              
-              // Next Page Button
               SizedBox(
                 width: 100,
                 child: ElevatedButton.icon(
@@ -562,30 +509,27 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
       ],
     );
   }
-
   Widget _buildRecipeCard(dynamic recipe) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return GestureDetector(
       onTap: () {
-        // Convert recipe to Post format for PostDetailScreen
         final List<String> ingredientsList = [];
         for (var ing in recipe.ingredients) {
           ingredientsList.add(
             '${ing.name}${ing.quantity != null ? " ${ing.quantity}" : ""}${ing.unit != null ? " ${ing.unit}" : ""}'
           );
         }
-        
+
         final List<String> stepsList = [];
         for (var step in recipe.steps) {
           stepsList.add(step.title);
         }
-        
+
         final post = Post(
           id: recipe.id.toString(),
           title: recipe.title,
           author: recipe.userName ?? 'Unknown',
-          minutesAgo: recipe.createdAt != null 
+          minutesAgo: recipe.createdAt != null
               ? DateTime.now().difference(recipe.createdAt).inMinutes
               : 0,
           savedCount: recipe.bookmarksCount,
@@ -594,7 +538,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
           steps: stepsList,
           createdAt: recipe.createdAt,
         );
-        
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -655,7 +598,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  // Image with 3D effect
                   Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
@@ -696,7 +638,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                     ),
                   ),
                   const SizedBox(width: 16),
-                  // Content
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -722,7 +663,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            // Star rating
                             Row(
                               children: List.generate(5, (starIndex) {
                                 return Icon(
@@ -759,22 +699,18 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
                       ],
                     ),
                   ),
-                  // Bookmark button
                   Consumer<RecipeProvider>(
                     builder: (context, recipeProvider, child) {
                       final recipeId = recipe.id;
                       final isBookmarked = recipeProvider.bookmarkedRecipeIds.contains(recipeId);
-                      
                       return FutureBuilder<bool>(
                         future: Future.value(isBookmarked),
                         builder: (context, snapshot) {
                           final isBookmarkedValue = snapshot.data ?? false;
-                          
                           return IconButton(
                             onPressed: () async {
                               try {
                                 await recipeProvider.toggleBookmarkRecipe(recipeId);
-                                
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
@@ -821,7 +757,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
       ),
     );
   }
-
   String _buildFilterDescription() {
     final parts = <String>[];
     if (widget.includeIngredients != null && widget.includeIngredients!.isNotEmpty) {
@@ -833,5 +768,3 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> with SingleTi
     return parts.join(' | ');
   }
 }
-
-

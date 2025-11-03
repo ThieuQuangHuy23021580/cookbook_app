@@ -1,26 +1,22 @@
 import 'package:flutter/material.dart';
 import 'feed/feed_screen.dart';
 import 'library/library_screen.dart';
-
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
 
+  const MainScreen({super.key});
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
-
   final List<Widget> _screens = const [
     FeedScreen(),
     LibraryScreen(),
   ];
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Scaffold(
       body: _screens[_currentIndex],
       bottomNavigationBar: SafeArea(

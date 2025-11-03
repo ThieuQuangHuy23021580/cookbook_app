@@ -13,8 +13,6 @@ import 'screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Set system UI overlay style globally
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -23,16 +21,12 @@ void main() async {
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
-  
-  // Initialize AuthManager
   await AuthManager.initialize();
-  
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -65,14 +59,14 @@ class MyApp extends StatelessWidget {
               fontFamily: 'Montserrat',
               primarySwatch: Colors.orange,
               primaryColor: const Color(0xFFEF3A16),
-              scaffoldBackgroundColor: const Color(0xFF000000), // Pure black for professional look
+              scaffoldBackgroundColor: const Color(0xFF000000),
               brightness: Brightness.dark,
               appBarTheme: const AppBarTheme(
-                backgroundColor: Color(0xFF0A0A0A), // Very dark gray
+                backgroundColor: Color(0xFF0A0A0A),
                 foregroundColor: Colors.white,
                 elevation: 0,
               ),
-              cardColor: const Color(0xFF0F0F0F), // Very dark for cards
+              cardColor: const Color(0xFF0F0F0F),
               dividerColor: Colors.white.withOpacity(0.08),
               dialogBackgroundColor: const Color(0xFF0F0F0F),
               bottomNavigationBarTheme: const BottomNavigationBarThemeData(

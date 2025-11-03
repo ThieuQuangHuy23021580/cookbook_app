@@ -16,32 +16,51 @@ import 'chat_screen.dart';
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
-
   @override
   State<FeedScreen> createState() => _FeedScreenState();
 }
 
 class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
-  // ScrollController cho danh sách món gần đây
   final ScrollController _recentScrollController = ScrollController();
   AdaptiveBackgroundPolling? _backgroundPolling;
-  
-  // Search state
   String _currentSearchQuery = '';
-  
-  // Thời gian cập nhật thực tế
   Timer? _updateTimeTimer;
   String _currentTime = '';
-  
-  // Toolbar state
   bool _isToolbarExpanded = false;
-
-  // Danh sách từ dừng (stop words) để loại bỏ khi phân tích
   static const List<String> _stopWords = [
-    'món', 'bữa', 'ngày', 'đơn', 'thực', 'các', 'với', 'cho',
-    'của', 'và', 'thêm', 'kiểu', 'cách', 'làm', 'nấu', 'chế', 'biến',
-    'theo', 'phong', 'cách', 'miền', 'kiểu', 'đặc', 'sản', 'truyền',
-    'thống', 'gia', 'đình', 'nhà', 'hàng', 'quán', 'simple', 'easy',
+    'món',
+    'bữa',
+    'ngày',
+    'đơn',
+    'thực',
+    'các',
+    'với',
+    'cho',
+    'của',
+    'và',
+    'thêm',
+    'kiểu',
+    'cách',
+    'làm',
+    'nấu',
+    'chế',
+    'biến',
+    'theo',
+    'phong',
+    'cách',
+    'miền',
+    'kiểu',
+    'đặc',
+    'sản',
+    'truyền',
+    'thống',
+    'gia',
+    'đình',
+    'nhà',
+    'hàng',
+    'quán',
+    'simple',
+    'easy',
   ];
 
   /// Phân tích recipes để lấy từ khóa thịnh hành
@@ -50,56 +69,50 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
       print('⚠️ [TRENDING] No recipes available, using default keywords');
       return ['Thịt băm', 'Trứng', 'Cá', 'Đùi gà', 'Bánh', 'Phở'];
     }
-
-    print('📊 [TRENDING] Analyzing ${recipes.length} recipes for trending keywords...');
-    
-    // Map để đếm số lần xuất hiện của mỗi từ
+    print(
+      '📊 [TRENDING] Analyzing ${recipes.length} recipes for trending keywords...',
+    );
     Map<String, int> wordCount = {};
-
     for (var recipe in recipes) {
-      // Tách title thành các từ
       final words = recipe.title
           .toLowerCase()
           .trim()
-          .replaceAll(RegExp(r'[^\w\s\u00C0-\u1EF9]'), '') // Loại bỏ ký tự đặc biệt, giữ tiếng Việt
+          .replaceAll(RegExp(r'[^\w\s\u00C0-\u1EF9]'), '')
           .split(RegExp(r'\s+'));
-
       for (var word in words) {
         final cleanWord = word.trim();
-        
-        // Bỏ qua từ quá ngắn, từ dừng, và số
-        if (cleanWord.length <= 2 || 
+        if (cleanWord.length <= 2 ||
             _stopWords.contains(cleanWord) ||
             RegExp(r'^\d+$').hasMatch(cleanWord)) {
           continue;
         }
 
-        // Capitalize first letter
-        final capitalizedWord = cleanWord[0].toUpperCase() + cleanWord.substring(1);
+        final capitalizedWord =
+            cleanWord[0].toUpperCase() + cleanWord.substring(1);
         wordCount[capitalizedWord] = (wordCount[capitalizedWord] ?? 0) + 1;
       }
     }
 
-    // Sắp xếp theo số lần xuất hiện giảm dần và lấy top 6
     final sortedWords = wordCount.entries.toList()
       ..sort((a, b) {
-        // Ưu tiên từ xuất hiện nhiều hơn
         final countCompare = b.value.compareTo(a.value);
         if (countCompare != 0) return countCompare;
-        // Nếu bằng nhau thì sắp xếp theo alphabet
         return a.key.compareTo(b.key);
       });
-
-    // Lấy top 6 từ khóa, đảm bảo có ít nhất 2 lần xuất hiện
     final topKeywords = sortedWords
         .where((e) => e.value >= 2)
         .take(6)
         .map((e) => e.key)
         .toList();
-
-    // Nếu không đủ 6 từ khóa, thêm từ default
     if (topKeywords.length < 6) {
-      final defaultKeywords = ['Thịt băm', 'Trứng', 'Cá', 'Đùi gà', 'Bánh', 'Phở'];
+      final defaultKeywords = [
+        'Thịt băm',
+        'Trứng',
+        'Cá',
+        'Đùi gà',
+        'Bánh',
+        'Phở',
+      ];
       for (var keyword in defaultKeywords) {
         if (topKeywords.length >= 6) break;
         if (!topKeywords.contains(keyword)) {
@@ -107,7 +120,6 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
         }
       }
     }
-
     print('✅ [TRENDING] Top keywords: $topKeywords');
     if (sortedWords.isNotEmpty) {
       print('📈 [TRENDING] Top 10 with counts:');
@@ -115,36 +127,54 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
         print('   - ${entry.key}: ${entry.value} times');
       }
     }
-
     return topKeywords;
   }
 
   /// Lấy hình ảnh đại diện cho từ khóa
   String? _getKeywordImage(String keyword, List<Recipe> recipes) {
-    // Tìm recipe đầu tiên có chứa keyword trong title
     final recipe = recipes.firstWhere(
       (r) => r.title.toLowerCase().contains(keyword.toLowerCase()),
-      orElse: () => recipes.isNotEmpty ? recipes.first : Recipe(
-        id: 0,
-        title: '',
-        servings: 0,
-        userId: 0,
-        userName: '',
-      ),
+      orElse: () => recipes.isNotEmpty
+          ? recipes.first
+          : Recipe(id: 0, title: '', servings: 0, userId: 0, userName: ''),
     );
-    
     return recipe.imageUrl;
+  }
+
+  /// Preload images for trending keywords to improve performance
+  Future<void> _preloadTrendingImages(
+    List<String> keywords,
+    List<Recipe> recipes,
+  ) async {
+    if (!mounted) return;
+    print(
+      '🖼️ [IMAGE PRELOAD] Starting to preload ${keywords.length} trending keyword images...',
+    );
+    final imageUrls = <String>[];
+    for (var keyword in keywords) {
+      final imageUrl = _getKeywordImage(keyword, recipes);
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        imageUrls.add(imageUrl);
+      }
+    }
+    print('🖼️ [IMAGE PRELOAD] Found ${imageUrls.length} images to preload');
+    for (var imageUrl in imageUrls) {
+      if (!mounted) break;
+      try {
+        await precacheImage(NetworkImage(imageUrl), context);
+        print('✅ [IMAGE PRELOAD] Preloaded: $imageUrl');
+      } catch (e) {
+        print('⚠️ [IMAGE PRELOAD] Failed to preload $imageUrl: $e');
+      }
+    }
+    print('🖼️ [IMAGE PRELOAD] Finished preloading trending images');
   }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    
-    // Khởi tạo thời gian ngay lập tức
     _updateCurrentTime();
-    
-    // Cập nhật thời gian mỗi phút
     _updateTimeTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
       if (mounted) {
         setState(() {
@@ -152,8 +182,6 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
         });
       }
     });
-    
-    // Load data when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<RecipeProvider>().loadRecipes();
       context.read<RecipeProvider>().loadRecentlyViewedRecipes(limit: 9);
@@ -161,24 +189,21 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
       context.read<RecipeProvider>().loadBookmarkedRecipeIds();
       context.read<SearchHistoryProvider>().loadSearchHistory(limit: 10);
       context.read<NotificationProvider>().loadUnreadCount();
-      // Fetch backend trending keywords (non-blocking). Fallback to local logic in UI
       _loadBackendTrendingKeywords();
-      
-      // Start adaptive background polling with isolate
       _startBackgroundPolling();
     });
   }
-  
+
   /// Cập nhật thời gian hiện tại
   void _updateCurrentTime() {
     final now = DateTime.now();
-    _currentTime = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    _currentTime =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
   }
 
   List<String> _backendTrendingKeywords = [];
   bool _isLoadingTrending = false;
   String? _trendingError;
-
   Future<void> _loadBackendTrendingKeywords() async {
     print('🔍 [TRENDING] _loadBackendTrendingKeywords() called');
     if (!mounted) {
@@ -189,30 +214,50 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
       print('⚠️ [TRENDING] Already loading, skipping');
       return;
     }
-    
     print('✅ [TRENDING] Starting to load trending keywords from backend...');
-    setState(() { _isLoadingTrending = true; _trendingError = null; });
-    
+    setState(() {
+      _isLoadingTrending = true;
+      _trendingError = null;
+    });
     try {
       final token = AuthService.currentToken;
-      print('🔑 [TRENDING] Token: ${token != null ? "Present (${token.substring(0, 20)}...)" : "NULL"}');
-      
-      print('📤 [TRENDING] Calling ApiService.getTrendingKeywords(days: 7, limit: 6)...');
-      final res = await ApiService.getTrendingKeywords(token: token, days: 7, limit: 6);
-      
+      print(
+        '🔑 [TRENDING] Token: ${token != null ? "Present (${token.substring(0, 20)}...)" : "NULL"}',
+      );
+      print(
+        '📤 [TRENDING] Calling ApiService.getTrendingKeywords(days: 7, limit: 6)...',
+      );
+      final res = await ApiService.getTrendingKeywords(
+        token: token,
+        days: 7,
+        limit: 6,
+      );
       if (!mounted) {
         print('⚠️ [TRENDING] Not mounted after API call, skipping update');
         return;
       }
-      
-      print('📥 [TRENDING] API Response: success=${res.success}, data=${res.data?.length ?? 0} items, message=${res.message}');
-      
+      print(
+        '📥 [TRENDING] API Response: success=${res.success}, data=${res.data?.length ?? 0} items, message=${res.message}',
+      );
       if (res.success && res.data != null && res.data!.isNotEmpty) {
-        print('✅ [TRENDING] Successfully loaded ${res.data!.length} trending keywords: ${res.data}');
-        setState(() { _backendTrendingKeywords = res.data!; });
+        print(
+          '✅ [TRENDING] Successfully loaded ${res.data!.length} trending keywords: ${res.data}',
+        );
+        setState(() {
+          _backendTrendingKeywords = res.data!;
+        });
+        if (mounted) {
+          final recipeProvider = context.read<RecipeProvider>();
+          if (recipeProvider.recipes.isEmpty) {
+            await recipeProvider.loadRecipes();
+          }
+          _preloadTrendingImages(res.data!, recipeProvider.recipes);
+        }
       } else if (!res.success) {
         print('❌ [TRENDING] API call failed: ${res.message}');
-        setState(() { _trendingError = res.message; });
+        setState(() {
+          _trendingError = res.message;
+        });
       } else {
         print('⚠️ [TRENDING] API call succeeded but no data returned');
       }
@@ -220,59 +265,53 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
       print('❌ [TRENDING] Exception occurred: $e');
       print('❌ [TRENDING] Stack trace: $stackTrace');
       if (!mounted) return;
-      setState(() { _trendingError = e.toString(); });
+      setState(() {
+        _trendingError = e.toString();
+      });
     } finally {
       if (mounted) {
-        setState(() { _isLoadingTrending = false; });
+        setState(() {
+          _isLoadingTrending = false;
+        });
         print('🏁 [TRENDING] Loading finished');
       }
     }
   }
-  
+
   /// Start adaptive background polling using isolate (non-blocking)
   Future<void> _startBackgroundPolling() async {
     print('🚀 [FEED] Starting adaptive background polling with isolate');
-    
     _backgroundPolling = AdaptiveBackgroundPolling(
       onDataFetched: () {
         if (!mounted) return;
-        
-        // Fetch data in background isolate (won't block UI)
         _fetchDataInBackground();
       },
     );
-    
     await _backgroundPolling!.start();
     print('✅ [FEED] Background polling started');
   }
-  
+
   /// Fetch data in background without blocking UI
   Future<void> _fetchDataInBackground() async {
     final token = AuthService.currentToken;
     if (token == null || !mounted) return;
-    
     print('🔒 [FEED] Fetching data in background isolate (non-blocking)...');
-    
-    // Fetch in background isolate - won't block UI
     try {
-      // Fetch notification count
-      final notificationCount = await BackgroundFetchService.fetchNotificationCount(
-        token: token,
-      );
-      
+      final notificationCount =
+          await BackgroundFetchService.fetchNotificationCount(token: token);
       if (mounted && notificationCount != null) {
-        context.read<NotificationProvider>().updateUnreadCount(notificationCount);
+        context.read<NotificationProvider>().updateUnreadCount(
+          notificationCount,
+        );
         print('✅ [FEED] Updated notification count: $notificationCount');
       }
-      
-      // Fetch recently viewed recipes
-      final recentlyViewedData = await BackgroundFetchService.fetchRecentlyViewed(
-        token: token,
-        limit: 9,
-      );
-      
+
+      final recentlyViewedData =
+          await BackgroundFetchService.fetchRecentlyViewed(
+            token: token,
+            limit: 9,
+          );
       if (mounted && recentlyViewedData != null) {
-        // Parse and update recipes
         final recipes = recentlyViewedData
             .map((json) => Recipe.fromJson(json as Map<String, dynamic>))
             .toList();
@@ -281,7 +320,6 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
       }
     } catch (e) {
       print('❌ [FEED] Background fetch error: $e');
-      // Don't show error to user, just log it
     }
   }
 
@@ -297,7 +335,6 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    // Mark activity and refresh when app comes to foreground
     if (state == AppLifecycleState.resumed && mounted) {
       _backgroundPolling?.markActivity();
       _fetchDataInBackground();
@@ -306,7 +343,6 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    // Set system UI overlay style to prevent status bar issues
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -315,9 +351,7 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
     );
-    
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: PreferredSize(
@@ -344,92 +378,113 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
             child: Container(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
               child: Row(
-              children: [
-                const Icon(Icons.restaurant, color: Colors.white, size: 28),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: SearchField(
-                    hint: 'Tìm món, nguyên liệu...',
-                    onSubmitted: (q) => _openSearch(q),
-                    onFilterPressed: () => _showFilterBottomSheet(),
+                children: [
+                  const Icon(Icons.restaurant, color: Colors.white, size: 28),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SearchField(
+                      hint: 'Tìm món, nguyên liệu...',
+                      onSubmitted: (q) => _openSearch(q),
+                      onFilterPressed: () => _showFilterBottomSheet(),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Consumer<NotificationProvider>(
-                  builder: (context, notificationProvider, child) {
-                    return Stack(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const NotificationsScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        if (notificationProvider.unreadCount > 0)
-                          Positioned(
-                            right: 8,
-                            top: 8,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              constraints: const BoxConstraints(
-                                minWidth: 16,
-                                minHeight: 16,
-                              ),
-                              child: Text(
-                                notificationProvider.unreadCount > 99
-                                    ? '99+'
-                                    : '${notificationProvider.unreadCount}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+                  const SizedBox(width: 12),
+                  Consumer<NotificationProvider>(
+                    builder: (context, notificationProvider, child) {
+                      return Stack(
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.notifications_outlined,
+                              color: Colors.white,
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const NotificationsScreen(),
                                 ),
-                                textAlign: TextAlign.center,
+                              );
+                            },
+                          ),
+                          if (notificationProvider.unreadCount > 0)
+                            Positioned(
+                              right: 8,
+                              top: 8,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 16,
+                                  minHeight: 16,
+                                ),
+                                child: Text(
+                                  notificationProvider.unreadCount > 99
+                                      ? '99+'
+                                      : '${notificationProvider.unreadCount}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
                               ),
                             ),
-                          ),
-                      ],
-                    );
-                  },
-                ),
-                PopupMenuButton<String>(
-                  icon: CircleAvatar(
-                    radius: 16,
-                    backgroundColor: Colors.white,
-                    child: Icon(Icons.person, size: 18, color: const Color(0xFFEF3A16)),
+                        ],
+                      );
+                    },
                   ),
-                  onSelected: (value) async {
-                    if (value == 'profile') {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const UserProfileScreen()));
-                    } else if (value == 'settings') {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
-                    } else if (value == 'logout') {
-                      // Handle logout
-                      final authProvider = context.read<AuthProvider>();
-                      await authProvider.logout();
-                      
-                      if (context.mounted) {
-                        // Navigate to login screen
-                        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                  PopupMenuButton<String>(
+                    icon: CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.white,
+                      child: Icon(
+                        Icons.person,
+                        size: 18,
+                        color: const Color(0xFFEF3A16),
+                      ),
+                    ),
+                    onSelected: (value) async {
+                      if (value == 'profile') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const UserProfileScreen(),
+                          ),
+                        );
+                      } else if (value == 'settings') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SettingsScreen(),
+                          ),
+                        );
+                      } else if (value == 'logout') {
+                        final authProvider = context.read<AuthProvider>();
+                        await authProvider.logout();
+                        if (context.mounted) {
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            '/login',
+                            (route) => false,
+                          );
+                        }
                       }
-                    }
-                  },
-                  itemBuilder: (ctx) => const [
-                    PopupMenuItem(value: 'profile', child: Text('Thông tin cá nhân')),
-                    PopupMenuItem(value: 'settings', child: Text('Cài đặt')),
-                    PopupMenuItem(value: 'logout', child: Text('Đăng xuất')),
-                  ],
-                ),
-              ],
+                    },
+                    itemBuilder: (ctx) => const [
+                      PopupMenuItem(
+                        value: 'profile',
+                        child: Text('Thông tin cá nhân'),
+                      ),
+                      PopupMenuItem(value: 'settings', child: Text('Cài đặt')),
+                      PopupMenuItem(value: 'logout', child: Text('Đăng xuất')),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
@@ -437,7 +492,6 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
       ),
       body: Stack(
         children: [
-          // Dynamic background with particles
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -445,9 +499,9 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
                 end: Alignment.bottomRight,
                 colors: isDark
                     ? [
-                        const Color(0xFF000000), // Pure black
-                        const Color(0xFF0A0A0A), // Very dark gray
-                        const Color(0xFF0F0F0F), // Slightly lighter dark gray
+                        const Color(0xFF000000),
+                        const Color(0xFF0A0A0A),
+                        const Color(0xFF0F0F0F),
                       ]
                     : [
                         const Color(0xFFFAFAFA),
@@ -457,9 +511,9 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
               ),
             ),
           ),
-          // Floating particles background
-          ...List.generate(15, (index) => 
-            Positioned(
+          ...List.generate(
+            15,
+            (index) => Positioned(
               top: (index * 50.0) % MediaQuery.of(context).size.height,
               left: (index * 70.0) % MediaQuery.of(context).size.width,
               child: AnimatedContainer(
@@ -476,36 +530,33 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
               ),
             ),
           ),
-          // Main content
           ListView(
             padding: const EdgeInsets.all(16),
             children: [
-          const SizedBox(height: 10),
-          _sectionHeader('Từ khóa thịnh hành'),
-          const SizedBox(height: 4),
-          Text(
-            "Cập nhật $_currentTime",
-            style: TextStyle(
-              fontSize: 13,
-              color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 10),
-          _popularGrid(),
-          const SizedBox(height: 65),
-          _sectionHeader('Món bạn mới xem gần đây'),
-          const SizedBox(height: 10),
-          _recentHorizontal(),
-          const SizedBox(height: 16),
-          // Nút lướt bên dưới danh sách
-          _buildScrollButtons(),
-          const SizedBox(height: 50),
-          _buildRecentSearchSection(),
-          const SizedBox(height: 15),
+              const SizedBox(height: 10),
+              _sectionHeader('Từ khóa thịnh hành'),
+              const SizedBox(height: 4),
+              Text(
+                "Cập nhật $_currentTime",
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 10),
+              _popularGrid(),
+              const SizedBox(height: 65),
+              _sectionHeader('Món bạn mới xem gần đây'),
+              const SizedBox(height: 10),
+              _recentHorizontal(),
+              const SizedBox(height: 16),
+              _buildScrollButtons(),
+              const SizedBox(height: 50),
+              _buildRecentSearchSection(),
+              const SizedBox(height: 15),
             ],
           ),
-          // Floating Toolbar - góc phải trên cùng
           Positioned(
             right: 0,
             top: 0,
@@ -528,149 +579,90 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        // Main toggle button
         GestureDetector(
-            onTap: () {
-              setState(() {
-                _isToolbarExpanded = !_isToolbarExpanded;
-              });
-            },
-            child: Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: isDark
-                      ? [
-                          const Color(0xFF0F0F0F),
-                          const Color(0xFF1A1A1A),
-                        ]
-                      : [
-                          Colors.white,
-                          Colors.grey[100]!,
-                        ],
-                ),
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(
+          onTap: () {
+            setState(() {
+              _isToolbarExpanded = !_isToolbarExpanded;
+            });
+          },
+          child: Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [const Color(0xFF0F0F0F), const Color(0xFF1A1A1A)]
+                    : [Colors.white, Colors.grey[100]!],
+              ),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withOpacity(0.15)
+                    : Colors.grey[300]!,
+                width: isDark ? 2.0 : 1.0,
+              ),
+              boxShadow: [
+                BoxShadow(
                   color: isDark
-                      ? Colors.white.withOpacity(0.15)
-                      : Colors.grey[300]!,
-                  width: isDark ? 2.0 : 1.0,
+                      ? Colors.black.withOpacity(0.5)
+                      : Colors.black.withOpacity(0.1),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
                 ),
-                boxShadow: [
+                if (isDark)
                   BoxShadow(
-                    color: isDark
-                        ? Colors.black.withOpacity(0.5)
-                        : Colors.black.withOpacity(0.1),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+                    color: Colors.white.withOpacity(0.05),
+                    spreadRadius: 2,
+                    blurRadius: 8,
+                    offset: const Offset(0, 0),
                   ),
-                  if (isDark)
-                    BoxShadow(
-                      color: Colors.white.withOpacity(0.05),
-                      spreadRadius: 2,
-                      blurRadius: 8,
-                      offset: const Offset(0, 0),
-                    ),
-                ],
+              ],
+            ),
+            child: AnimatedRotation(
+              duration: const Duration(milliseconds: 300),
+              turns: _isToolbarExpanded ? 0.125 : 0,
+              child: Icon(
+                Icons.menu,
+                color: isDark ? Colors.white : Colors.grey[800],
+                size: 24,
               ),
-              child: AnimatedRotation(
-                duration: const Duration(milliseconds: 300),
-                turns: _isToolbarExpanded ? 0.125 : 0,
-                child: Icon(
-                  Icons.menu,
-                  color: isDark ? Colors.white : Colors.grey[800],
-                  size: 24,
-                ),
-              ),
+            ),
           ),
         ),
-        // Expanded buttons
         if (_isToolbarExpanded) ...[
           const SizedBox(height: 12),
-          // AI Chat button
           Tooltip(
-              message: 'Chat với trợ lý AI!',
-              preferBelow: false,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              textStyle: TextStyle(
-                fontSize: 14,
-                color: isDark ? Colors.white : Colors.black,
-                fontWeight: FontWeight.w600,
+            message: 'Chat với trợ lý AI!',
+            preferBelow: false,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            textStyle: TextStyle(
+              fontSize: 14,
+              color: isDark ? Colors.white : Colors.black,
+              fontWeight: FontWeight.w600,
+            ),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF0EA5E9), Color(0xFF3B82F6)],
               ),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF0EA5E9),
-                    Color(0xFF3B82F6),
-                  ],
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              waitDuration: const Duration(milliseconds: 300),
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const ChatScreen(),
-                    ),
-                  );
-                },
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF0EA5E9),
-                        Color(0xFF3B82F6),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(28),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF0EA5E9).withOpacity(0.5),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                      BoxShadow(
-                        color: const Color(0xFF3B82F6).withOpacity(0.6),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.chat_bubble_outline,
-                    color: Colors.white,
-                    size: 26,
-                  ),
-                ),
-              ),
-          ),
-          const SizedBox(height: 12),
-          // New Post button
-          GestureDetector(
+              ],
+            ),
+            waitDuration: const Duration(milliseconds: 300),
+            child: GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const NewPostScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const ChatScreen()),
                 );
               },
               child: Container(
@@ -680,54 +672,89 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFFFF6B35),
-                      Color(0xFFEF3A16),
-                    ],
+                    colors: [Color(0xFF0EA5E9), Color(0xFF3B82F6)],
                   ),
                   borderRadius: BorderRadius.circular(28),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFEF3A16).withOpacity(0.5),
+                      color: const Color(0xFF0EA5E9).withOpacity(0.5),
                       blurRadius: 16,
                       offset: const Offset(0, 6),
                     ),
                     BoxShadow(
-                      color: const Color(0xFFEF3A16).withOpacity(0.6),
+                      color: const Color(0xFF3B82F6).withOpacity(0.6),
                       blurRadius: 8,
                       offset: const Offset(0, 3),
-                    ),
-                    BoxShadow(
-                      color: Colors.white.withOpacity(0.3),
-                      blurRadius: 4,
-                      offset: const Offset(-2, -2),
                     ),
                   ],
                 ),
                 child: const Icon(
-                  Icons.add,
+                  Icons.chat_bubble_outline,
                   color: Colors.white,
-                  size: 28,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black26,
-                      offset: Offset(1, 1),
-                      blurRadius: 2,
-                    ),
-                  ],
+                  size: 26,
                 ),
               ),
             ),
-          ],
+          ),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NewPostScreen()),
+              );
+            },
+            child: Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFFF6B35), Color(0xFFEF3A16)],
+                ),
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFEF3A16).withOpacity(0.5),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                  BoxShadow(
+                    color: const Color(0xFFEF3A16).withOpacity(0.6),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.3),
+                    blurRadius: 4,
+                    offset: const Offset(-2, -2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.add,
+                color: Colors.white,
+                size: 28,
+                shadows: [
+                  Shadow(
+                    color: Colors.black26,
+                    offset: Offset(1, 1),
+                    blurRadius: 2,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
 
   Widget _sectionHeader(String title) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Text(
-      title, 
+      title,
       style: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.w700,
@@ -737,7 +764,6 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
     );
   }
 
-  // Build Recent Search Section from API
   Widget _buildRecentSearchSection() {
     return Consumer<SearchHistoryProvider>(
       builder: (context, searchProvider, child) {
@@ -745,13 +771,10 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
         final searchHistory = searchProvider.searchHistory;
         final isLoading = searchProvider.isLoading;
         final error = searchProvider.error;
-        
         print('🎨 [UI] Search history count: ${searchHistory.length}');
         print('🎨 [UI] Is loading: $isLoading');
         print('🎨 [UI] Error: $error');
         print('🎨 [UI] Search history: $searchHistory');
-
-        // Section header with clear all button
         Widget headerRow = Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -759,12 +782,17 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Debug refresh button
                 IconButton(
-                  icon: const Icon(Icons.refresh, size: 20, color: Color(0xFF64748B)),
+                  icon: const Icon(
+                    Icons.refresh,
+                    size: 20,
+                    color: Color(0xFF64748B),
+                  ),
                   onPressed: () {
                     print('🔄 [DEBUG] Manual refresh button pressed');
-                    context.read<SearchHistoryProvider>().loadSearchHistory(limit: 10);
+                    context.read<SearchHistoryProvider>().loadSearchHistory(
+                      limit: 10,
+                    );
                   },
                   tooltip: 'Làm mới',
                 ),
@@ -772,7 +800,10 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
                   TextButton(
                     onPressed: () => _showClearHistoryConfirmation(context),
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                     ),
                     child: const Text(
                       'Xóa tất cả',
@@ -787,25 +818,22 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
             ),
           ],
         );
-
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             headerRow,
             const SizedBox(height: 10),
-            
-            // Loading state
             if (isLoading)
               const Center(
                 child: Padding(
                   padding: EdgeInsets.all(20),
                   child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFEF3A16)),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Color(0xFFEF3A16),
+                    ),
                   ),
                 ),
               )
-            
-            // Error state
             else if (error != null && error.isNotEmpty)
               Container(
                 margin: const EdgeInsets.only(bottom: 8),
@@ -836,21 +864,24 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
                     ElevatedButton.icon(
                       onPressed: () {
                         print('🔄 [ERROR] Retry button pressed');
-                        context.read<SearchHistoryProvider>().loadSearchHistory(limit: 10);
+                        context.read<SearchHistoryProvider>().loadSearchHistory(
+                          limit: 10,
+                        );
                       },
                       icon: const Icon(Icons.refresh, size: 18),
                       label: const Text('Thử lại'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFEF3A16),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                       ),
                     ),
                   ],
                 ),
               )
-            
-            // Empty state
             else if (searchHistory.isEmpty)
               Container(
                 margin: const EdgeInsets.only(bottom: 8),
@@ -881,8 +912,6 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
                   ),
                 ),
               )
-            
-            // Search history list
             else
               ...searchHistory.asMap().entries.map((entry) {
                 final index = entry.key;
@@ -895,22 +924,24 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
     );
   }
 
-  // Build individual search history item
   Widget _buildSearchHistoryItem(String keyword, int index) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0F0F0F) : Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFF1F5F9),
+          color: isDark
+              ? Colors.white.withOpacity(0.15)
+              : const Color(0xFFF1F5F9),
           width: isDark ? 2.0 : 1.0,
         ),
         boxShadow: [
           BoxShadow(
-            color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.02),
+            color: isDark
+                ? Colors.black.withOpacity(0.3)
+                : Colors.black.withOpacity(0.02),
             blurRadius: 4,
             offset: const Offset(0, 1),
           ),
@@ -924,7 +955,11 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
             color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(Icons.history, color: isDark ? Colors.grey[400] : const Color(0xFF64748B), size: 18),
+          child: Icon(
+            Icons.history,
+            color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
+            size: 18,
+          ),
         ),
         title: Text(
           keyword,
@@ -937,22 +972,30 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Delete button
             IconButton(
-              icon: Icon(Icons.close, size: 18, color: isDark ? Colors.grey[400] : const Color(0xFF94A3B8)),
+              icon: Icon(
+                Icons.close,
+                size: 18,
+                color: isDark ? Colors.grey[400] : const Color(0xFF94A3B8),
+              ),
               onPressed: () => _deleteSearchQuery(keyword),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),
             const SizedBox(width: 8),
-            // Search again button
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
+                color: isDark
+                    ? const Color(0xFF0F0F0F)
+                    : const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: Icon(Icons.north_east, size: 14, color: isDark ? Colors.grey[400] : const Color(0xFF64748B)),
+              child: Icon(
+                Icons.north_east,
+                size: 14,
+                color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
+              ),
             ),
           ],
         ),
@@ -961,7 +1004,6 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
     );
   }
 
-  // Delete a specific search query
   Future<void> _deleteSearchQuery(String query) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -983,9 +1025,10 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
         ],
       ),
     );
-
     if (confirmed == true) {
-      final success = await context.read<SearchHistoryProvider>().deleteQuery(query);
+      final success = await context.read<SearchHistoryProvider>().deleteQuery(
+        query,
+      );
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -998,7 +1041,6 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
     }
   }
 
-  // Show confirmation dialog for clearing all history
   Future<void> _showClearHistoryConfirmation(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1020,9 +1062,10 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
         ],
       ),
     );
-
     if (confirmed == true) {
-      final success = await context.read<SearchHistoryProvider>().clearAllHistory();
+      final success = await context
+          .read<SearchHistoryProvider>()
+          .clearAllHistory();
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1038,9 +1081,7 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
   Widget _popularGrid() {
     return Consumer<RecipeProvider>(
       builder: (context, recipeProvider, child) {
-        // Tạm thời chỉ dùng dữ liệu backend; không dùng fallback local
         final trendingKeywords = _backendTrendingKeywords;
-        
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -1054,7 +1095,6 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
           itemBuilder: (ctx, i) {
             final k = trendingKeywords[i];
             final keywordImage = _getKeywordImage(k, recipeProvider.recipes);
-            
             return GestureDetector(
               onTap: () {
                 _openSearch(k);
@@ -1082,11 +1122,46 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        // Background image or gradient fallback
                         if (keywordImage != null && keywordImage.isNotEmpty)
                           Image.network(
                             keywordImage,
                             fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) {
+                                return child;
+                              }
+
+                              return Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      const Color(0xFFFF6B35).withOpacity(0.8),
+                                      const Color(0xFFFF8E53).withOpacity(0.6),
+                                      const Color(0xFFFFB366).withOpacity(0.4),
+                                    ],
+                                    stops: const [0.0, 0.6, 1.0],
+                                  ),
+                                ),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    value:
+                                        loadingProgress.expectedTotalBytes !=
+                                            null
+                                        ? loadingProgress
+                                                  .cumulativeBytesLoaded /
+                                              loadingProgress
+                                                  .expectedTotalBytes!
+                                        : null,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white.withOpacity(0.8),
+                                    ),
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              );
+                            },
                             errorBuilder: (context, error, stackTrace) {
                               return Container(
                                 decoration: BoxDecoration(
@@ -1133,7 +1208,6 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
                               ),
                             ),
                           ),
-                        // Dark overlay for better text visibility
                         Container(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
@@ -1146,14 +1220,18 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
                             ),
                           ),
                         ),
-                        // Bottom overlay gradient covering a portion of the tile (not only behind the text)
                         Align(
                           alignment: Alignment.bottomCenter,
                           child: FractionallySizedBox(
                             widthFactor: 1,
                             heightFactor: 0.40,
                             child: Container(
-                              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                              padding: const EdgeInsets.fromLTRB(
+                                12,
+                                12,
+                                12,
+                                12,
+                              ),
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
@@ -1205,26 +1283,26 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
       builder: (context, recipeProvider, child) {
         final recipes = recipeProvider.recentlyViewedRecipes;
         final isDark = Theme.of(context).brightness == Brightness.dark;
-        
         if (recipeProvider.isLoadingRecentlyViewed) {
           return const SizedBox(
             height: 160,
             child: Center(child: CircularProgressIndicator()),
           );
         }
-        
         if (recipes.isEmpty) {
           return SizedBox(
             height: 160,
             child: Center(
               child: Text(
                 'Chưa xem công thức nào',
-                style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey),
+                style: TextStyle(
+                  color: isDark ? Colors.grey[400] : Colors.grey,
+                ),
               ),
             ),
           );
         }
-        
+
         return SizedBox(
           height: 160,
           child: ListView.separated(
@@ -1238,148 +1316,174 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
                   id: recipe.id.toString(),
                   title: recipe.title,
                   author: recipe.userName ?? 'Unknown',
-                  minutesAgo: recipe.createdAt != null 
+                  minutesAgo: recipe.createdAt != null
                       ? DateTime.now().difference(recipe.createdAt!).inMinutes
                       : 0,
                   savedCount: recipe.bookmarksCount,
                   imageUrl: recipe.imageUrl ?? '',
-                  ingredients: recipe.ingredients.map((ing) => '${ing.name} ${ing.quantity} ${ing.unit}').toList(),
-                  steps: recipe.steps.map((step) => '${step.stepNumber}. ${step.title}: ${step.description}').toList(),
+                  ingredients: recipe.ingredients
+                      .map((ing) => '${ing.name} ${ing.quantity} ${ing.unit}')
+                      .toList(),
+                  steps: recipe.steps
+                      .map(
+                        (step) =>
+                            '${step.stepNumber}. ${step.title}: ${step.description}',
+                      )
+                      .toList(),
                   createdAt: recipe.createdAt,
                 );
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => PostDetailScreen(post: post)),
+                  MaterialPageRoute(
+                    builder: (_) => PostDetailScreen(post: post),
+                  ),
                 ).then((_) {
-                  // Reload recently viewed when user comes back
                   if (mounted) {
-                    context.read<RecipeProvider>().loadRecentlyViewedRecipes(limit: 9);
+                    context.read<RecipeProvider>().loadRecentlyViewedRecipes(
+                      limit: 9,
+                    );
                   }
                 });
               },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            width: 120,
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.9),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
-                width: isDark ? 2.0 : 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.1),
-                  spreadRadius: 0,
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-                if (isDark)
-                  BoxShadow(
-                    color: Colors.white.withOpacity(0.05),
-                    spreadRadius: 3,
-                    blurRadius: 15,
-                    offset: const Offset(0, 0),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                width: 120,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFF0F0F0F).withOpacity(0.9)
+                      : Colors.white.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.15)
+                        : Colors.white.withOpacity(0.3),
+                    width: isDark ? 2.0 : 1.5,
                   ),
-                if (isDark)
-                  BoxShadow(
-                    color: Colors.white.withOpacity(0.08),
-                    spreadRadius: 1,
-                    blurRadius: 8,
-                    offset: const Offset(0, 0),
-                  ),
-                if (!isDark)
-                  BoxShadow(
-                    color: Colors.white.withOpacity(0.8),
-                    spreadRadius: 0,
-                    blurRadius: 4,
-                    offset: const Offset(-2, -2),
-                  ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Phần hình ảnh (6/10)
-                Expanded(
-                  flex: 6,
-                    child: ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isDark
+                          ? Colors.black.withOpacity(0.5)
+                          : Colors.black.withOpacity(0.1),
+                      spreadRadius: 0,
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
                     ),
-                    child: recipes[i].imageUrl != null && recipes[i].imageUrl!.isNotEmpty
-                        ? Image.network(
-                            recipes[i].imageUrl!,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
+                    if (isDark)
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.05),
+                        spreadRadius: 3,
+                        blurRadius: 15,
+                        offset: const Offset(0, 0),
+                      ),
+                    if (isDark)
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.08),
+                        spreadRadius: 1,
+                        blurRadius: 8,
+                        offset: const Offset(0, 0),
+                      ),
+                    if (!isDark)
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.8),
+                        spreadRadius: 0,
+                        blurRadius: 4,
+                        offset: const Offset(-2, -2),
+                      ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 6,
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(20),
+                          topRight: Radius.circular(20),
+                        ),
+                        child:
+                            recipes[i].imageUrl != null &&
+                                recipes[i].imageUrl!.isNotEmpty
+                            ? Image.network(
+                                recipes[i].imageUrl!,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: isDark
+                                        ? const Color(0xFF0F0F0F)
+                                        : const Color(0xFFF1F5F9),
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.restaurant,
+                                        size: 40,
+                                        color: isDark
+                                            ? Colors.grey[700]
+                                            : const Color(0xFF94A3B8),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
+                            : Container(
+                                color: isDark
+                                    ? const Color(0xFF0F0F0F)
+                                    : const Color(0xFFF1F5F9),
                                 child: Center(
                                   child: Icon(
                                     Icons.restaurant,
                                     size: 40,
-                                    color: isDark ? Colors.grey[700] : const Color(0xFF94A3B8),
+                                    color: isDark
+                                        ? Colors.grey[700]
+                                        : const Color(0xFF94A3B8),
                                   ),
                                 ),
-                              );
-                            },
-                          )
-                        : Container(
-                            color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
-                            child: Center(
-                              child: Icon(
-                                Icons.restaurant,
-                                size: 40,
-                                color: isDark ? Colors.grey[700] : const Color(0xFF94A3B8),
                               ),
-                            ),
-                          ),
-                  ),
-                ),
-                // Phần thông tin (4/10)
-                Expanded(
-                  flex: 5,
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        // Tên người đăng
-                        Text(
-                          '@${recipes[i].userName ?? 'Unknown'}',
-                          style: TextStyle(
-                            fontSize: 9,
-                            color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 0.1,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        // Tên món ăn
-                        Text(
-                          recipes[i].title,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: isDark ? Colors.white : const Color(0xFF1F2937),
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.1,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                    Expanded(
+                      flex: 5,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Text(
+                              '@${recipes[i].userName ?? 'Unknown'}',
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: isDark
+                                    ? Colors.grey[400]
+                                    : const Color(0xFF6B7280),
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.1,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              recipes[i].title,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF1F2937),
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.1,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
             separatorBuilder: (_, __) => const SizedBox(width: 12),
           ),
         );
@@ -1389,11 +1493,9 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
 
   Widget _buildScrollButtons() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Nút lướt sang trái - Neumorphism Design
         GestureDetector(
           onTap: _autoScrollRecentLeft,
           child: AnimatedContainer(
@@ -1402,24 +1504,26 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(28),
-              border: isDark ? Border.all(
-                color: Colors.white.withOpacity(0.15),
-                width: 2.0,
-              ) : null,
-              boxShadow: isDark ? [] : [
-                // Outer shadow (dark)
-                BoxShadow(
-                  color: const Color(0xFF64748B).withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(4, 4),
-                ),
-                // Inner shadow (light)
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.8),
-                  blurRadius: 8,
-                  offset: const Offset(-4, -4),
-                ),
-              ],
+              border: isDark
+                  ? Border.all(
+                      color: Colors.white.withOpacity(0.15),
+                      width: 2.0,
+                    )
+                  : null,
+              boxShadow: isDark
+                  ? []
+                  : [
+                      BoxShadow(
+                        color: const Color(0xFF64748B).withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(4, 4),
+                      ),
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.8),
+                        blurRadius: 8,
+                        offset: const Offset(-4, -4),
+                      ),
+                    ],
             ),
             child: Icon(
               Icons.arrow_back_ios,
@@ -1429,7 +1533,6 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
           ),
         ),
         const SizedBox(width: 20),
-        // Nút lướt sang phải - Neumorphism Design
         GestureDetector(
           onTap: _autoScrollRecentRight,
           child: AnimatedContainer(
@@ -1438,24 +1541,26 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(28),
-              border: isDark ? Border.all(
-                color: Colors.white.withOpacity(0.15),
-                width: 2.0,
-              ) : null,
-              boxShadow: isDark ? [] : [
-                // Outer shadow (dark)
-                BoxShadow(
-                  color: const Color(0xFF64748B).withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(4, 4),
-                ),
-                // Inner shadow (light)
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.8),
-                  blurRadius: 8,
-                  offset: const Offset(-4, -4),
-                ),
-              ],
+              border: isDark
+                  ? Border.all(
+                      color: Colors.white.withOpacity(0.15),
+                      width: 2.0,
+                    )
+                  : null,
+              boxShadow: isDark
+                  ? []
+                  : [
+                      BoxShadow(
+                        color: const Color(0xFF64748B).withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(4, 4),
+                      ),
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.8),
+                        blurRadius: 8,
+                        offset: const Offset(-4, -4),
+                      ),
+                    ],
             ),
             child: Icon(
               Icons.arrow_forward_ios,
@@ -1471,22 +1576,18 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
   Future<void> _openSearch(String query) async {
     _currentSearchQuery = query;
     await Navigator.push(
-      context, 
+      context,
       MaterialPageRoute(
         builder: (_) => SearchResultsScreen(initialQuery: query),
       ),
     );
-    
-    // Refresh search history when coming back (backend auto-saves during search)
     if (mounted) {
       context.read<SearchHistoryProvider>().refreshAfterSearch();
     }
   }
 
   void _showFilterBottomSheet() {
-    // Save context before showing bottom sheet
     final navigatorContext = context;
-    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1498,12 +1599,9 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
           print('   Title: $titleQuery');
           print('   Include: $includeIngredients');
           print('   Exclude: $excludeIngredients');
-          
-          // Navigate to search results with filters using saved context
           if (!navigatorContext.mounted) return;
-          
           Navigator.push(
-            navigatorContext, 
+            navigatorContext,
             MaterialPageRoute(
               builder: (_) => SearchResultsScreen(
                 initialQuery: titleQuery ?? '',
@@ -1517,27 +1615,23 @@ class _FeedScreenState extends State<FeedScreen> with WidgetsBindingObserver {
     );
   }
 
-  // Method để tự động lướt danh sách món gần đây sang phải
   void _autoScrollRecentRight() {
     if (_recentScrollController.hasClients) {
       _recentScrollController.animateTo(
-        _recentScrollController.offset + 390, // Lướt một khoảng bằng chiều rộng 1 item + margin
+        _recentScrollController.offset + 390,
         duration: const Duration(milliseconds: 500),
         curve: Curves.easeInOut,
       );
     }
   }
 
-  // Method để tự động lướt danh sách món gần đây sang trái
   void _autoScrollRecentLeft() {
     if (_recentScrollController.hasClients) {
       _recentScrollController.animateTo(
-        _recentScrollController.offset - 390, // Lướt ngược lại
+        _recentScrollController.offset - 390,
         duration: const Duration(milliseconds: 500),
         curve: Curves.easeInOut,
       );
     }
   }
 }
-
-

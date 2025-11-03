@@ -10,24 +10,23 @@ import '../../providers/recipe_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../feed/post_detail_screen.dart';
-
+import 'change_password_screen.dart';
 class UserProfileScreen extends StatefulWidget {
-  const UserProfileScreen({super.key});
 
+  const UserProfileScreen({super.key});
   @override
   State<UserProfileScreen> createState() => _UserProfileScreenState();
 }
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
+
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   bool _isSelectionMode = false;
   Set<int> _selectedRecipeIds = {};
-
   @override
   void initState() {
     super.initState();
-    // Load user profile, stats, and recipes when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AuthProvider>().loadUserProfile();
       context.read<AuthProvider>().loadUserStats();
@@ -40,13 +39,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     _searchController.dispose();
     super.dispose();
   }
-
   String _formatTimeAgo(DateTime? dateTime) {
     if (dateTime == null) return 'Không xác định';
-    
     final now = DateTime.now();
     final difference = now.difference(dateTime);
-    
     if (difference.inDays > 0) {
       return '${difference.inDays} ngày trước';
     } else if (difference.inHours > 0) {
@@ -60,13 +56,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> _deleteSelectedRecipes() async {
     if (_selectedRecipeIds.isEmpty) return;
-
-    // Show confirmation dialog
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
-        
         return AlertDialog(
           backgroundColor: isDark ? const Color(0xFF0F0F0F) : Colors.white,
           shape: RoundedRectangleBorder(
@@ -154,16 +147,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         );
       },
     );
-
     if (confirmed != true) return;
-
-    // Show loading dialog
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
         final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
-        
         return WillPopScope(
           onWillPop: () async => false,
           child: Center(
@@ -199,14 +188,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         );
       },
     );
-
     try {
       final recipeProvider = context.read<RecipeProvider>();
       final recipeIds = _selectedRecipeIds.toList();
       int successCount = 0;
       int failCount = 0;
-
-      // Delete recipes one by one
       for (final recipeId in recipeIds) {
         final response = await recipeProvider.deleteRecipe(recipeId);
         if (response.success) {
@@ -215,19 +201,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           failCount++;
         }
       }
-
       if (!mounted) return;
-      
-      // Close loading dialog
       Navigator.pop(context);
-
-      // Clear selection
       setState(() {
         _selectedRecipeIds.clear();
         _isSelectionMode = false;
       });
-
-      // Show result
       if (successCount > 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -256,8 +235,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           ),
         );
       }
-
-      // Reload data
       context.read<RecipeProvider>().loadMyRecipes();
       context.read<AuthProvider>().loadUserStats();
     } catch (e) {
@@ -282,14 +259,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     print('🗑️ [DELETE RECIPE] Starting deletion...');
     print('🗑️ [DELETE RECIPE] Recipe ID: ${recipe.id}');
     print('🗑️ [DELETE RECIPE] Recipe Title: ${recipe.title}');
-
-    // Show loading dialog
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
         final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
-        
         return WillPopScope(
           onWillPop: () async => false,
           child: Center(
@@ -325,16 +299,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         );
       },
     );
-
     try {
       final recipeProvider = context.read<RecipeProvider>();
       final response = await recipeProvider.deleteRecipe(recipe.id);
-
       if (!mounted) return;
-      
-      // Close loading dialog
       Navigator.pop(context);
-
       if (response.success) {
         print('');
         print('✅ ==========================================');
@@ -344,7 +313,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         print('✅ Recipe Title: ${recipe.title}');
         print('✅ ==========================================');
         print('');
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Đã xóa bài viết "${recipe.title}" thành công!'),
@@ -355,8 +323,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ),
           ),
         );
-
-        // Reload data
         context.read<RecipeProvider>().loadMyRecipes();
         context.read<AuthProvider>().loadUserStats();
       } else {
@@ -367,7 +333,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         print('❌ Error: ${response.message}');
         print('❌ ==========================================');
         print('');
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(response.message ?? 'Xóa bài viết thất bại'),
@@ -382,7 +347,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     } catch (e) {
       print('❌ [DELETE RECIPE] Error: $e');
       if (mounted) {
-        Navigator.pop(context); // Close loading dialog
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Lỗi: $e'),
@@ -398,18 +363,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Future<void> _uploadAvatar(BuildContext context) async {
+
     final authProvider = context.read<AuthProvider>();
     final user = authProvider.currentUser;
     if (user == null) return;
-
     try {
-      // Show bottom sheet to choose camera or gallery
       final ImageSource? source = await showModalBottomSheet<ImageSource>(
         context: context,
         backgroundColor: Colors.transparent,
         builder: (bottomSheetContext) {
           final isDark = Theme.of(bottomSheetContext).brightness == Brightness.dark;
-          
           return Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -491,10 +454,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           );
         },
       );
-
       if (source == null) return;
-
-      // Pick image
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
         source: source,
@@ -502,12 +462,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         maxHeight: 1024,
         imageQuality: 85,
       );
-
       if (image == null) return;
-
-      // Validate file extension
       final path = image.path.toLowerCase();
-      if (!path.endsWith('.jpg') && !path.endsWith('.jpeg') && 
+      if (!path.endsWith('.jpg') && !path.endsWith('.jpeg') &&
           !path.endsWith('.png') && !path.endsWith('.gif')) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -519,16 +476,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         }
         return;
       }
-
       if (!mounted) return;
-
-      // Show loading dialog
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) {
           final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
-          
           return Center(
             child: Card(
               color: isDark ? const Color(0xFF0F0F0F) : Colors.white,
@@ -563,51 +516,37 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           );
         },
       );
-
-      // Upload image
       print('🔍 [AVATAR UPLOAD] Starting upload...');
       print('🔍 [AVATAR UPLOAD] Image path: ${image.path}');
-      
       final uploadResponse = await ApiService.uploadImage(
         imageFile: File(image.path),
         type: 'avatars',
         token: authProvider.token,
       );
-
       if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
-
+      Navigator.pop(context);
       print('🔍 [AVATAR UPLOAD] Upload response success: ${uploadResponse.success}');
       print('🔍 [AVATAR UPLOAD] File URL: ${uploadResponse.data?.fileUrl}');
-
       if (uploadResponse.success && uploadResponse.data?.fileUrl != null) {
         final rawAvatarUrl = uploadResponse.data!.fileUrl!;
-        // Fix URL nếu là localhost
         final newAvatarUrl = ApiConfig.fixImageUrl(rawAvatarUrl);
         print('🔍 [AVATAR UPLOAD] Raw avatar URL from server: $rawAvatarUrl');
         print('🔍 [AVATAR UPLOAD] Fixed avatar URL: $newAvatarUrl');
-        
-        // Update user profile with new avatar URL
         final updatedData = <String, dynamic>{
           'fullName': user.fullName,
           'avatarUrl': newAvatarUrl,
           'bio': user.bio ?? '',
           'hometown': user.hometown ?? '',
         };
-
         print('🔍 [AVATAR UPLOAD] Updating user profile with data: $updatedData');
-
         final updateResponse = await ApiService.updateUser(
           user.id,
           updatedData,
           authProvider.token!,
         );
-
         print('🔍 [AVATAR UPLOAD] Update response success: ${updateResponse.success}');
         print('🔍 [AVATAR UPLOAD] Updated user avatar: ${updateResponse.data?.avatar}');
-
         if (updateResponse.success && mounted) {
-          // Clear image cache for the old avatar if exists
           if (user.avatar != null && user.avatar!.isNotEmpty) {
             try {
               final oldImageProvider = NetworkImage(user.avatar!);
@@ -617,8 +556,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               print('⚠️ [AVATAR UPLOAD] Failed to clear old cache: $e');
             }
           }
-          
-          // Clear cache for new avatar to ensure fresh load
           try {
             final newImageProvider = NetworkImage(newAvatarUrl);
             await newImageProvider.evict();
@@ -626,15 +563,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           } catch (e) {
             print('⚠️ [AVATAR UPLOAD] Failed to clear new cache: $e');
           }
-          
-          // Reload user profile to fetch latest data
           await authProvider.loadUserProfile();
-          
-          // Force rebuild the widget
           if (mounted) {
             setState(() {});
           }
-          
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Cập nhật ảnh đại diện thành công!\nURL: $newAvatarUrl'),
@@ -660,7 +592,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        Navigator.of(context).pop(); // Close loading dialog if open
+        Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Lỗi: $e'),
@@ -672,13 +604,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   void _editProfile(BuildContext context, String field, String currentValue) {
+
     final authProvider = context.read<AuthProvider>();
     final user = authProvider.currentUser;
     if (user == null) return;
-
     final controller = TextEditingController(text: currentValue);
-
-    // Get field label
     String label;
     switch (field) {
       case 'fullName':
@@ -693,13 +623,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       default:
         label = 'Cập nhật';
     }
-
-    // Show dialog to edit
     showDialog(
       context: context,
       builder: (dialogContext) {
         final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
-        
         return AlertDialog(
           backgroundColor: isDark ? const Color(0xFF0F0F0F) : Colors.white,
           shape: RoundedRectangleBorder(
@@ -772,7 +699,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ElevatedButton(
               onPressed: () async {
               final newValue = controller.text.trim();
-              
               if (newValue.isEmpty) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -781,8 +707,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 }
                 return;
               }
-
-              // Validate based on field
               if (field == 'fullName' && newValue.length > 100) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -806,25 +730,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 return;
               }
 
-              // Build update data according to backend UserRequestDTO
-              // Note: Don't include password if not updating
               final updatedData = <String, dynamic>{
-                'email': user.email, // Keep current email
+                'email': user.email,
                 'fullName': field == 'fullName' ? newValue : user.fullName,
-                'avatarUrl': user.avatar ?? '', // Map avatar to avatarUrl
+                'avatarUrl': user.avatar ?? '',
                 'bio': field == 'bio' ? newValue : (user.bio ?? ''),
                 'hometown': field == 'hometown' ? newValue : (user.hometown ?? ''),
               };
 
-              // Call update API
               final response = await ApiService.updateUser(
                 user.id,
                 updatedData,
                 authProvider.token!,
               );
-
               if (response.success && mounted) {
-                // Reload user profile
                 await authProvider.loadUserProfile();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -856,8 +775,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    // Set system UI overlay style to prevent status bar issues
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -866,7 +783,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       ),
     );
-    
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: PreferredSize(
@@ -934,7 +850,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       ),
       body: Stack(
         children: [
-          // Dynamic background with particles
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -942,9 +857,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 end: Alignment.bottomRight,
                 colors: isDark
                     ? [
-                        const Color(0xFF000000), // Pure black
-                        const Color(0xFF0A0A0A), // Very dark gray
-                        const Color(0xFF0F0F0F), // Slightly lighter dark gray
+                        const Color(0xFF000000),
+                        const Color(0xFF0A0A0A),
+                        const Color(0xFF0F0F0F),
                       ]
                     : [
                         const Color(0xFFFAFAFA),
@@ -954,8 +869,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
             ),
           ),
-          // Floating particles background
-          ...List.generate(12, (index) => 
+          ...List.generate(12, (index) =>
             Positioned(
               top: (index * 60.0) % MediaQuery.of(context).size.height,
               left: (index * 80.0) % MediaQuery.of(context).size.width,
@@ -973,12 +887,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
             ),
           ),
-          // Main content
           SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Profile Header - Modern & Elegant Design
                 Container(
                   margin: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -990,7 +902,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: isDark 
+                        color: isDark
                             ? Colors.black.withOpacity(0.5)
                             : Colors.black.withOpacity(0.04),
                         blurRadius: 20,
@@ -1022,7 +934,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
                     child: Column(
                       children: [
-                        // Avatar with subtle shadow
                         Stack(
                           children: [
                             Container(
@@ -1040,20 +951,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 builder: (context, authProvider, child) {
                                   final user = authProvider.currentUser;
                                   final hasAvatar = user?.avatar != null && user!.avatar!.isNotEmpty;
-                                  
                                   print('🔍 [AVATAR DISPLAY] User avatar URL: ${user?.avatar}');
                                   print('🔍 [AVATAR DISPLAY] Has avatar: $hasAvatar');
-                                  
-                                  // Fix URL nếu cần (đảm bảo không chứa localhost)
-                                  final avatarUrl = hasAvatar 
+                                  final avatarUrl = hasAvatar
                                       ? ApiConfig.fixImageUrl(user!.avatar!)
                                       : null;
-                                  
                                   if (hasAvatar && user!.avatar!.contains('localhost')) {
                                     print('⚠️ [AVATAR DISPLAY] WARNING: URL contains localhost!');
                                     print('⚠️ [AVATAR DISPLAY] Fixed URL: $avatarUrl');
                                   }
-                                  
+
                                   return CircleAvatar(
                                     key: ValueKey(user?.avatar ?? 'no_avatar_${DateTime.now().millisecondsSinceEpoch}'),
                                     radius: 50,
@@ -1077,7 +984,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 },
                               ),
                             ),
-                            // Edit button - subtle design
                             Positioned(
                               right: 0,
                               bottom: 0,
@@ -1149,8 +1055,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                   ),
                 ),
-
-                // Stats with Glassmorphism
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
@@ -1203,37 +1107,32 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             ),
                           );
                         }
-                        
+
                         final user = authProvider.currentUser;
-                        // Use actual count from myRecipes if stats is null or 0
                         final actualRecipesCount = recipeProvider.myRecipes.length;
-                        final recipesCount = (user?.recipesCount ?? 0) > 0 
-                            ? user!.recipesCount 
+                        final recipesCount = (user?.recipesCount ?? 0) > 0
+                            ? user!.recipesCount
                             : actualRecipesCount;
-                        
-                        // Calculate total likes from user's recipes
                         final totalLikesFromRecipes = recipeProvider.myRecipes.fold<int>(
                           0,
                           (sum, recipe) => sum + recipe.likesCount,
                         );
-                        // Use stats from API if available, otherwise use calculated total
                         final likesReceived = (user?.likesReceived ?? 0) > 0
                             ? user!.likesReceived
                             : totalLikesFromRecipes;
-                        
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             _StatTile(
-                              label: 'Bài đã đăng', 
+                              label: 'Bài đã đăng',
                               value: recipesCount.toString()
                             ),
                             _StatTile(
-                              label: 'Lượt thích', 
+                              label: 'Lượt thích',
                               value: likesReceived.toString()
                             ),
                             _StatTile(
-                              label: 'Người theo dõi', 
+                              label: 'Người theo dõi',
                               value: user?.followersCount.toString() ?? '0'
                             ),
                           ],
@@ -1242,10 +1141,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
-                // Personal Info Section
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
@@ -1305,22 +1201,35 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             return Column(
                               children: [
                                 _infoTile(
-                                  icon: Icons.badge, 
-                                  title: 'Họ và tên', 
+                                  icon: Icons.badge,
+                                  title: 'Họ và tên',
                                   value: user?.fullName ?? 'Chưa cập nhật',
                                   onTap: () => _editProfile(context, 'fullName', user?.fullName ?? ''),
                                 ),
                                 _infoTile(
-                                  icon: Icons.location_on, 
-                                  title: 'Quê quán', 
+                                  icon: Icons.location_on,
+                                  title: 'Quê quán',
                                   value: user?.hometown ?? 'Chưa cập nhật',
                                   onTap: () => _editProfile(context, 'hometown', user?.hometown ?? ''),
                                 ),
                                 _infoTile(
-                                  icon: Icons.info_outline, 
-                                  title: 'Giới thiệu', 
+                                  icon: Icons.info_outline,
+                                  title: 'Giới thiệu',
                                   value: user?.bio ?? 'Chưa cập nhật',
                                   onTap: () => _editProfile(context, 'bio', user?.bio ?? ''),
+                                ),
+                                _infoTile(
+                                  icon: Icons.lock,
+                                  title: 'Đổi mật khẩu',
+                                  value: 'Nhấn để đổi mật khẩu',
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const ChangePasswordScreen(),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ],
                             );
@@ -1330,10 +1239,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
-                // My Posts Section
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
@@ -1377,7 +1283,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Title and selection mode toggle
                         Row(
                           children: [
                             Expanded(
@@ -1393,12 +1298,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 ),
                               ),
                             ),
-                            // Selection mode toggle button
                             IconButton(
                               icon: Icon(
                                 _isSelectionMode ? Icons.close : Icons.checklist,
-                                color: _isSelectionMode 
-                                    ? Colors.red 
+                                color: _isSelectionMode
+                                    ? Colors.red
                                     : const Color(0xFF64748B),
                               ),
                               onPressed: () {
@@ -1414,16 +1318,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        // Search my posts with Neumorphism
                         Container(
                           decoration: BoxDecoration(
                             color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
                             borderRadius: BorderRadius.circular(16),
                             border: isDark ? Border.all(color: Colors.white.withOpacity(0.15), width: 2.0) : null,
                             boxShadow: [
-                              // Outer shadow (dark)
                               BoxShadow(
-                                color: isDark 
+                                color: isDark
                                     ? Colors.black.withOpacity(0.5)
                                     : const Color(0xFF64748B).withOpacity(0.2),
                                 blurRadius: 8,
@@ -1443,7 +1345,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                   blurRadius: 6,
                                   offset: const Offset(0, 0),
                                 ),
-                              // Inner shadow (light) - only for light mode
                               if (!isDark)
                                 BoxShadow(
                                   color: Colors.white.withOpacity(0.8),
@@ -1495,7 +1396,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        // Delete selected button (shown when in selection mode with selected items)
                         if (_isSelectionMode && _selectedRecipeIds.isNotEmpty)
                           Container(
                             width: double.infinity,
@@ -1553,10 +1453,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
-                // My posts list with enhanced design
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
@@ -1606,7 +1503,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           ),
                         );
                       }
-                      
                       if (recipeProvider.myRecipesError != null) {
                         return Padding(
                           padding: const EdgeInsets.all(20),
@@ -1646,9 +1542,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           ),
                         );
                       }
-                      
+
                       final myRecipes = recipeProvider.myRecipes;
-                      
                       if (myRecipes.isEmpty) {
                         return Padding(
                           padding: const EdgeInsets.all(40),
@@ -1682,13 +1577,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           ),
                         );
                       }
-                      
-                      // Filter recipes based on search query
-                      final filteredRecipes = _searchQuery.isEmpty 
-                          ? myRecipes 
-                          : myRecipes.where((recipe) => 
+
+                      final filteredRecipes = _searchQuery.isEmpty
+                          ? myRecipes
+                          : myRecipes.where((recipe) =>
                               recipe.title.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
-                      
                       return ListView.separated(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -1700,7 +1593,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     },
                   ),
                 ),
-
                 const SizedBox(height: 24),
               ],
             ),
@@ -1709,15 +1601,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       ),
     );
   }
-
   Widget _buildRecipeCard(Recipe recipe) {
     final isSelected = _selectedRecipeIds.contains(recipe.id);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return GestureDetector(
       onTap: () {
         if (_isSelectionMode) {
-          // Toggle selection
           setState(() {
             if (isSelected) {
               _selectedRecipeIds.remove(recipe.id);
@@ -1726,12 +1615,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             }
           });
         } else {
-          // Navigate to post detail
           final post = Post(
             id: recipe.id.toString(),
             title: recipe.title,
             author: recipe.userName ?? 'Unknown',
-            minutesAgo: recipe.createdAt != null 
+            minutesAgo: recipe.createdAt != null
                 ? DateTime.now().difference(recipe.createdAt!).inMinutes
                 : 0,
             savedCount: recipe.bookmarksCount,
@@ -1794,18 +1682,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // Checkbox (shown only in selection mode)
               if (_isSelectionMode) ...[
                 Container(
                   width: 24,
                   height: 24,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isSelected 
+                    color: isSelected
                         ? Colors.red.shade600
                         : Colors.transparent,
                     border: Border.all(
-                      color: isSelected 
+                      color: isSelected
                           ? Colors.red.shade600
                           : (isDark ? Colors.grey[400]! : const Color(0xFF64748B)),
                       width: 2,
@@ -1821,7 +1708,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 ),
                 const SizedBox(width: 12),
               ],
-              // Thumbnail with shadow
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
@@ -1860,7 +1746,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 ),
               ),
               const SizedBox(width: 16),
-              // Content
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1879,7 +1764,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        // Star rating
                         Row(
                           children: List.generate(5, (starIndex) {
                             return Icon(
@@ -1916,7 +1800,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   ],
                 ),
               ),
-              // Chevron icon
               SizedBox(
                 width: 32,
                 height: 32,
@@ -1960,10 +1843,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       ),
     );
   }
-
   Widget _infoTile({required IconData icon, required String title, required String value, VoidCallback? onTap}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -2059,14 +1940,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 }
 
 class _StatTile extends StatelessWidget {
+
   final String label;
   final String value;
   const _StatTile({required this.label, required this.value});
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Column(
       children: [
         Container(
@@ -2120,5 +2000,3 @@ class _StatTile extends StatelessWidget {
     );
   }
 }
-
-

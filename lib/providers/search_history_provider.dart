@@ -8,7 +8,6 @@ class SearchHistoryProvider with ChangeNotifier {
   SearchHistoryStats? _stats;
   bool _isLoading = false;
   String? _error;
-
   List<String> get searchHistory => _searchHistory;
   SearchHistoryStats? get stats => _stats;
   bool get isLoading => _isLoading;
@@ -18,32 +17,27 @@ class SearchHistoryProvider with ChangeNotifier {
   Future<void> loadSearchHistory({int limit = 10}) async {
     print('📋 [PROVIDER] ========== START LOADING SEARCH HISTORY ==========');
     print('📋 [PROVIDER] Limit: $limit');
-    
-    // Check authentication first
     final isLoggedIn = AuthService.isLoggedIn;
     final token = AuthService.currentToken;
     print('🔐 [PROVIDER] User logged in: $isLoggedIn');
     print('🔐 [PROVIDER] Token exists: ${token != null}');
     print('🔐 [PROVIDER] Token length: ${token?.length ?? 0}');
-    
     if (!isLoggedIn || token == null || token.isEmpty) {
       print('❌ [PROVIDER] Cannot load search history - user not authenticated');
       _setError('Vui lòng đăng nhập để xem lịch sử tìm kiếm');
       return;
     }
-    
     _setLoading(true);
     _clearError();
-
     try {
-      print('📋 [PROVIDER] Calling SearchHistoryService...');
-      final response = await SearchHistoryService.getSearchHistory(limit: limit);
-      
-      print('📋 [PROVIDER] Response received');
-      print('📋 [PROVIDER] Success: ${response.success}');
-      print('📋 [PROVIDER] Data: ${response.data}');
-      print('📋 [PROVIDER] Message: ${response.message}');
-      
+      print('[PROVIDER] Calling SearchHistoryService...');
+      final response = await SearchHistoryService.getSearchHistory(
+        limit: limit,
+      );
+      print('[PROVIDER] Response received');
+      print('[PROVIDER] Success: ${response.success}');
+      print('[PROVIDER] Data: ${response.data}');
+      print('[PROVIDER] Message: ${response.message}');
       if (response.success) {
         _searchHistory = response.data ?? [];
         print('✅ [PROVIDER] Loaded ${_searchHistory.length} search queries');
@@ -67,7 +61,6 @@ class SearchHistoryProvider with ChangeNotifier {
   Future<void> loadStats() async {
     try {
       final response = await SearchHistoryService.getStats();
-      
       if (response.success) {
         _stats = response.data;
         print('✅ [PROVIDER] Loaded stats: ${_stats?.totalSearches} searches');
@@ -82,9 +75,7 @@ class SearchHistoryProvider with ChangeNotifier {
   Future<bool> deleteQuery(String query) async {
     try {
       final response = await SearchHistoryService.deleteQuery(query);
-      
       if (response.success) {
-        // Remove from local list
         _searchHistory.remove(query);
         notifyListeners();
         return true;
@@ -103,7 +94,6 @@ class SearchHistoryProvider with ChangeNotifier {
   Future<bool> clearAllHistory() async {
     try {
       final response = await SearchHistoryService.clearAllHistory();
-      
       if (response.success) {
         _searchHistory = [];
         _stats = null;
@@ -122,12 +112,10 @@ class SearchHistoryProvider with ChangeNotifier {
 
   /// Refresh search history after a search
   Future<void> refreshAfterSearch() async {
-    // Wait a bit for backend to process
     await Future.delayed(const Duration(milliseconds: 500));
     await loadSearchHistory();
   }
 
-  // Helper methods
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();
@@ -150,4 +138,3 @@ class SearchHistoryProvider with ChangeNotifier {
     notifyListeners();
   }
 }
-

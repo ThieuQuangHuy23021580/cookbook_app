@@ -1,23 +1,21 @@
 import 'package:flutter/material.dart';
-
 class FilterBottomSheet extends StatefulWidget {
+
   final String initialQuery;
   final Function(String? titleQuery, List<String>? includeIngredients, List<String>? excludeIngredients) onApplyFilter;
-  
   const FilterBottomSheet({
     super.key,
     required this.initialQuery,
     required this.onApplyFilter,
   });
-
   @override
   State<FilterBottomSheet> createState() => _FilterBottomSheetState();
 }
 
 class _FilterBottomSheetState extends State<FilterBottomSheet> {
+
   final TextEditingController _includeController = TextEditingController();
   final TextEditingController _excludeController = TextEditingController();
-  
   @override
   void initState() {
     super.initState();
@@ -33,32 +31,48 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.9,
       ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0F0F0F) : Colors.white,
+        borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(24),
           topRight: Radius.circular(24),
         ),
+        border: isDark ? Border.all(
+          color: Colors.white.withOpacity(0.15),
+          width: 2.0,
+        ) : null,
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+          if (isDark)
+            BoxShadow(
+              color: Colors.white.withOpacity(0.05),
+              spreadRadius: 2,
+              blurRadius: 8,
+              offset: const Offset(0, 0),
+            ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle bar
           Container(
             margin: const EdgeInsets.only(top: 12),
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
+              color: isDark ? Colors.white.withOpacity(0.3) : Colors.grey[300],
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          
-          // Header
           Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
@@ -69,12 +83,12 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                   size: 24,
                 ),
                 const SizedBox(width: 12),
-                const Text(
+                Text(
                   'Bộ lọc tìm kiếm',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1F2937),
+                    color: isDark ? Colors.white : const Color(0xFF1F2937),
                   ),
                 ),
                 const Spacer(),
@@ -83,12 +97,29 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
+                      color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(8),
+                      border: isDark ? Border.all(
+                        color: Colors.white.withOpacity(0.15),
+                        width: 2.0,
+                      ) : null,
+                      boxShadow: isDark ? [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.05),
+                          spreadRadius: 1,
+                          blurRadius: 4,
+                          offset: const Offset(0, 0),
+                        ),
+                      ] : null,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.close,
-                      color: Color(0xFF64748B),
+                      color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
                       size: 20,
                     ),
                   ),
@@ -96,68 +127,54 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
               ],
             ),
           ),
-          
-          // Content
           Flexible(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Include section
                   _buildFilterSection(
                     title: 'Hiển thị các món với:',
-                    subtitle: 'Tìm kiếm các món có chứa từ khóa này',
                     controller: _includeController,
                     icon: Icons.add_circle_outline,
-                    hintText: 'Ví dụ: thịt bò, rau cải...',
+                    hintText: 'Ví dụ: thịt bò, hành tây, rau cải',
+                    isDark: isDark,
                   ),
-                  
                   const SizedBox(height: 24),
-                  
-                  // Exclude section
                   _buildFilterSection(
                     title: 'Hiển thị các món không có:',
-                    subtitle: 'Loại bỏ các món có chứa từ khóa này',
                     controller: _excludeController,
                     icon: Icons.remove_circle_outline,
-                    hintText: 'Ví dụ: cay, ngọt...',
+                    hintText: 'Ví dụ: tôm, cua, hải sản',
+                    isDark: isDark,
                   ),
-                  
                   const SizedBox(height: 32),
-                  
-                  // Quick filters
-                  const Text(
+                  Text(
                     'Bộ lọc nhanh',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF1F2937),
+                      color: isDark ? Colors.white : const Color(0xFF1F2937),
                     ),
                   ),
                   const SizedBox(height: 12),
-                  
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _buildQuickFilterChip('Món chay', Icons.eco),
-                      _buildQuickFilterChip('Món cay', Icons.local_fire_department),
-                      _buildQuickFilterChip('Món ngọt', Icons.cake),
-                      _buildQuickFilterChip('Món mặn', Icons.restaurant),
-                      _buildQuickFilterChip('Dễ làm', Icons.speed),
-                      _buildQuickFilterChip('Nhanh gọn', Icons.timer),
+                      _buildQuickFilterChip('Món chay', Icons.eco, isDark),
+                      _buildQuickFilterChip('Món cay', Icons.local_fire_department, isDark),
+                      _buildQuickFilterChip('Món ngọt', Icons.cake, isDark),
+                      _buildQuickFilterChip('Món mặn', Icons.restaurant, isDark),
+                      _buildQuickFilterChip('Dễ làm', Icons.speed, isDark),
+                      _buildQuickFilterChip('Nhanh gọn', Icons.timer, isDark),
                     ],
                   ),
-                  
-                  // Add some bottom padding to prevent content from being cut off
                   const SizedBox(height: 20),
                 ],
               ),
             ),
           ),
-          
-          // Bottom buttons
           Container(
             padding: EdgeInsets.only(
               left: 20,
@@ -166,17 +183,16 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
               bottom: MediaQuery.of(context).viewInsets.bottom + 20,
             ),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? const Color(0xFF0F0F0F) : Colors.white,
               border: Border(
                 top: BorderSide(
-                  color: Colors.grey[200]!,
-                  width: 1,
+                  color: isDark ? Colors.white.withOpacity(0.15) : Colors.grey[200]!,
+                  width: isDark ? 2.0 : 1,
                 ),
               ),
             ),
             child: Row(
               children: [
-                // Reset button
                 Expanded(
                   child: GestureDetector(
                     onTap: () {
@@ -186,63 +202,70 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
+                        color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: const Color(0xFFE2E8F0),
-                          width: 1,
+                          color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFE2E8F0),
+                          width: isDark ? 2.0 : 1,
                         ),
+                        boxShadow: isDark ? [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                          BoxShadow(
+                            color: Colors.white.withOpacity(0.05),
+                            spreadRadius: 1,
+                            blurRadius: 4,
+                            offset: const Offset(0, 0),
+                          ),
+                        ] : null,
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Text(
                           'Đặt lại',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF64748B),
+                            color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
-                
                 const SizedBox(width: 12),
-                
-                // Apply button
                 Expanded(
                   flex: 2,
                   child: GestureDetector(
                     onTap: () {
-                      // Parse include ingredients (split by comma)
                       List<String>? includeIngredients;
                       final includeText = _includeController.text.trim();
                       if (includeText.isNotEmpty) {
                         includeIngredients = includeText
-                            .split(',')
+                            .split(RegExp(r'[,，\n]'))
                             .map((e) => e.trim())
                             .where((e) => e.isNotEmpty)
                             .toList();
                       }
-
-                      // Parse exclude ingredients (split by comma)
                       List<String>? excludeIngredients;
                       final excludeText = _excludeController.text.trim();
                       if (excludeText.isNotEmpty) {
                         excludeIngredients = excludeText
-                            .split(',')
+                            .split(RegExp(r'[,，\n]'))
                             .map((e) => e.trim())
                             .where((e) => e.isNotEmpty)
                             .toList();
                       }
-
+                      print('🔍 [FILTER] Parsed ingredients:');
+                      print('   Include (${includeIngredients?.length ?? 0}): $includeIngredients');
+                      print('   Exclude (${excludeIngredients?.length ?? 0}): $excludeIngredients');
                       final hasTitleQuery = widget.initialQuery.trim().isNotEmpty;
                       final hasIncludeFilters = includeIngredients != null && includeIngredients.isNotEmpty;
                       final hasExcludeFilters = excludeIngredients != null && excludeIngredients.isNotEmpty;
                       final hasAnyFilter = hasTitleQuery || hasIncludeFilters || hasExcludeFilters;
-
                       if (!hasAnyFilter) {
-                        // Show error if no filter is applied
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Vui lòng nhập từ khóa hoặc nguyên liệu để tìm kiếm'),
@@ -252,17 +275,11 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                         );
                         return;
                       }
-
                       print('🔍 [FILTER] Applying filter:');
                       print('   Title: ${widget.initialQuery.trim().isNotEmpty ? widget.initialQuery.trim() : "None"}');
                       print('   Include: $includeIngredients');
                       print('   Exclude: $excludeIngredients');
-
-                      // Close bottom sheet first, then call callback
                       Navigator.pop(context);
-                      
-                      // Call callback after closing bottom sheet
-                      // Use Future.microtask to ensure Navigator.pop completes first
                       Future.microtask(() {
                         widget.onApplyFilter(
                           widget.initialQuery.trim().isNotEmpty ? widget.initialQuery.trim() : null,
@@ -311,13 +328,12 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       ),
     );
   }
-
   Widget _buildFilterSection({
     required String title,
-    required String subtitle,
     required TextEditingController controller,
     required IconData icon,
     required String hintText,
+    required bool isDark,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -332,38 +348,50 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
             const SizedBox(width: 8),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF1F2937),
+                color: isDark ? Colors.white : const Color(0xFF1F2937),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          subtitle,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Color(0xFF6B7280),
-          ),
-        ),
         const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
+            color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: const Color(0xFFE2E8F0),
-              width: 1,
+              color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFE2E8F0),
+              width: isDark ? 2.0 : 1,
             ),
+            boxShadow: isDark ? [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+              BoxShadow(
+                color: Colors.white.withOpacity(0.05),
+                spreadRadius: 1,
+                blurRadius: 4,
+                offset: const Offset(0, 0),
+              ),
+            ] : null,
           ),
           child: TextField(
             controller: controller,
+            maxLines: null,
+            keyboardType: TextInputType.multiline,
+            textInputAction: TextInputAction.newline,
+            style: TextStyle(
+              fontSize: 14,
+              color: isDark ? Colors.white : const Color(0xFF1F2937),
+            ),
             decoration: InputDecoration(
               hintText: hintText,
-              hintStyle: const TextStyle(
-                color: Color(0xFF9CA3AF),
+              hintStyle: TextStyle(
+                color: isDark ? Colors.grey[600] : const Color(0xFF9CA3AF),
                 fontSize: 14,
               ),
               border: InputBorder.none,
@@ -373,18 +401,17 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
               ),
               suffixIcon: controller.text.isNotEmpty
                   ? GestureDetector(
-                      onTap: () => controller.clear(),
-                      child: const Icon(
+                      onTap: () {
+                        controller.clear();
+                        setState(() {});
+                      },
+                      child: Icon(
                         Icons.clear,
-                        color: Color(0xFF9CA3AF),
+                        color: isDark ? Colors.grey[400] : const Color(0xFF9CA3AF),
                         size: 20,
                       ),
                     )
                   : null,
-            ),
-            style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF1F2937),
             ),
             onChanged: (value) => setState(() {}),
           ),
@@ -392,11 +419,9 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       ],
     );
   }
-
-  Widget _buildQuickFilterChip(String label, IconData icon) {
+  Widget _buildQuickFilterChip(String label, IconData icon, bool isDark) {
     return GestureDetector(
       onTap: () {
-        // Add to include filter
         if (_includeController.text.isEmpty) {
           _includeController.text = label;
         } else {
@@ -407,12 +432,25 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
+          color: isDark ? const Color(0xFF0F0F0F) : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: const Color(0xFFE2E8F0),
-            width: 1,
+            color: isDark ? Colors.white.withOpacity(0.15) : const Color(0xFFE2E8F0),
+            width: isDark ? 2.0 : 1,
           ),
+          boxShadow: isDark ? [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+            BoxShadow(
+              color: Colors.white.withOpacity(0.05),
+              spreadRadius: 1,
+              blurRadius: 3,
+              offset: const Offset(0, 0),
+            ),
+          ] : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -420,15 +458,15 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
             Icon(
               icon,
               size: 16,
-              color: const Color(0xFF64748B),
+              color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
             ),
             const SizedBox(width: 6),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF64748B),
+                color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
               ),
             ),
           ],

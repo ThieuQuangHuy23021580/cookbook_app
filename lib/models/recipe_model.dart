@@ -14,17 +14,14 @@ class Recipe {
   final List<RecipeStep> steps;
   final DateTime? createdAt;
   final DateTime? updatedAt;
-  
   final int likesCount;
   final int bookmarksCount;
   final double averageRating;
   final int ratingsCount;
   final int commentsCount;
-  
   final bool isLikedByCurrentUser;
   final bool isBookmarkedByCurrentUser;
   final int? userRating;
-
   Recipe({
     required this.id,
     required this.title,
@@ -47,20 +44,15 @@ class Recipe {
     this.isBookmarkedByCurrentUser = false,
     this.userRating,
   });
-
   factory Recipe.fromJson(Map<String, dynamic> json) {
-    // Fix localhost URL for userAvatar
     final rawAvatar = json['userAvatar'] as String?;
-    final fixedAvatar = rawAvatar != null && rawAvatar.isNotEmpty 
-        ? ApiConfig.fixImageUrl(rawAvatar) 
+    final fixedAvatar = rawAvatar != null && rawAvatar.isNotEmpty
+        ? ApiConfig.fixImageUrl(rawAvatar)
         : null;
-    
-    // Fix localhost URL for recipe imageUrl
     final rawImageUrl = json['imageUrl'] as String?;
-    final fixedImageUrl = rawImageUrl != null && rawImageUrl.isNotEmpty 
-        ? ApiConfig.fixImageUrl(rawImageUrl) 
+    final fixedImageUrl = rawImageUrl != null && rawImageUrl.isNotEmpty
+        ? ApiConfig.fixImageUrl(rawImageUrl)
         : null;
-    
     return Recipe(
       id: json['id'] as int,
       title: json['title'] as String,
@@ -72,11 +64,15 @@ class Recipe {
       userAvatar: fixedAvatar,
       ingredients: _parseIngredients(json['ingredients']),
       steps: _parseSteps(json['steps']),
-      createdAt: json['createdAt'] != null 
-          ? DateTime.parse(json['createdAt'] as String).subtract(const Duration(hours: 7))
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(
+              json['createdAt'] as String,
+            ).subtract(const Duration(hours: 7))
           : null,
-      updatedAt: json['updatedAt'] != null 
-          ? DateTime.parse(json['updatedAt'] as String).subtract(const Duration(hours: 7))
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(
+              json['updatedAt'] as String,
+            ).subtract(const Duration(hours: 7))
           : null,
       likesCount: json['likesCount'] as int? ?? 0,
       bookmarksCount: json['bookmarksCount'] as int? ?? 0,
@@ -84,11 +80,11 @@ class Recipe {
       ratingsCount: json['ratingsCount'] as int? ?? 0,
       commentsCount: json['commentsCount'] as int? ?? 0,
       isLikedByCurrentUser: json['isLikedByCurrentUser'] as bool? ?? false,
-      isBookmarkedByCurrentUser: json['isBookmarkedByCurrentUser'] as bool? ?? false,
+      isBookmarkedByCurrentUser:
+          json['isBookmarkedByCurrentUser'] as bool? ?? false,
       userRating: json['userRating'] as int?,
     );
   }
-
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -116,7 +112,6 @@ class Recipe {
 
   static List<Ingredient> _parseIngredients(dynamic ingredientsData) {
     if (ingredientsData == null) return [];
-    
     try {
       if (ingredientsData is List) {
         return ingredientsData
@@ -133,7 +128,6 @@ class Recipe {
 
   static List<RecipeStep> _parseSteps(dynamic stepsData) {
     if (stepsData == null) return [];
-    
     try {
       if (stepsData is List) {
         return stepsData
@@ -189,7 +183,8 @@ class Recipe {
       ratingsCount: ratingsCount ?? this.ratingsCount,
       commentsCount: commentsCount ?? this.commentsCount,
       isLikedByCurrentUser: isLikedByCurrentUser ?? this.isLikedByCurrentUser,
-      isBookmarkedByCurrentUser: isBookmarkedByCurrentUser ?? this.isBookmarkedByCurrentUser,
+      isBookmarkedByCurrentUser:
+          isBookmarkedByCurrentUser ?? this.isBookmarkedByCurrentUser,
       userRating: userRating ?? this.userRating,
     );
   }

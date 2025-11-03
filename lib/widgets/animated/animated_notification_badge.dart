@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-
 class SmoothNotificationBadge extends StatelessWidget {
+
   final int count;
   final Color backgroundColor;
   final Color foregroundColor;
   final Widget? icon;
-
   const SmoothNotificationBadge({
     super.key,
     required this.count,
@@ -13,7 +12,6 @@ class SmoothNotificationBadge extends StatelessWidget {
     this.foregroundColor = Colors.white,
     this.icon,
   });
-
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
@@ -31,7 +29,6 @@ class SmoothNotificationBadge extends StatelessWidget {
       child: _buildBadge(key: ValueKey<int>(count)),
     );
   }
-
   Widget _buildBadge({required Key key}) {
     return Container(
       key: key,

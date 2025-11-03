@@ -5,7 +5,6 @@ class UploadResponse {
   final String? fileUrl;
   final int? fileSize;
   final String? contentType;
-
   UploadResponse({
     required this.success,
     required this.message,
@@ -14,7 +13,6 @@ class UploadResponse {
     this.fileSize,
     this.contentType,
   });
-
   factory UploadResponse.fromJson(Map<String, dynamic> json) {
     return UploadResponse(
       success: json['success'] as bool? ?? false,
@@ -25,7 +23,6 @@ class UploadResponse {
       contentType: json['contentType'] as String?,
     );
   }
-
   Map<String, dynamic> toJson() {
     return {
       'success': success,
@@ -37,5 +34,3 @@ class UploadResponse {
     };
   }
 }
-
-

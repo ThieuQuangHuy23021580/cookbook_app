@@ -5,14 +5,7 @@ class Ingredient {
   final String name;
   final String? quantity;
   final String? unit;
-
-  Ingredient({
-    required this.id,
-    required this.name,
-    this.quantity,
-    this.unit,
-  });
-
+  Ingredient({required this.id, required this.name, this.quantity, this.unit});
   factory Ingredient.fromJson(Map<String, dynamic> json) {
     return Ingredient(
       id: json['id'] as int,
@@ -21,7 +14,6 @@ class Ingredient {
       unit: json['unit'] as String?,
     );
   }
-
   factory Ingredient.fromJsonSafe(Map<String, dynamic> json) {
     try {
       return Ingredient(
@@ -32,22 +24,11 @@ class Ingredient {
       );
     } catch (e) {
       print('❌ Error parsing ingredient: $e');
-      return Ingredient(
-        id: 0,
-        name: 'Unknown',
-        quantity: null,
-        unit: null,
-      );
+      return Ingredient(id: 0, name: 'Unknown', quantity: null, unit: null);
     }
   }
-
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'quantity': quantity,
-      'unit': unit,
-    };
+    return {'id': id, 'name': name, 'quantity': quantity, 'unit': unit};
   }
 
   @override
@@ -60,13 +41,7 @@ class StepImage {
   final int id;
   final String imageUrl;
   final int? orderNumber;
-
-  StepImage({
-    required this.id,
-    required this.imageUrl,
-    this.orderNumber,
-  });
-
+  StepImage({required this.id, required this.imageUrl, this.orderNumber});
   factory StepImage.fromJson(Map<String, dynamic> json) {
     return StepImage(
       id: json['id'] as int,
@@ -74,13 +49,8 @@ class StepImage {
       orderNumber: json['orderNumber'] as int?,
     );
   }
-
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'imageUrl': imageUrl,
-      'orderNumber': orderNumber,
-    };
+    return {'id': id, 'imageUrl': imageUrl, 'orderNumber': orderNumber};
   }
 
   @override
@@ -95,7 +65,6 @@ class RecipeStep {
   final String title;
   final String? description;
   final List<StepImage> images;
-
   RecipeStep({
     required this.id,
     required this.stepNumber,
@@ -103,7 +72,6 @@ class RecipeStep {
     this.description,
     this.images = const [],
   });
-
   factory RecipeStep.fromJson(Map<String, dynamic> json) {
     return RecipeStep(
       id: json['id'] as int,
@@ -116,22 +84,17 @@ class RecipeStep {
 
   static List<StepImage> _parseImages(dynamic imagesData) {
     if (imagesData == null) return [];
-    
     try {
       if (imagesData is List) {
-        return imagesData
-            .where((e) => e is Map<String, dynamic>)
-            .map((e) {
-              final img = StepImage.fromJson(e as Map<String, dynamic>);
-              // Fix localhost URL for step image
-              final fixedUrl = ApiConfig.fixImageUrl(img.imageUrl);
-              return StepImage(
-                id: img.id,
-                imageUrl: fixedUrl,
-                orderNumber: img.orderNumber,
-              );
-            })
-            .toList();
+        return imagesData.where((e) => e is Map<String, dynamic>).map((e) {
+          final img = StepImage.fromJson(e as Map<String, dynamic>);
+          final fixedUrl = ApiConfig.fixImageUrl(img.imageUrl);
+          return StepImage(
+            id: img.id,
+            imageUrl: fixedUrl,
+            orderNumber: img.orderNumber,
+          );
+        }).toList();
       }
       return [];
     } catch (e) {

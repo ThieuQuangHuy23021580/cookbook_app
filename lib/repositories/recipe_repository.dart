@@ -9,8 +9,13 @@ class RecipeRepository {
     return await ApiService.getRecipeById(id, token: AuthService.currentToken);
   }
 
-  static Future<ApiResponse<List<Recipe>>> getRecipesByUserId(int userId) async {
-    return await ApiService.getRecipesByUserId(userId, token: AuthService.currentToken);
+  static Future<ApiResponse<List<Recipe>>> getRecipesByUserId(
+    int userId,
+  ) async {
+    return await ApiService.getRecipesByUserId(
+      userId,
+      token: AuthService.currentToken,
+    );
   }
 
   static Future<ApiResponse<List<Recipe>>> getMyRecipes() async {
@@ -21,20 +26,31 @@ class RecipeRepository {
     return await ApiService.getMyRecipes(token);
   }
 
-  static Future<ApiResponse<List<Recipe>>> getRecentlyViewedRecipes({int limit = 20}) async {
+  static Future<ApiResponse<List<Recipe>>> getRecentlyViewedRecipes({
+    int limit = 20,
+  }) async {
     print('👀 [REPOSITORY] getRecentlyViewedRecipes called with limit: $limit');
     final token = AuthService.currentToken;
     if (token == null) {
       print('❌ [REPOSITORY] No token available');
       return ApiResponse.error(ErrorMessages.unauthorized);
     }
-    final result = await ApiService.getRecentlyViewedRecipes(token, limit: limit);
-    print('👀 [REPOSITORY] Got ${result.data?.length ?? 0} recently viewed recipes');
+
+    final result = await ApiService.getRecentlyViewedRecipes(
+      token,
+      limit: limit,
+    );
+    print(
+      '👀 [REPOSITORY] Got ${result.data?.length ?? 0} recently viewed recipes',
+    );
     return result;
   }
 
   static Future<ApiResponse<List<Recipe>>> searchRecipes(String title) async {
-    return await ApiService.searchRecipes(title, token: AuthService.currentToken);
+    return await ApiService.searchRecipes(
+      title,
+      token: AuthService.currentToken,
+    );
   }
 
   static Future<ApiResponse<List<Recipe>>> filterByIngredients({
@@ -48,7 +64,9 @@ class RecipeRepository {
     );
   }
 
-  static Future<ApiResponse<Recipe>> createRecipe(Map<String, dynamic> data) async {
+  static Future<ApiResponse<Recipe>> createRecipe(
+    Map<String, dynamic> data,
+  ) async {
     final token = AuthService.currentToken;
     if (token == null) {
       return ApiResponse.error(ErrorMessages.unauthorized);
@@ -56,7 +74,10 @@ class RecipeRepository {
     return await ApiService.createRecipe(data, token);
   }
 
-  static Future<ApiResponse<Recipe>> updateRecipe(int id, Map<String, dynamic> data) async {
+  static Future<ApiResponse<Recipe>> updateRecipe(
+    int id,
+    Map<String, dynamic> data,
+  ) async {
     final token = AuthService.currentToken;
     if (token == null) {
       return ApiResponse.error(ErrorMessages.unauthorized);
@@ -128,7 +149,9 @@ class RecipeRepository {
     return await ApiService.unbookmarkRecipe(id, token);
   }
 
-  static Future<ApiResponse<BookmarkResponse>> toggleBookmarkRecipe(int id) async {
+  static Future<ApiResponse<BookmarkResponse>> toggleBookmarkRecipe(
+    int id,
+  ) async {
     print('🔄 [REPOSITORY] toggleBookmarkRecipe called for Recipe ID: $id');
     final token = AuthService.currentToken;
     if (token == null) {
@@ -141,8 +164,13 @@ class RecipeRepository {
     return result;
   }
 
-  static Future<ApiResponse<Map<String, dynamic>>> isRecipeBookmarked(int id) async {
-    return await ApiService.isRecipeBookmarked(id, token: AuthService.currentToken);
+  static Future<ApiResponse<Map<String, dynamic>>> isRecipeBookmarked(
+    int id,
+  ) async {
+    return await ApiService.isRecipeBookmarked(
+      id,
+      token: AuthService.currentToken,
+    );
   }
 
   static Future<ApiResponse<List<int>>> getBookmarkedRecipeIds() async {
@@ -152,6 +180,7 @@ class RecipeRepository {
       print('❌ [REPOSITORY] No token available');
       return ApiResponse.error(ErrorMessages.unauthorized);
     }
+
     final result = await ApiService.getBookmarkedRecipeIds(token);
     print('📋 [REPOSITORY] Got ${result.data?.length ?? 0} bookmarked IDs');
     return result;
@@ -164,26 +193,29 @@ class RecipeRepository {
       print('❌ [REPOSITORY] No token available');
       return ApiResponse.error(ErrorMessages.unauthorized);
     }
-    
     try {
-      // First get the list of bookmarked recipe IDs
       print('📚 [REPOSITORY] Fetching bookmarked recipe IDs...');
       final idsResponse = await ApiService.getBookmarkedRecipeIds(token);
       if (!idsResponse.success) {
-        print('❌ [REPOSITORY] Failed to get bookmarked IDs: ${idsResponse.message}');
-        return ApiResponse.error(idsResponse.message ?? 'Không thể lấy danh sách ID đã lưu');
+        print(
+          '❌ [REPOSITORY] Failed to get bookmarked IDs: ${idsResponse.message}',
+        );
+        return ApiResponse.error(
+          idsResponse.message ?? 'Không thể lấy danh sách ID đã lưu',
+        );
       }
-      
+
       final bookmarkedIds = idsResponse.data ?? [];
-      print('📚 [REPOSITORY] Got ${bookmarkedIds.length} bookmarked IDs: $bookmarkedIds');
-      
+      print(
+        '📚 [REPOSITORY] Got ${bookmarkedIds.length} bookmarked IDs: $bookmarkedIds',
+      );
       if (bookmarkedIds.isEmpty) {
         print('📚 [REPOSITORY] No bookmarked recipes found');
         return ApiResponse.success([]);
       }
-      
-      // Then get the full recipe details for each ID
-      print('📚 [REPOSITORY] Fetching details for ${bookmarkedIds.length} recipes...');
+      print(
+        '📚 [REPOSITORY] Fetching details for ${bookmarkedIds.length} recipes...',
+      );
       List<Recipe> bookmarkedRecipes = [];
       for (int id in bookmarkedIds) {
         print('📚 [REPOSITORY] Fetching recipe ID: $id');
@@ -192,11 +224,14 @@ class RecipeRepository {
           bookmarkedRecipes.add(recipeResponse.data!);
           print('✅ [REPOSITORY] Added recipe: ${recipeResponse.data!.title}');
         } else {
-          print('❌ [REPOSITORY] Failed to get recipe $id: ${recipeResponse.message}');
+          print(
+            '❌ [REPOSITORY] Failed to get recipe $id: ${recipeResponse.message}',
+          );
         }
       }
-      
-      print('📚 [REPOSITORY] Successfully loaded ${bookmarkedRecipes.length} recipes');
+      print(
+        '📚 [REPOSITORY] Successfully loaded ${bookmarkedRecipes.length} recipes',
+      );
       return ApiResponse.success(bookmarkedRecipes);
     } catch (e) {
       print('❌ [REPOSITORY] Error in getBookmarkedRecipes: $e');

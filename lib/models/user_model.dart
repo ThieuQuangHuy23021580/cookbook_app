@@ -1,7 +1,6 @@
 import '../constants/app_constants.dart';
 
 class User {
-  // Basic info
   final int id;
   final String email;
   final String fullName;
@@ -10,10 +9,7 @@ class User {
   final String? hometown;
   final DateTime? createdAt;
   final DateTime? updatedAt;
-  
-  // Stats (optional - null if not loaded)
   final UserStats? stats;
-
   User({
     required this.id,
     required this.email,
@@ -25,15 +21,11 @@ class User {
     this.updatedAt,
     this.stats,
   });
-
   factory User.fromJson(Map<String, dynamic> json) {
-    // Import ApiConfig để dùng fixImageUrl
-    // Đảm bảo import '../constants/app_constants.dart' ở đầu file
     final rawAvatar = json['avatar'] as String? ?? json['avatarUrl'] as String?;
-    final fixedAvatar = rawAvatar != null && rawAvatar.isNotEmpty 
-        ? _fixImageUrl(rawAvatar) 
+    final fixedAvatar = rawAvatar != null && rawAvatar.isNotEmpty
+        ? _fixImageUrl(rawAvatar)
         : null;
-    
     return User(
       id: json['id'] as int,
       email: json['email'] as String,
@@ -41,18 +33,22 @@ class User {
       avatar: fixedAvatar,
       bio: json['bio'] as String?,
       hometown: json['hometown'] as String?,
-      createdAt: json['createdAt'] != null 
-          ? DateTime.parse(json['createdAt'] as String).subtract(const Duration(hours: 7))
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(
+              json['createdAt'] as String,
+            ).subtract(const Duration(hours: 7))
           : null,
-      updatedAt: json['updatedAt'] != null 
-          ? DateTime.parse(json['updatedAt'] as String).subtract(const Duration(hours: 7))
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(
+              json['updatedAt'] as String,
+            ).subtract(const Duration(hours: 7))
           : null,
-      stats: json['stats'] != null 
+      stats: json['stats'] != null
           ? UserStats.fromJson(json['stats'] as Map<String, dynamic>)
           : null,
     );
   }
-  
+
   /// Helper để fix localhost URL - sử dụng ApiConfig.fixImageUrl()
   static String _fixImageUrl(String url) {
     return ApiConfig.fixImageUrl(url);
@@ -96,7 +92,6 @@ class User {
     );
   }
 
-  // Convenience getters
   int get recipesCount => stats?.recipesCount ?? 0;
   int get likesReceived => stats?.likesReceived ?? 0;
   int get bookmarksReceived => stats?.bookmarksReceived ?? 0;
@@ -105,7 +100,6 @@ class User {
   double get averageRating => stats?.averageRating ?? 0.0;
   int get followersCount => stats?.followersCount ?? 0;
   int get followingCount => stats?.followingCount ?? 0;
-
   @override
   String toString() {
     return 'User(id: $id, email: $email, fullName: $fullName, avatar: $avatar)';
@@ -130,7 +124,6 @@ class UserStats {
   final double averageRating;
   final int followersCount;
   final int followingCount;
-
   UserStats({
     required this.recipesCount,
     required this.likesReceived,
@@ -141,7 +134,6 @@ class UserStats {
     required this.followersCount,
     required this.followingCount,
   });
-
   factory UserStats.fromJson(Map<String, dynamic> json) {
     return UserStats(
       recipesCount: json['recipesCount'] as int? ?? 0,
@@ -154,7 +146,6 @@ class UserStats {
       followingCount: json['followingCount'] as int? ?? 0,
     );
   }
-
   Map<String, dynamic> toJson() {
     return {
       'recipesCount': recipesCount,

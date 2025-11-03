@@ -36,7 +36,9 @@ class AuthRepository {
     await AuthService.logout();
   }
 
-  static Future<ApiResponse<User>> updateProfile(Map<String, dynamic> data) async {
+  static Future<ApiResponse<User>> updateProfile(
+    Map<String, dynamic> data,
+  ) async {
     return await AuthService.updateProfile(data);
   }
 
@@ -45,7 +47,6 @@ class AuthRepository {
   static Map<String, dynamic>? get currentUser => AuthService.currentUser;
   static bool isTokenValid() => AuthService.isTokenValid;
   static bool get isGoogleUser => AuthService.isGoogleUser;
-
   static bool isValidEmail(String email) {
     return AuthService.isValidEmail(email);
   }

@@ -9,32 +9,25 @@ import '../../services/api_service.dart';
 import '../../models/post_model.dart';
 import '../profile/user_profile_screen.dart';
 import 'post_detail_screen.dart';
-
 class NewPostScreen extends StatefulWidget {
-  const NewPostScreen({super.key});
 
+  const NewPostScreen({super.key});
   @override
   State<NewPostScreen> createState() => _NewPostScreenState();
 }
 
 class _NewPostScreenState extends State<NewPostScreen> {
+
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _titleCtrl = TextEditingController();
   final TextEditingController _descCtrl = TextEditingController();
-  
-  // Ingredients controllers: name, quantity, unit
   final List<TextEditingController> _ingredientNameCtrls = List.generate(1, (_) => TextEditingController());
   final List<TextEditingController> _ingredientQuantityCtrls = List.generate(1, (_) => TextEditingController()..text = '0');
   final List<TextEditingController> _ingredientUnitCtrls = List.generate(1, (_) => TextEditingController()..text = 'cái');
-  
-  // Steps controllers: title only (description removed)
   final List<TextEditingController> _stepTitleCtrls = List.generate(1, (_) => TextEditingController());
-  
-  // Images
   final List<File> _images = [];
   final List<List<File>> _stepImages = List.generate(1, (_) => []);
   final ImagePicker _picker = ImagePicker();
-
   @override
   void dispose() {
     _titleCtrl.dispose();
@@ -48,7 +41,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
 
   Future<void> _pickImage() async {
     try {
-      // Show image source selection dialog
       showModalBottomSheet(
         context: context,
         backgroundColor: Colors.transparent,
@@ -117,12 +109,10 @@ class _NewPostScreenState extends State<NewPostScreen> {
         maxHeight: 1080,
         imageQuality: 85,
       );
-      
       if (image != null) {
         setState(() {
           _images.add(File(image.path));
         });
-        
         _showSuccessSnackBar('Đã thêm ảnh thành công');
       }
     } catch (e) {
@@ -159,8 +149,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    // Set system UI overlay style to prevent status bar issues
     SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -169,7 +157,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
         systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       ),
     );
-
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: PreferredSize(
@@ -232,7 +219,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
       ),
       body: Stack(
         children: [
-          // Dynamic background with particles
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -240,9 +226,9 @@ class _NewPostScreenState extends State<NewPostScreen> {
                 end: Alignment.bottomRight,
                 colors: isDark
                     ? [
-                        const Color(0xFF000000), // Pure black
-                        const Color(0xFF0A0A0A), // Very dark gray
-                        const Color(0xFF0F0F0F), // Slightly lighter dark gray
+                        const Color(0xFF000000),
+                        const Color(0xFF0A0A0A),
+                        const Color(0xFF0F0F0F),
                       ]
                     : [
                         const Color(0xFFFAFAFA),
@@ -252,8 +238,7 @@ class _NewPostScreenState extends State<NewPostScreen> {
               ),
             ),
           ),
-          // Floating particles background
-          ...List.generate(8, (index) => 
+          ...List.generate(8, (index) =>
             Positioned(
               top: (index * 80.0) % MediaQuery.of(context).size.height,
               left: (index * 100.0) % MediaQuery.of(context).size.width,
@@ -271,7 +256,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
               ),
             ),
           ),
-          // Main content
           SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Form(
@@ -279,19 +263,14 @@ class _NewPostScreenState extends State<NewPostScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Image picker section with Glassmorphism
                   _imagePickerSection(),
                   const SizedBox(height: 20),
-                  
-                  // Title field with Neumorphism
                   _buildNeumorphicField(
                     controller: _titleCtrl,
                     labelText: 'Tên món',
                     validator: (v) => (v == null || v.trim().isEmpty) ? 'Bắt buộc' : null,
                   ),
                   const SizedBox(height: 16),
-                  
-                  // Description field with Neumorphism
                   _buildNeumorphicField(
                     controller: _descCtrl,
                     labelText: 'Mô tả',
@@ -299,9 +278,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
                     validator: (v) => (v == null || v.trim().isEmpty) ? 'Bắt buộc' : null,
                   ),
                   const SizedBox(height: 20),
-                  
-                  // Ingredients section
-                  // _buildSectionHeader('Nguyên liệu (tối thiểu 3)'),
                   Text(
                       'Nguyên liệu',
                       style: TextStyle(
@@ -324,8 +300,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
                     onPressed: () => _addIngredient(),
                   ),
                   const SizedBox(height: 20),
-                  
-                  // Steps section
                   Text(
                       'Các bước thực hiện',
                       style: TextStyle(
@@ -349,8 +323,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
                     onPressed: () => _addStep(),
                   ),
                   const SizedBox(height: 24),
-                  
-                  // Submit button with 3D effect
                   _buildSubmitButton(),
                   const SizedBox(height: 24),
                 ],
@@ -361,10 +333,8 @@ class _NewPostScreenState extends State<NewPostScreen> {
       ),
     );
   }
-
   Widget _imagePickerSection() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Container(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.8),
@@ -494,10 +464,8 @@ class _NewPostScreenState extends State<NewPostScreen> {
       ),
     );
   }
-
   Widget _buildImageCard(int index) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Container(
       width: 140,
       height: 110,
@@ -582,14 +550,12 @@ class _NewPostScreenState extends State<NewPostScreen> {
       ),
     );
   }
-
   Widget _buildSectionHeader(String title) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark 
+        color: isDark
             ? const Color(0xFF0F0F0F).withOpacity(0.8)
             : const Color(0xFFEF3A16).withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
@@ -611,7 +577,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
       ),
     );
   }
-
   Widget _buildNeumorphicField({
     required TextEditingController controller,
     required String labelText,
@@ -619,7 +584,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
     String? Function(String?)? validator,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Container(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : const Color(0xFFF1F5F9),
@@ -676,7 +640,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
       ),
     );
   }
-
   Widget _buildDynamicField({
     required TextEditingController controller,
     required String labelText,
@@ -751,7 +714,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
       ),
     );
   }
-
   Widget _buildAddButton({
     required String text,
     required VoidCallback onPressed,
@@ -765,14 +727,12 @@ class _NewPostScreenState extends State<NewPostScreen> {
       ),
     );
   }
-
   Widget _buildNeumorphicButton({
     required String text,
     required IconData icon,
     required VoidCallback onPressed,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return GestureDetector(
       onTap: onPressed,
       child: Container(
@@ -832,7 +792,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
       ),
     );
   }
-
   Widget _buildSubmitButton() {
     return Container(
       width: double.infinity,
@@ -883,7 +842,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
     );
   }
 
-  // Ingredient management methods
   void _addIngredient() {
     setState(() {
       _ingredientNameCtrls.add(TextEditingController());
@@ -903,7 +861,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
     });
   }
 
-  // Step management methods
   void _addStep() {
     setState(() {
       _stepTitleCtrls.add(TextEditingController());
@@ -919,10 +876,8 @@ class _NewPostScreenState extends State<NewPostScreen> {
     });
   }
 
-  // Step image management methods
   Future<void> _pickStepImage(int stepIndex) async {
     try {
-      // Show image source selection dialog
       showModalBottomSheet(
         context: context,
         backgroundColor: Colors.transparent,
@@ -1019,8 +974,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
       _stepImages[stepIndex].removeAt(imageIndex);
     });
   }
-
-  // Widget builders
   Widget _buildIngredientField({
     required int index,
     required TextEditingController nameController,
@@ -1029,7 +982,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
     VoidCallback? onRemove,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -1076,7 +1028,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header row
             Row(
               children: [
                 Container(
@@ -1117,8 +1068,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            
-            // Row 1: Tên nguyên liệu
             TextFormField(
               controller: nameController,
               style: TextStyle(
@@ -1158,11 +1107,8 @@ class _NewPostScreenState extends State<NewPostScreen> {
               validator: (v) => (v == null || v.trim().isEmpty) ? 'Bắt buộc' : null,
             ),
             const SizedBox(height: 16),
-            
-            // Row 2: Số lượng + nút +/- + đơn vị
             Row(
               children: [
-                // Số lượng với nút +/-
                 Expanded(
                   flex: 2,
                   child: Container(
@@ -1194,7 +1140,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
                     ),
                     child: Row(
                       children: [
-                        // Nút trừ
                         GestureDetector(
                           onTap: () {
                             final currentValue = int.tryParse(quantityController.text) ?? 1;
@@ -1214,7 +1159,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
                             child: const Icon(Icons.remove, size: 18, color: Colors.white),
                           ),
                         ),
-                        // TextField số lượng
                         Expanded(
                           child: TextFormField(
                             controller: quantityController,
@@ -1239,7 +1183,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
                             },
                           ),
                         ),
-                        // Nút cộng
                         GestureDetector(
                           onTap: () {
                             final currentValue = int.tryParse(quantityController.text) ?? 1;
@@ -1262,7 +1205,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Đơn vị
                 Expanded(
                   child: TextFormField(
                     controller: unitController,
@@ -1309,7 +1251,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
       ),
     );
   }
-
   Widget _buildStepField({
     required int index,
     required TextEditingController titleController,
@@ -1319,7 +1260,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
     Function(int)? onRemoveImage,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(20),
@@ -1365,7 +1305,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header row
           Row(
             children: [
               Container(
@@ -1406,8 +1345,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          
-          // Mô tả chi tiết
           TextFormField(
             controller: titleController,
             style: TextStyle(
@@ -1448,8 +1385,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
             validator: (v) => (v == null || v.trim().isEmpty) ? 'Bắt buộc' : null,
           ),
           const SizedBox(height: 16),
-          
-          // Ảnh minh họa section
           Row(
             children: [
               Text(
@@ -1498,8 +1433,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          
-          // Images grid
           if (images.isNotEmpty)
             Container(
               padding: const EdgeInsets.all(12),
@@ -1561,7 +1494,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
       ),
     );
   }
-
   Widget _buildImageSourceButton({
     required IconData icon,
     required String label,
@@ -1616,7 +1548,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
       ),
     );
   }
-
   bool _validateAll() {
     final formOk = _formKey.currentState!.validate();
     if (!formOk) return false;
@@ -1636,14 +1567,12 @@ class _NewPostScreenState extends State<NewPostScreen> {
   }
 
   Future<void> _submitRecipe() async {
+
     final authProvider = context.read<AuthProvider>();
-    
     if (!authProvider.isLoggedIn) {
       _showErrorSnackBar('Vui lòng đăng nhập để đăng bài');
       return;
     }
-    
-    // Show loading dialog
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1666,11 +1595,8 @@ class _NewPostScreenState extends State<NewPostScreen> {
         ),
       ),
     );
-    
     try {
       print('🚀 [NEW POST] Starting recipe creation...');
-      
-      // Step 1: Upload main recipe image
       print('📸 [NEW POST] Uploading main image...');
       String? mainImageUrl;
       if (_images.isNotEmpty) {
@@ -1678,7 +1604,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
           imageFile: _images.first,
           type: 'recipes',
         );
-        
         if (uploadResult.success && uploadResult.data != null) {
           mainImageUrl = uploadResult.data!.fileUrl;
           print('✅ [NEW POST] Main image uploaded: $mainImageUrl');
@@ -1686,14 +1611,10 @@ class _NewPostScreenState extends State<NewPostScreen> {
           throw Exception('Upload ảnh chính thất bại: ${uploadResult.message}');
         }
       }
-      
-      // Step 2: Upload step images
       print('📸 [NEW POST] Uploading step images...');
       final List<List<Map<String, dynamic>>> stepsWithImages = [];
-      
       for (int stepIndex = 0; stepIndex < _stepTitleCtrls.length; stepIndex++) {
         final stepImagesList = <Map<String, dynamic>>[];
-        
         if (_stepImages[stepIndex].isNotEmpty) {
           for (int imgIdx = 0; imgIdx < _stepImages[stepIndex].length; imgIdx++) {
             final imageFile = _stepImages[stepIndex][imgIdx];
@@ -1701,7 +1622,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
               imageFile: imageFile,
               type: 'steps',
             );
-            
             if (uploadResult.success && uploadResult.data != null) {
               stepImagesList.add({
                 'imageUrl': uploadResult.data!.fileUrl,
@@ -1711,25 +1631,22 @@ class _NewPostScreenState extends State<NewPostScreen> {
             }
           }
         }
-        
         stepsWithImages.add(stepImagesList);
       }
-      
-      // Step 3: Prepare recipe data
       print('📝 [NEW POST] Preparing recipe data...');
       final recipeData = {
         'title': _titleCtrl.text.trim(),
         'imageUrl': mainImageUrl,
-        'servings': 4, // Default
-        'cookingTime': 30, // Default
+        'servings': 4,
+        'cookingTime': 30,
         'ingredients': _ingredientNameCtrls.asMap().entries.map((entry) {
           return {
             'name': entry.value.text.trim(),
-            'quantity': _ingredientQuantityCtrls[entry.key].text.trim().isEmpty 
-                ? '1' 
+            'quantity': _ingredientQuantityCtrls[entry.key].text.trim().isEmpty
+                ? '1'
                 : _ingredientQuantityCtrls[entry.key].text.trim(),
-            'unit': _ingredientUnitCtrls[entry.key].text.trim().isEmpty 
-                ? 'cái' 
+            'unit': _ingredientUnitCtrls[entry.key].text.trim().isEmpty
+                ? 'cái'
                 : _ingredientUnitCtrls[entry.key].text.trim(),
           };
         }).toList(),
@@ -1741,7 +1658,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
           };
         }).toList(),
       };
-      
       print('📦 [NEW POST] Recipe data prepared:');
       print('   - Title: ${recipeData['title']}');
       print('   - Image URL: ${recipeData['imageUrl']}');
@@ -1757,15 +1673,10 @@ class _NewPostScreenState extends State<NewPostScreen> {
         final step = (recipeData['steps'] as List)[i];
         print('   ${i + 1}. ${step['title']} - ${(step['images'] as List).length} images');
       }
-      
-      // Step 4: Create recipe
       print('🚀 [NEW POST] Creating recipe...');
       final recipeProvider = context.read<RecipeProvider>();
       final response = await recipeProvider.createRecipe(recipeData);
-      
-      // Hide loading
       Navigator.pop(context);
-      
       if (response.success) {
         print('');
         print('🎉 ==========================================');
@@ -1778,20 +1689,12 @@ class _NewPostScreenState extends State<NewPostScreen> {
         print('📝 Steps: ${response.data?.steps.length ?? 0}');
         print('🎉 ==========================================');
         print('');
-        
-        // Get current user info
         final authProvider = context.read<AuthProvider>();
         final currentUser = authProvider.currentUser;
         final recipeProvider = context.read<RecipeProvider>();
-        
-        // Get recipe ID
         final recipeId = response.data!.id;
-        
         print('🔄 [NEW POST] Fetching full recipe detail for ID: $recipeId');
-        
-        // Fetch full recipe detail to ensure we have all data
         final recipe = await recipeProvider.getRecipeById(recipeId);
-        
         if (recipe == null) {
           print('❌ [NEW POST] Failed to load recipe detail');
           if (!mounted) return;
@@ -1803,35 +1706,31 @@ class _NewPostScreenState extends State<NewPostScreen> {
           );
           return;
         }
-        
         print('🔍 [NEW POST] Recipe data check:');
         print('   - userName: ${recipe.userName}');
         print('   - currentUser: ${currentUser?.fullName}');
         print('   - createdAt: ${recipe.createdAt}');
         print('   - ingredients count: ${recipe.ingredients.length}');
         print('   - steps count: ${recipe.steps.length}');
-        
-        // Map ingredients with detailed logging
         final ingredientsList = <String>[];
         for (var ing in recipe.ingredients) {
           final text = '${ing.name}${ing.quantity != null ? " ${ing.quantity}" : ""}${ing.unit != null ? " ${ing.unit}" : ""}';
           ingredientsList.add(text);
           print('   - Ingredient: $text');
         }
-        
-        // Map steps with detailed logging
+
         final stepsList = <String>[];
         for (var step in recipe.steps) {
           final text = '${step.stepNumber}. ${step.title}';
           stepsList.add(text);
           print('   - Step: $text');
         }
-        
+
         final post = Post(
           id: recipe.id.toString(),
           title: recipe.title,
           author: recipe.userName ?? currentUser?.fullName ?? 'Unknown',
-          minutesAgo: recipe.createdAt != null 
+          minutesAgo: recipe.createdAt != null
               ? DateTime.now().difference(recipe.createdAt!).inMinutes
               : 0,
           savedCount: recipe.bookmarksCount,
@@ -1840,18 +1739,13 @@ class _NewPostScreenState extends State<NewPostScreen> {
           steps: stepsList,
           createdAt: recipe.createdAt ?? DateTime.now(),
         );
-        
         print('📝 [NEW POST] Post object created:');
         print('   - Author: ${post.author}');
         print('   - Ingredients: ${post.ingredients.length}');
         print('   - Steps: ${post.steps.length}');
         print('   - CreatedAt: ${post.createdAt}');
-        
-        // Show success notification with loading overlay
         if (!mounted) return;
         _showSuccessSnackBar('🎉 Đăng bài thành công! Đang hiển thị bài viết...');
-        
-        // Show loading overlay while navigating
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -1859,29 +1753,17 @@ class _NewPostScreenState extends State<NewPostScreen> {
             child: CircularProgressIndicator(),
           ),
         );
-        
-        // Small delay for smooth transition
         await Future.delayed(const Duration(milliseconds: 300));
-        
         if (!mounted) return;
-        
-        // Close loading overlay
         Navigator.pop(context);
-        
-        // Pop the new post screen
         Navigator.pop(context);
-        
-        // Navigate to post detail screen
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => PostDetailScreen(post: post),
           ),
         );
-        
         print('✅ [NEW POST] Navigated to Post Detail Screen');
-        
-        // Reload recipes in background (don't await)
         print('🔄 [NEW POST] Reloading recipes in background...');
         context.read<RecipeProvider>().loadRecipes().then((_) {
           print('✅ [NEW POST] Feed recipes reloaded');
@@ -1889,7 +1771,6 @@ class _NewPostScreenState extends State<NewPostScreen> {
         context.read<RecipeProvider>().loadMyRecipes().then((_) {
           print('✅ [NEW POST] My recipes reloaded');
         });
-        // Reload user stats to update recipes count
         context.read<AuthProvider>().loadUserStats().then((_) {
           print('✅ [NEW POST] User stats reloaded');
         });
@@ -1906,10 +1787,8 @@ class _NewPostScreenState extends State<NewPostScreen> {
     } catch (e, stackTrace) {
       print('❌ [NEW POST] Error: $e');
       print('❌ [NEW POST] Stack trace: $stackTrace');
-      Navigator.pop(context); // Hide loading
+      Navigator.pop(context);
       _showErrorSnackBar('Lỗi: $e');
     }
   }
 }
-
-

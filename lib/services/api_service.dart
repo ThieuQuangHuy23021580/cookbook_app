@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-
 import '../constants/app_constants.dart';
 import '../models/api_response_model.dart';
 import '../models/user_model.dart';
@@ -10,10 +9,9 @@ import '../models/comment_rating_model.dart';
 import '../models/upload_response_model.dart';
 import '../models/notification_model.dart';
 import '../models/ai_chat_model.dart';
-
 class ApiService {
-  static final http.Client _client = http.Client();
 
+  static final http.Client _client = http.Client();
   static Map<String, String> _getHeaders({String? token}) {
     final headers = Map<String, String>.from(ApiConfig.defaultHeaders);
     if (token != null) {
@@ -21,7 +19,6 @@ class ApiService {
     }
     return headers;
   }
-
   /// Get trending search keywords from backend
   /// Supports optional token, days window and limit
   static Future<ApiResponse<List<String>>> getTrendingKeywords({
@@ -36,24 +33,17 @@ class ApiService {
       };
       if (days != null) params['days'] = days.toString();
       final uri = base.replace(queryParameters: params);
-
       final headers = _getHeaders(token: token);
       print('📤 [TRENDING] GET $uri');
       print('📋 [TRENDING] Headers: ${headers.keys.join(", ")}');
-
       final response = await _client
           .get(uri, headers: headers)
           .timeout(ApiConfig.timeout);
-
       print('📥 [TRENDING] Status: ${response.statusCode}');
-
-      // Custom parsing due to potential different shapes
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final body = json.decode(response.body);
         final List<String> keywords = [];
-
         if (body is List) {
-          // Could be list of strings or objects
           for (final item in body) {
             if (item is String) {
               keywords.add(item);
@@ -75,7 +65,6 @@ class ApiService {
             }
           }
         }
-
         return ApiResponse.success(keywords);
       } else {
         return ApiResponse.error('Không lấy được từ khóa thịnh hành', statusCode: response.statusCode);
@@ -93,7 +82,6 @@ class ApiService {
   ) {
     try {
       final data = json.decode(response.body);
-      
       if (response.statusCode >= 200 && response.statusCode < 300) {
         print('✅ [HANDLE RESPONSE] Success status: ${response.statusCode}');
         print('📝 [HANDLE RESPONSE] Parsing data with fromJson...');
@@ -130,14 +118,11 @@ class ApiService {
         final List<T> items = data.map((item) => fromJson(item as Map<String, dynamic>)).toList();
         return ApiResponse.success(items, statusCode: response.statusCode);
       } else {
-        // Log error response for debugging
         print('❌ [LIST RESPONSE] Error Status: ${response.statusCode}');
         print('❌ [LIST RESPONSE] Response Body: ${response.body}');
-        
         final data = json.decode(response.body);
         final errorMessage = data is String ? data : data['message'] ?? ErrorMessages.serverError;
         print('❌ [LIST RESPONSE] Error Message: $errorMessage');
-        
         return ApiResponse.error(
           errorMessage,
           statusCode: response.statusCode,
@@ -151,7 +136,6 @@ class ApiService {
     }
   }
 
-  // Handler for primitive type lists (int, String, etc.)
   static ApiResponse<List<T>> _handlePrimitiveListResponse<T>(
     http.Response response,
   ) {
@@ -208,28 +192,18 @@ class ApiService {
 
   static Future<ApiResponse<String>> sendOtp(String email) async {
     try {
-      // Mock send OTP for testing (uncomment when server has 500 error)
-      // await Future.delayed(const Duration(seconds: 1));
-      // return ApiResponse.success('OTP sent successfully');
-      
-      // Real API call - Using query parameters as per backend spec
       final uri = Uri.parse('${ApiConfig.baseUrl}${ApiConfig.sendOtp}')
           .replace(queryParameters: {
         'email': email,
       });
-      
       print('🔍 Send OTP Request: email=$email');
       print('🔍 Send OTP URL: $uri');
-      
       final response = await _client.post(
         uri,
         headers: _getHeaders(),
       ).timeout(ApiConfig.timeout);
-
       print('🔍 Send OTP Response: ${response.statusCode} - ${response.body}');
-      
       return _handleStringResponse(response);
-
     } catch (e) {
       print('❌ Send OTP Error: $e');
       return ApiResponse.error(ErrorMessages.networkError);
@@ -244,11 +218,6 @@ class ApiService {
     required String otp,
   }) async {
     try {
-      // Mock register for testing (uncomment when server has 500 error)
-      // await Future.delayed(const Duration(seconds: 1));
-      // return ApiResponse.success('mock_jwt_token_12345');
-      
-      // Real API call (comment when server has issues)
       final requestBody = {
         'email': email,
         'username': username,
@@ -256,20 +225,15 @@ class ApiService {
         'fullName': fullName,
         'otp': otp,
       };
-      
       print('🔍 Register Request: ${json.encode(requestBody)}');
       print('🔍 Register URL: ${ApiConfig.baseUrl}${ApiConfig.register}');
-      
       final response = await _client.post(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.register}'),
         headers: _getHeaders(),
         body: json.encode(requestBody),
       ).timeout(ApiConfig.timeout);
-
       print('🔍 Register Response: ${response.statusCode} - ${response.body}');
-      
       return _handleStringResponse(response);
-
     } catch (e) {
       print('❌ Register Error: $e');
       return ApiResponse.error(ErrorMessages.networkError);
@@ -281,31 +245,97 @@ class ApiService {
     required String password,
   }) async {
     try {
-      // Mock login for testing (uncomment when server has 500 error)
-      // await Future.delayed(const Duration(seconds: 1));
-      // return ApiResponse.success('mock_jwt_token_12345');
-      
-      // Real API call - Using query parameters as per backend spec
       final uri = Uri.parse('${ApiConfig.baseUrl}${ApiConfig.login}')
           .replace(queryParameters: {
         'username': username,
         'password': password,
       });
-      
       print('🔍 Login Request: username=$username, password=***');
       print('🔍 Login URL: $uri');
-      
       final response = await _client.post(
         uri,
         headers: _getHeaders(),
       ).timeout(ApiConfig.timeout);
-
       print('🔍 Login Response: ${response.statusCode} - ${response.body}');
-      
       return _handleStringResponse(response);
-
     } catch (e) {
       print('❌ Login Error: $e');
+      return ApiResponse.error(ErrorMessages.networkError);
+    }
+  }
+
+  static Future<ApiResponse<String>> forgotPassword(String email) async {
+    try {
+      final url = '${ApiConfig.baseUrl}${ApiConfig.forgotPassword}';
+      print('🔄 [FORGOT PASSWORD] POST $url');
+      print('🔄 [FORGOT PASSWORD] Email: $email');
+      final response = await _client.post(
+        Uri.parse(url),
+        headers: _getHeaders(),
+        body: json.encode({'email': email}),
+      ).timeout(ApiConfig.timeout);
+      print('🔄 [FORGOT PASSWORD] Response Status: ${response.statusCode}');
+      print('🔄 [FORGOT PASSWORD] Response Body: ${response.body}');
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        print('✅ [FORGOT PASSWORD] Success: OTP sent to email');
+        return ApiResponse.success(response.body, statusCode: response.statusCode);
+      } else {
+        String errorMessage = 'Không thể gửi OTP';
+        try {
+          final jsonData = json.decode(response.body);
+          errorMessage = jsonData['error'] as String? ?? jsonData['message'] as String? ?? errorMessage;
+        } catch (e) {
+          errorMessage = response.body;
+        }
+        print('❌ [FORGOT PASSWORD] Error: $errorMessage (Status: ${response.statusCode})');
+        return ApiResponse.error(errorMessage, statusCode: response.statusCode);
+      }
+    } catch (e, stackTrace) {
+      print('❌ [FORGOT PASSWORD] Exception: $e');
+      print('❌ [FORGOT PASSWORD] Stack trace: $stackTrace');
+      return ApiResponse.error(ErrorMessages.networkError);
+    }
+  }
+
+  static Future<ApiResponse<String>> resetPassword({
+    required String email,
+    required String otp,
+    required String newPassword,
+  }) async {
+    try {
+      final url = '${ApiConfig.baseUrl}${ApiConfig.resetPassword}';
+      print('🔄 [RESET PASSWORD] POST $url');
+      print('🔄 [RESET PASSWORD] Email: $email');
+      final requestBody = {
+        'email': email,
+        'otp': otp,
+        'newPassword': newPassword,
+      };
+
+      final response = await _client.post(
+        Uri.parse(url),
+        headers: _getHeaders(),
+        body: json.encode(requestBody),
+      ).timeout(ApiConfig.timeout);
+      print('🔄 [RESET PASSWORD] Response Status: ${response.statusCode}');
+      print('🔄 [RESET PASSWORD] Response Body: ${response.body}');
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        print('✅ [RESET PASSWORD] Success: Password reset successfully');
+        return ApiResponse.success(response.body, statusCode: response.statusCode);
+      } else {
+        String errorMessage = 'Không thể đặt lại mật khẩu';
+        try {
+          final jsonData = json.decode(response.body);
+          errorMessage = jsonData['error'] as String? ?? jsonData['message'] as String? ?? errorMessage;
+        } catch (e) {
+          errorMessage = response.body;
+        }
+        print('❌ [RESET PASSWORD] Error: $errorMessage (Status: ${response.statusCode})');
+        return ApiResponse.error(errorMessage, statusCode: response.statusCode);
+      }
+    } catch (e, stackTrace) {
+      print('❌ [RESET PASSWORD] Exception: $e');
+      print('❌ [RESET PASSWORD] Stack trace: $stackTrace');
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }
@@ -316,7 +346,6 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.userExists}?email=$email'),
         headers: _getHeaders(),
       ).timeout(ApiConfig.timeout);
-
       return _handleBooleanResponse(response);
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -329,7 +358,6 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.users}'),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       return _handleListResponse(response, (json) => User.fromJson(json));
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -342,9 +370,125 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.users}/$id'),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       return _handleResponse(response, (json) => User.fromJson(json));
     } catch (e) {
+      return ApiResponse.error(ErrorMessages.networkError);
+    }
+  }
+
+  static Future<ApiResponse<String>> followUser(int userId, String token) async {
+    try {
+      final url = '${ApiConfig.baseUrl}${ApiConfig.followUser(userId)}';
+      print('🔄 [FOLLOW USER] POST $url');
+      print('🔄 [FOLLOW USER] UserId: $userId');
+      final response = await _client.post(
+        Uri.parse(url),
+        headers: _getHeaders(token: token),
+      ).timeout(ApiConfig.timeout);
+      print('🔄 [FOLLOW USER] Response Status: ${response.statusCode}');
+      print('🔄 [FOLLOW USER] Response Body: ${response.body}');
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        try {
+          final jsonData = json.decode(response.body);
+          final message = jsonData['message'] as String? ?? 'Successfully followed user';
+          print('✅ [FOLLOW USER] Success: $message');
+          return ApiResponse.success(message, statusCode: response.statusCode);
+        } catch (e) {
+          print('✅ [FOLLOW USER] Success (non-JSON response)');
+          return ApiResponse.success(response.body, statusCode: response.statusCode);
+        }
+      } else {
+        String errorMessage = 'Failed to follow user';
+        try {
+          final jsonData = json.decode(response.body);
+          errorMessage = jsonData['error'] as String? ?? jsonData['message'] as String? ?? errorMessage;
+        } catch (e) {
+          errorMessage = response.body;
+        }
+        print('❌ [FOLLOW USER] Error: $errorMessage (Status: ${response.statusCode})');
+        return ApiResponse.error(errorMessage, statusCode: response.statusCode);
+      }
+    } catch (e, stackTrace) {
+      print('❌ [FOLLOW USER] Exception: $e');
+      print('❌ [FOLLOW USER] Stack trace: $stackTrace');
+      return ApiResponse.error(ErrorMessages.networkError);
+    }
+  }
+
+  static Future<ApiResponse<String>> unfollowUser(int userId, String token) async {
+    try {
+      final url = '${ApiConfig.baseUrl}${ApiConfig.unfollowUser(userId)}';
+      print('🔄 [UNFOLLOW USER] DELETE $url');
+      print('🔄 [UNFOLLOW USER] UserId: $userId');
+      final response = await _client.delete(
+        Uri.parse(url),
+        headers: _getHeaders(token: token),
+      ).timeout(ApiConfig.timeout);
+      print('🔄 [UNFOLLOW USER] Response Status: ${response.statusCode}');
+      print('🔄 [UNFOLLOW USER] Response Body: ${response.body}');
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        try {
+          final jsonData = json.decode(response.body);
+          final message = jsonData['message'] as String? ?? 'Successfully unfollowed user';
+          print('✅ [UNFOLLOW USER] Success: $message');
+          return ApiResponse.success(message, statusCode: response.statusCode);
+        } catch (e) {
+          print('✅ [UNFOLLOW USER] Success (non-JSON response)');
+          return ApiResponse.success(response.body, statusCode: response.statusCode);
+        }
+      } else {
+        String errorMessage = 'Failed to unfollow user';
+        try {
+          final jsonData = json.decode(response.body);
+          errorMessage = jsonData['error'] as String? ?? jsonData['message'] as String? ?? errorMessage;
+        } catch (e) {
+          errorMessage = response.body;
+        }
+        print('❌ [UNFOLLOW USER] Error: $errorMessage (Status: ${response.statusCode})');
+        return ApiResponse.error(errorMessage, statusCode: response.statusCode);
+      }
+    } catch (e, stackTrace) {
+      print('❌ [UNFOLLOW USER] Exception: $e');
+      print('❌ [UNFOLLOW USER] Stack trace: $stackTrace');
+      return ApiResponse.error(ErrorMessages.networkError);
+    }
+  }
+
+  static Future<ApiResponse<bool>> checkIsFollowing(int userId, String token) async {
+    try {
+      final url = '${ApiConfig.baseUrl}${ApiConfig.checkIsFollowing(userId)}';
+      print('🔄 [CHECK FOLLOWING] GET $url');
+      print('🔄 [CHECK FOLLOWING] UserId: $userId');
+      final response = await _client.get(
+        Uri.parse(url),
+        headers: _getHeaders(token: token),
+      ).timeout(ApiConfig.timeout);
+      print('🔄 [CHECK FOLLOWING] Response Status: ${response.statusCode}');
+      print('🔄 [CHECK FOLLOWING] Response Body: ${response.body}');
+      if (response.statusCode == 200) {
+        try {
+          final jsonData = json.decode(response.body);
+          final isFollowing = jsonData['isFollowing'] as bool? ?? false;
+          print('✅ [CHECK FOLLOWING] Is Following: $isFollowing');
+          return ApiResponse.success(isFollowing, statusCode: response.statusCode);
+        } catch (e) {
+          print('❌ [CHECK FOLLOWING] Failed to parse JSON: $e');
+          return ApiResponse.error('Failed to parse response');
+        }
+      } else {
+        String errorMessage = 'Failed to check follow status';
+        try {
+          final jsonData = json.decode(response.body);
+          errorMessage = jsonData['error'] as String? ?? jsonData['message'] as String? ?? errorMessage;
+        } catch (e) {
+          errorMessage = response.body;
+        }
+        print('❌ [CHECK FOLLOWING] Error: $errorMessage (Status: ${response.statusCode})');
+        return ApiResponse.error(errorMessage, statusCode: response.statusCode);
+      }
+    } catch (e, stackTrace) {
+      print('❌ [CHECK FOLLOWING] Exception: $e');
+      print('❌ [CHECK FOLLOWING] Stack trace: $stackTrace');
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }
@@ -355,7 +499,6 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.userProfile}'),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       return _handleResponse(response, (json) => User.fromJson(json));
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -367,15 +510,12 @@ class ApiService {
       final url = '${ApiConfig.baseUrl}${ApiConfig.users}/$id';
       print('🔍 UpdateUser URL: $url');
       print('🔍 UpdateUser Data: ${json.encode(data)}');
-      
       final response = await _client.put(
         Uri.parse(url),
         headers: _getHeaders(token: token),
         body: json.encode(data),
       ).timeout(ApiConfig.timeout);
-
       print('🔍 UpdateUser Response: ${response.statusCode} - ${response.body}');
-
       return _handleResponse(response, (json) => User.fromJson(json));
     } catch (e) {
       print('❌ UpdateUser Error: $e');
@@ -389,7 +529,6 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.users}/$id'),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       return _handleStringResponse(response);
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -402,7 +541,6 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.getRecipes}'),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       return _handleListResponse(response, (json) => Recipe.fromJson(json));
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -413,14 +551,11 @@ class ApiService {
     try {
       final url = '${ApiConfig.baseUrl}${ApiConfig.recipes}/$id';
       print('📖 [GET RECIPE BY ID] GET $url (token: ${token != null ? "present" : "none"})');
-      
       final response = await _client.get(
         Uri.parse(url),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       print('📖 [GET RECIPE BY ID] Status: ${response.statusCode}');
-      
       final result = _handleResponse(response, (json) => Recipe.fromJson(json));
       if (result.success) {
         print('✅ [GET RECIPE BY ID] Successfully loaded recipe: ${result.data?.title}');
@@ -441,7 +576,6 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.recipes}/user/$userId'),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       return _handleListResponse(response, (json) => Recipe.fromJson(json));
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -454,7 +588,6 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.myRecipes}'),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       return _handleListResponse(response, (json) => Recipe.fromJson(json));
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -466,17 +599,13 @@ class ApiService {
       final url = '${ApiConfig.baseUrl}/recipes/recently-viewed?limit=$limit';
       print('📤 [RECENTLY VIEWED] GET $url');
       print('🔐 [RECENTLY VIEWED] Token: ${token.substring(0, 20)}...');
-      
       final headers = _getHeaders(token: token);
       print('📋 [RECENTLY VIEWED] Headers: ${headers.keys.join(", ")}');
-      
       final response = await _client.get(
         Uri.parse(url),
         headers: headers,
       ).timeout(ApiConfig.timeout);
-
       print('📥 [RECENTLY VIEWED] Status: ${response.statusCode}');
-      
       if (response.statusCode == 200) {
         final result = _handleListResponse(response, (json) => Recipe.fromJson(json));
         print('✅ [RECENTLY VIEWED] Found ${result.data?.length ?? 0} recipes');
@@ -497,13 +626,11 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.searchRecipes}?title=$title'),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       return _handleListResponse(response, (json) => Recipe.fromJson(json));
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }
-
   /// POST /api/recipes/filter-by-ingredients - Filter recipes by ingredients (Public - no auth required)
   static Future<ApiResponse<List<Recipe>>> filterByIngredients({
     List<String>? includeIngredients,
@@ -515,7 +642,6 @@ class ApiService {
       print('📤 [FILTER INGREDIENTS API] POST $url');
       print('📤 [FILTER INGREDIENTS API] Include: ${includeIngredients ?? []}');
       print('📤 [FILTER INGREDIENTS API] Exclude: ${excludeIngredients ?? []}');
-      
       final requestBody = <String, dynamic>{};
       if (includeIngredients != null && includeIngredients.isNotEmpty) {
         requestBody['includeIngredients'] = includeIngredients;
@@ -523,16 +649,14 @@ class ApiService {
       if (excludeIngredients != null && excludeIngredients.isNotEmpty) {
         requestBody['excludeIngredients'] = excludeIngredients;
       }
-      
+
       final response = await _client.post(
         Uri.parse(url),
         headers: _getHeaders(token: token),
         body: json.encode(requestBody),
       ).timeout(ApiConfig.timeout);
-
       print('📥 [FILTER INGREDIENTS API] Status: ${response.statusCode}');
       print('📥 [FILTER INGREDIENTS API] Body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}...');
-
       return _handleListResponse(response, (json) => Recipe.fromJson(json));
     } catch (e, stackTrace) {
       print('❌ [FILTER INGREDIENTS API] Exception: $e');
@@ -549,16 +673,13 @@ class ApiService {
       print('   - Image URL: ${data['imageUrl']}');
       print('   - Ingredients: ${data['ingredients']?.length ?? 0}');
       print('   - Steps: ${data['steps']?.length ?? 0}');
-      
       final response = await _client.post(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.recipes}'),
         headers: _getHeaders(token: token),
         body: json.encode(data),
       ).timeout(ApiConfig.timeout);
-
       print('📥 [CREATE RECIPE API] Response Status: ${response.statusCode}');
       print('📥 [CREATE RECIPE API] Response Body: ${response.body}');
-      
       return _handleResponse(response, (json) => Recipe.fromJson(json));
     } catch (e, stackTrace) {
       print('❌ [CREATE RECIPE API] Error: $e');
@@ -574,7 +695,6 @@ class ApiService {
         headers: _getHeaders(token: token),
         body: json.encode(data),
       ).timeout(ApiConfig.timeout);
-
       return _handleResponse(response, (json) => Recipe.fromJson(json));
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -587,7 +707,6 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.recipes}/$id'),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       return _handleStringResponse(response);
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -600,7 +719,6 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.recipes}/$id/like'),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       return _handleResponse(response, (json) => LikeResponse.fromJson(json));
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -613,7 +731,6 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.recipes}/$id/like'),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       return _handleResponse(response, (json) => LikeResponse.fromJson(json));
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -626,7 +743,6 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.recipes}/$id/toggle-like'),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       return _handleResponse(response, (json) => LikeResponse.fromJson(json));
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -639,7 +755,6 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.recipes}/$id/is-liked'),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       return _handleResponse(response, (json) => json);
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -652,7 +767,6 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.likedRecipes}'),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       return _handlePrimitiveListResponse<int>(response);
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -664,15 +778,12 @@ class ApiService {
       final url = '${ApiConfig.baseUrl}${ApiConfig.recipes}/$id/bookmark';
       print('📌 [BOOKMARK API] Request: POST $url');
       print('📌 [BOOKMARK API] Recipe ID: $id');
-      
       final response = await _client.post(
         Uri.parse(url),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       print('📌 [BOOKMARK API] Response Status: ${response.statusCode}');
       print('📌 [BOOKMARK API] Response Body: ${response.body}');
-      
       return _handleResponse(response, (json) => BookmarkResponse.fromJson(json));
     } catch (e) {
       print('❌ [BOOKMARK API] Error: $e');
@@ -685,15 +796,12 @@ class ApiService {
       final url = '${ApiConfig.baseUrl}${ApiConfig.recipes}/$id/bookmark';
       print('📌 [UNBOOKMARK API] Request: DELETE $url');
       print('📌 [UNBOOKMARK API] Recipe ID: $id');
-      
       final response = await _client.delete(
         Uri.parse(url),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       print('📌 [UNBOOKMARK API] Response Status: ${response.statusCode}');
       print('📌 [UNBOOKMARK API] Response Body: ${response.body}');
-      
       return _handleResponse(response, (json) => BookmarkResponse.fromJson(json));
     } catch (e) {
       print('❌ [UNBOOKMARK API] Error: $e');
@@ -706,15 +814,12 @@ class ApiService {
       final url = '${ApiConfig.baseUrl}${ApiConfig.recipes}/$id/toggle-bookmark';
       print('🔄 [TOGGLE BOOKMARK API] Request: POST $url');
       print('🔄 [TOGGLE BOOKMARK API] Recipe ID: $id');
-      
       final response = await _client.post(
         Uri.parse(url),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       print('🔄 [TOGGLE BOOKMARK API] Response Status: ${response.statusCode}');
       print('🔄 [TOGGLE BOOKMARK API] Response Body: ${response.body}');
-      
       return _handleResponse(response, (json) => BookmarkResponse.fromJson(json));
     } catch (e) {
       print('❌ [TOGGLE BOOKMARK API] Error: $e');
@@ -728,7 +833,6 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.recipes}/$id/is-bookmarked'),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       return _handleResponse(response, (json) => json);
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -739,18 +843,14 @@ class ApiService {
     try {
       final url = '${ApiConfig.baseUrl}${ApiConfig.bookmarkedRecipes}';
       print('📋 [GET BOOKMARKED IDS API] Request: GET $url');
-      
       final response = await _client.get(
         Uri.parse(url),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       print('📋 [GET BOOKMARKED IDS API] Response Status: ${response.statusCode}');
       print('📋 [GET BOOKMARKED IDS API] Response Body: ${response.body}');
-      
       final result = _handlePrimitiveListResponse<int>(response);
       print('📋 [GET BOOKMARKED IDS API] Parsed ${result.data?.length ?? 0} IDs: ${result.data}');
-      
       return result;
     } catch (e) {
       print('❌ [GET BOOKMARKED IDS API] Error: $e');
@@ -763,15 +863,12 @@ class ApiService {
       final url = '${ApiConfig.baseUrl}${ApiConfig.recipes}/$recipeId/comments';
       print('🔍 AddComment URL: $url');
       print('🔍 AddComment Data: ${json.encode(data)}');
-      
       final response = await _client.post(
         Uri.parse(url),
         headers: _getHeaders(token: token),
         body: json.encode(data),
       ).timeout(ApiConfig.timeout);
-
       print('🔍 AddComment Response: ${response.statusCode} - ${response.body}');
-
       return _handleResponse(response, (json) => Comment.fromJson(json));
     } catch (e) {
       print('❌ AddComment Error: $e');
@@ -783,14 +880,11 @@ class ApiService {
     try {
       final url = '${ApiConfig.baseUrl}${ApiConfig.recipes}/$recipeId/comments';
       print('🔍 GetComments URL: $url');
-      
       final response = await _client.get(
         Uri.parse(url),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       print('🔍 GetComments Response: ${response.statusCode} - ${response.body}');
-
       return _handleListResponse(response, (json) => Comment.fromJson(json));
     } catch (e) {
       print('❌ GetComments Error: $e');
@@ -805,7 +899,6 @@ class ApiService {
         headers: _getHeaders(token: token),
         body: json.encode(data),
       ).timeout(ApiConfig.timeout);
-
       return _handleResponse(response, (json) => Comment.fromJson(json));
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -818,7 +911,6 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.recipes}/$recipeId/comments/$commentId'),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       return _handleStringResponse(response);
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -832,7 +924,6 @@ class ApiService {
         headers: _getHeaders(token: token),
         body: json.encode(data),
       ).timeout(ApiConfig.timeout);
-
       return _handleResponse(response, (json) => RatingResponse.fromJson(json));
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -845,7 +936,6 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.recipes}/$recipeId/ratings/my-rating'),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       return _handleResponse(response, (json) => Rating.fromJson(json));
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -858,7 +948,6 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.recipes}/$recipeId/ratings'),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       return _handleStringResponse(response);
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -871,7 +960,6 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.recipes}/$recipeId/ratings/stats'),
         headers: _getHeaders(),
       ).timeout(ApiConfig.timeout);
-
       return _handleResponse(response, (json) => RatingStats.fromJson(json));
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -884,7 +972,6 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.recipes}/$recipeId/ratings'),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       return _handleListResponse(response, (json) => Rating.fromJson(json));
     } catch (e) {
       return ApiResponse.error(ErrorMessages.networkError);
@@ -904,12 +991,12 @@ class ApiService {
       if (!emailExistsResult.success) {
         return ApiResponse.error('Không thể kiểm tra email');
       }
-
       if (!emailExistsResult.data!) {
         final otpResult = await sendOtp(email);
         if (!otpResult.success) {
           return ApiResponse.error('Không thể gửi OTP');
         }
+
         final registerResult = await register(
           email: email,
           username: username,
@@ -917,7 +1004,6 @@ class ApiService {
           fullName: fullName,
           otp: '123456',
         );
-
         if (!registerResult.success) {
           return ApiResponse.error(registerResult.message ?? 'Lỗi đăng ký');
         }
@@ -926,7 +1012,6 @@ class ApiService {
           username: email,
           password: tempPassword,
         );
-
         if (loginResult.success) {
           return ApiResponse.success({
             'token': loginResult.data,
@@ -939,7 +1024,6 @@ class ApiService {
           username: email,
           password: tempPassword,
         );
-
         if (loginResult.success) {
           return ApiResponse.success({
             'token': loginResult.data,
@@ -948,17 +1032,15 @@ class ApiService {
           });
         }
       }
-
       return ApiResponse.error('Không thể đăng ký/đăng nhập với Google');
     } catch (e) {
       return ApiResponse.error('Lỗi kết nối: $e');
     }
   }
 
-  // Upload image to server
   static Future<ApiResponse<UploadResponse>> uploadImage({
     required File imageFile,
-    String type = 'avatars', // avatars, recipes, steps, general
+    String type = 'avatars',
     String? token,
   }) async {
     try {
@@ -966,35 +1048,22 @@ class ApiService {
       print('📤 [UPLOAD API] Request: POST $url');
       print('📤 [UPLOAD API] File: ${imageFile.path}');
       print('📤 [UPLOAD API] Type: $type');
-
-      // Create multipart request
       final request = http.MultipartRequest('POST', Uri.parse(url));
-      
-      // Add authorization header if token is provided
       if (token != null) {
         request.headers['Authorization'] = 'Bearer $token';
       }
-      
-      // Add file
+
       final file = await http.MultipartFile.fromPath(
         'file',
         imageFile.path,
       );
       request.files.add(file);
-      
-      // Add type parameter
       request.fields['type'] = type;
-      
       print('📤 [UPLOAD API] Sending request...');
-      
-      // Send request
       final streamedResponse = await request.send().timeout(ApiConfig.timeout);
       final response = await http.Response.fromStream(streamedResponse);
-      
       print('📤 [UPLOAD API] Response Status: ${response.statusCode}');
       print('📤 [UPLOAD API] Response Body: ${response.body}');
-      
-      // Handle response
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = json.decode(response.body);
         final uploadResponse = UploadResponse.fromJson(data);
@@ -1011,23 +1080,17 @@ class ApiService {
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }
-
-  // ==================== NOTIFICATION APIs ====================
-  
   /// GET /api/notifications - Get all notifications
   static Future<ApiResponse<List<AppNotification>>> getNotifications(String token) async {
     try {
       final url = '${ApiConfig.baseUrl}${ApiConfig.notifications}';
       print('📤 [NOTIFICATION API] GET $url');
-      
       final response = await _client.get(
         Uri.parse(url),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       print('📥 [NOTIFICATION API] Status: ${response.statusCode}');
       print('📥 [NOTIFICATION API] Body: ${response.body}');
-
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         print('✅ [NOTIFICATION API] Found ${data.length} notifications');
@@ -1047,7 +1110,6 @@ class ApiService {
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }
-
   /// GET /api/notifications/unread - Get unread notifications
   static Future<ApiResponse<List<AppNotification>>> getUnreadNotifications(String token) async {
     try {
@@ -1055,7 +1117,6 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.notifications}/unread'),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         final notifications = data.map((json) => AppNotification.fromJson(json)).toList();
@@ -1072,21 +1133,17 @@ class ApiService {
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }
-
   /// GET /api/notifications/unread/count - Get unread count
   static Future<ApiResponse<int>> getUnreadNotificationCount(String token) async {
     try {
       final url = '${ApiConfig.baseUrl}${ApiConfig.notifications}/unread/count';
       print('📤 [NOTIFICATION COUNT] GET $url');
-      
       final response = await _client.get(
         Uri.parse(url),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       print('📥 [NOTIFICATION COUNT] Status: ${response.statusCode}');
       print('📥 [NOTIFICATION COUNT] Body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final count = data['count'] as int;
@@ -1102,21 +1159,17 @@ class ApiService {
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }
-
   /// PUT /api/notifications/:id/read - Mark notification as read
   static Future<ApiResponse<String>> markNotificationAsRead(int notificationId, String token) async {
     try {
       final url = '${ApiConfig.baseUrl}${ApiConfig.notifications}/$notificationId/read';
       print('📤 [NOTIFICATION READ] PUT $url');
-      
       final response = await _client.put(
         Uri.parse(url),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       print('📥 [NOTIFICATION READ] Status: ${response.statusCode}');
       print('📥 [NOTIFICATION READ] Body: ${response.body}');
-
       if (response.statusCode == 200) {
         print('✅ [NOTIFICATION READ] Marked notification $notificationId as read');
         return ApiResponse.success('Đã đánh dấu đã đọc');
@@ -1134,7 +1187,6 @@ class ApiService {
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }
-
   /// DELETE /api/notifications/:id - Delete notification
   static Future<ApiResponse<String>> deleteNotification(int notificationId, String token) async {
     try {
@@ -1142,7 +1194,6 @@ class ApiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.notifications}/$notificationId'),
         headers: _getHeaders(token: token),
       ).timeout(ApiConfig.timeout);
-
       if (response.statusCode == 200) {
         return ApiResponse.success('Đã xóa thông báo');
       } else {
@@ -1157,9 +1208,6 @@ class ApiService {
       return ApiResponse.error(ErrorMessages.networkError);
     }
   }
-
-  // ==================== AI CHAT APIs ====================
-  
   /// POST /api/ai/chat - Chat with AI about recipes (Public - no auth required)
   static Future<ApiResponse<AIChatResponse>> chatWithAI({
     required String question,
@@ -1168,20 +1216,17 @@ class ApiService {
       final url = '${ApiConfig.baseUrl}${ApiConfig.aiChat}';
       print('📤 [AI CHAT API] POST $url');
       print('📤 [AI CHAT API] Question: $question');
-      
       final requestBody = {
         'question': question,
       };
-      
+
       final response = await _client.post(
         Uri.parse(url),
         headers: _getHeaders(),
         body: json.encode(requestBody),
       ).timeout(ApiConfig.timeout);
-
       print('📥 [AI CHAT API] Status: ${response.statusCode}');
       print('📥 [AI CHAT API] Body: ${response.body}');
-
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = json.decode(response.body);
         final aiResponse = AIChatResponse.fromJson(data as Map<String, dynamic>);
