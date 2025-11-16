@@ -1,244 +1,552 @@
 import 'package:flutter/material.dart';
-import '../../models/post.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../../core/index.dart';
+import '../../models/post_model.dart';
+import '../../providers/recipe_provider.dart';
 import '../feed/post_detail_screen.dart';
-
 class LibraryScreen extends StatefulWidget {
-  const LibraryScreen({super.key});
 
+  const LibraryScreen({super.key});
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
 }
 
 class _LibraryScreenState extends State<LibraryScreen> {
-  String _sort = 'Đã xem gần nhất';
-  int _currentPage = 1;
-  final int _itemsPerPage = 10;
+  String _searchQuery = '';
+  String _sortBy = 'recent';
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<RecipeProvider>().loadBookmarkedRecipes();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final total = 42;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Kho lưu trữ'),
-        backgroundColor: const Color(0xFFEF3A16),
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.dark,
       ),
-      body: Column(
+    );
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: Stack(
         children: [
           Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.white,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [
+                        const Color(0xFF000000),
+                        const Color(0xFF0A0A0A),
+                        const Color(0xFF0F0F0F),
+                      ]
+                    : [
+                        const Color(0xFFFAFAFA),
+                        const Color(0xFFF8FAFC),
+                        const Color(0xFFF1F5F9),
+                      ],
+                stops: const [0.0, 0.5, 1.0],
+              ),
+            ),
+          ),
+          SafeArea(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Tổng số công thức: $total', style: const TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        decoration: InputDecoration(
-                          hintText: 'Tìm trong kho món ngon của bạn',
-                          prefixIcon: const Icon(Icons.search),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                          isDense: true,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        const Color(0xFFEF3A16).withOpacity(0.9),
+                        const Color(0xFFFF5A00).withOpacity(0.8),
+                      ],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            'Kho món ngon của tôi',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+                                width: isDark ? 2.0 : 1.0,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.05),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 2),
+                                ),
+                                if (isDark)
+                                  BoxShadow(
+                                    color: Colors.white.withOpacity(0.05),
+                                    spreadRadius: 2,
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 0),
+                                  ),
+                                if (isDark)
+                                  BoxShadow(
+                                    color: Colors.white.withOpacity(0.08),
+                                    spreadRadius: 1,
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 0),
+                                  ),
+                              ],
+                            ),
+                            child: PopupMenuButton<String>(
+                              icon: Icon(
+                                Icons.sort,
+                                color: isDark ? Colors.grey[400] : Colors.white,
+                                size: 20,
+                              ),
+                              color: isDark ? const Color(0xFF0F0F0F) : Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: isDark ? BorderSide(color: Colors.white.withOpacity(0.15), width: 2.0) : BorderSide.none,
+                              ),
+                              onSelected: (value) {
+                                setState(() {
+                                  _sortBy = value;
+                                });
+                              },
+                              itemBuilder: (context) => [
+                                PopupMenuItem(
+                                  value: 'recent',
+                                  child: Text(
+                                    'Đã xem gần nhất',
+                                    style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: 'name',
+                                  child: Text(
+                                    'Theo tên',
+                                    style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF0F0F0F).withOpacity(0.9) : Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isDark ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.3),
+                            width: isDark ? 2.0 : 1.0,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
+                            if (isDark)
+                              BoxShadow(
+                                color: Colors.white.withOpacity(0.05),
+                                spreadRadius: 2,
+                                blurRadius: 12,
+                                offset: const Offset(0, 0),
+                              ),
+                            if (isDark)
+                              BoxShadow(
+                                color: Colors.white.withOpacity(0.08),
+                                spreadRadius: 1,
+                                blurRadius: 6,
+                                offset: const Offset(0, 0),
+                              ),
+                          ],
+                        ),
+                        child: TextField(
+                          onChanged: (value) {
+                            setState(() {
+                              _searchQuery = value;
+                            });
+                          },
+                          style: TextStyle(color: isDark ? Colors.white : Colors.white),
+                          decoration: InputDecoration(
+                            hintText: 'Tìm trong kho món ngon của bạn...',
+                            hintStyle: TextStyle(
+                              color: isDark ? Colors.grey[500] : Colors.white.withOpacity(0.7),
+                              fontSize: 14,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.search,
+                              color: isDark ? Colors.grey[400] : Colors.white.withOpacity(0.7),
+                              size: 20,
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    DropdownButton<String>(
-                      value: _sort,
-                      items: const [
-                        DropdownMenuItem(value: 'Đã xem gần nhất', child: Text('Đã xem gần nhất')),
-                        DropdownMenuItem(value: 'Mới lưu', child: Text('Mới lưu')),
-                      ],
-                      onChanged: (v) => setState(() {
-                        _sort = v ?? _sort;
-                        _currentPage = 1;
-                      }),
-                    ),
-                  ],
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Consumer<RecipeProvider>(
+                    builder: (context, recipeProvider, child) {
+                      if (recipeProvider.isLoading) {
+                        return Center(
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              isDark ? Colors.grey[400]! : const Color(0xFFEF3A16),
+                            ),
+                          ),
+                        );
+                      }
+                      if (recipeProvider.bookmarkedRecipes.isEmpty) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.bookmark_border,
+                                size: 64,
+                                color: isDark ? Colors.grey[600] : Colors.grey[400],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Chưa có công thức nào được lưu',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.grey[300] : Colors.grey[600],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Hãy lưu những công thức yêu thích',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: isDark ? Colors.grey[400] : Colors.grey[500],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      final filteredRecipes = recipeProvider.bookmarkedRecipes
+                          .where((recipe) =>
+                              recipe.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                              (recipe.userName ?? '').toLowerCase().contains(_searchQuery.toLowerCase()))
+                          .toList();
+                      if (_sortBy == 'name') {
+                        filteredRecipes.sort((a, b) {
+                          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+                        });
+                      } else {
+                        final reversedList = filteredRecipes.reversed.toList();
+                        filteredRecipes.clear();
+                        filteredRecipes.addAll(reversedList);
+                      }
+                      return ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: filteredRecipes.length,
+                        itemBuilder: (context, index) {
+                          final recipe = filteredRecipes[index];
+                          return _buildRecipeCard(recipe);
+                        },
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: _buildPagedList(),
-          ),
         ],
       ),
     );
   }
-
-  Widget _buildPagedList() {
-    final posts = _generateMockSavedPosts();
-    final totalPages = (posts.length / _itemsPerPage).ceil();
-    final startIndex = (_currentPage - 1) * _itemsPerPage;
-    final endIndex = (startIndex + _itemsPerPage).clamp(0, posts.length);
-    final currentPosts = posts.sublist(startIndex, endIndex);
-
-    return Column(
-      children: [
-        Expanded(
-          child: ListView.separated(
-            itemCount: currentPosts.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
-            itemBuilder: (ctx, i) {
-              final post = currentPosts[i];
-              return _buildPostCard(post);
-            },
+  Widget _buildRecipeCard(dynamic recipe) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: () {
+        final post = Post(
+          id: recipe.id.toString(),
+          title: recipe.title,
+          author: recipe.userName ?? 'Unknown',
+          minutesAgo: recipe.createdAt != null
+              ? DateTime.now().difference(recipe.createdAt).inMinutes
+              : 0,
+          savedCount: recipe.bookmarksCount,
+          imageUrl: recipe.imageUrl ?? '',
+          ingredients: recipe.ingredients.map<String>((ing) =>
+            '${ing.name}${ing.quantity != null ? " ${ing.quantity}" : ""}${ing.unit != null ? " ${ing.unit}" : ""}'
+          ).toList(),
+          steps: recipe.steps.map<String>((step) =>
+            '${step.stepNumber}. ${step.title}${step.description != null ? ": ${step.description}" : ""}'
+          ).toList(),
+          createdAt: recipe.createdAt,
+        );
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PostDetailScreen(post: post),
           ),
-        ),
-        if (totalPages > 1) _buildPaginationControls(totalPages),
-      ],
-    );
-  }
-
-  Widget _buildPaginationControls(int totalPages) {
-    return Padding(
-      padding: const EdgeInsets.all(12.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          OutlinedButton(
-            onPressed: _currentPage > 1 ? () => setState(() => _currentPage--) : null,
-            child: const Text('Trang trước'),
+        ).then((_) {
+          if (!mounted) return;
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (!mounted) return;
+            context.read<RecipeProvider>().loadRecentlyViewedRecipes(limit: 9);
+          });
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF0F0F0F) : null,
+          gradient: isDark ? null : LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white,
+              Colors.grey[50]!,
+            ],
           ),
-          const SizedBox(width: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEF3A16).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isDark ? Colors.white.withOpacity(0.15) : Colors.grey[200]!,
+            width: isDark ? 2.0 : 1.0,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.05),
+              spreadRadius: 0,
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
-            child: Text('Trang $_currentPage', style: const TextStyle(color: Color(0xFFEF3A16), fontWeight: FontWeight.bold)),
-          ),
-          const SizedBox(width: 12),
-          ElevatedButton(
-            onPressed: _currentPage < totalPages ? () => setState(() => _currentPage++) : null,
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF3A16), foregroundColor: Colors.white),
-            child: const Text('Trang sau'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<Post> _generateMockSavedPosts() {
-    return List.generate(42, (i) {
-      return Post(
-        id: 'saved_post_$i',
-        title: 'Món đã lưu ${i + 1}',
-        author: 'Người dùng ${(i % 5) + 1}',
-        minutesAgo: (i % 1440) + 1, // 1-1440 phút (1 ngày)
-        savedCount: (i % 200) + 20,
-        imageUrl: 'https://picsum.photos/300/200?random=${i + 100}',
-        ingredients: ['Nguyên liệu 1', 'Nguyên liệu 2', 'Nguyên liệu 3'],
-        steps: ['Bước 1', 'Bước 2', 'Bước 3'],
-      );
-    });
-  }
-
-  Widget _buildPostCard(Post post) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PostDetailScreen(post: post),
-            ),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  post.imageUrl,
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 80,
-                      height: 80,
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.image, color: Colors.grey),
-                    );
-                  },
-                ),
+            if (isDark)
+              BoxShadow(
+                color: Colors.white.withOpacity(0.05),
+                spreadRadius: 3,
+                blurRadius: 15,
+                offset: const Offset(0, 0),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      post.title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+            if (isDark)
+              BoxShadow(
+                color: Colors.white.withOpacity(0.08),
+                spreadRadius: 1,
+                blurRadius: 8,
+                offset: const Offset(0, 0),
+              ),
+            if (!isDark)
+              BoxShadow(
+                color: Colors.white.withOpacity(0.8),
+                spreadRadius: 0,
+                blurRadius: 4,
+                offset: const Offset(-2, -2),
+              ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isDark ? Colors.black.withOpacity(0.5) : Colors.black.withOpacity(0.1),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                        if (isDark)
+                          BoxShadow(
+                            color: Colors.white.withOpacity(0.05),
+                            spreadRadius: 2,
+                            blurRadius: 10,
+                            offset: const Offset(0, 0),
+                          ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Bởi ${post.author}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.network(
+                        recipe.imageUrl,
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF0F0F0F) : Colors.grey[300],
+                              borderRadius: BorderRadius.circular(16),
+                              border: isDark ? Border.all(color: Colors.white.withOpacity(0.15), width: 2.0) : null,
+                            ),
+                            child: Icon(
+                              Icons.image_not_supported,
+                              color: isDark ? Colors.grey[600] : Colors.grey,
+                            ),
+                          );
+                        },
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Row(
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.access_time,
-                          size: 14,
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(width: 4),
                         Text(
-                          '${post.minutesAgo} phút trước',
+                          recipe.title,
                           style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : const Color(0xFF1F2937),
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'by ${recipe.userName ?? 'Unknown'}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Icon(
-                          Icons.bookmark,
-                          size: 14,
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${post.savedCount} lượt lưu',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Row(
+                              children: List.generate(5, (starIndex) {
+                                return Icon(
+                                  starIndex < recipe.averageRating.floor()
+                                      ? Icons.star
+                                      : (starIndex < recipe.averageRating
+                                          ? Icons.star_half
+                                          : Icons.star_border),
+                                  size: 16,
+                                  color: const Color(0xFFFFA500),
+                                );
+                              }),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              recipe.averageRating.toStringAsFixed(1),
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.white : const Color(0xFF1F2937),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '(${recipe.ratingsCount})',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDark ? Colors.grey[400] : const Color(0xFF6B7280),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  Consumer<RecipeProvider>(
+                    builder: (context, recipeProvider, child) {
+                      final recipeId = recipe.id;
+                      final isBookmarked = recipeProvider.bookmarkedRecipeIds.contains(recipeId);
+                      return IconButton(
+                        onPressed: () async {
+                          try {
+                            await recipeProvider.toggleBookmarkRecipe(recipeId);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    isBookmarked ? 'Đã bỏ lưu công thức' : 'Đã lưu công thức',
+                                    style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                                  ),
+                                  backgroundColor: isDark ? const Color(0xFF0F0F0F) : (isBookmarked ? Colors.orange : Colors.green),
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    side: isDark ? BorderSide(color: Colors.white.withOpacity(0.15), width: 2.0) : BorderSide.none,
+                                  ),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Lỗi: $e',
+                                    style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                                  ),
+                                  backgroundColor: isDark ? const Color(0xFF0F0F0F) : Colors.red,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    side: isDark ? BorderSide(color: Colors.white.withOpacity(0.15), width: 2.0) : BorderSide.none,
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        icon: Icon(
+                          isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                          color: isBookmarked
+                              ? const Color(0xFFEF3A16)
+                              : (isDark ? Colors.grey[400] : Colors.grey[600]),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
-              const Icon(
-                Icons.chevron_right,
-                color: Colors.grey,
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 }
-
-
